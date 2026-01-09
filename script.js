@@ -1,5 +1,5 @@
 // 【重要】Google Apps Scriptで発行したURLをここに貼り付けてください
-const GAS_URL = "あなたのGASのURL";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzOpcoQtkoLBCUhmfd4RPCV6BhQs8ngf9fLiXYE8ALgDmJsr_ic4LnrSyFj5ChgwJoRhQ/exec";
 
 // 投稿を読み込む関数
 async function getMessages() {
