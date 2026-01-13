@@ -2,28 +2,38 @@
 const GAS_URL = "https://script.google.com/macros/s/AKfycbzOpcoQtkoLBCUhmfd4RPCV6BhQs8ngf9fLiXYE8ALgDmJsr_ic4LnrSyFj5ChgwJoRhQ/exec";
 
 // 投稿を読み込む関数
+// script.js の getMessages 関数を少し改良
 async function getMessages() {
+  const listElement = document.getElementById("messageList");
+  
+  // 読み込み中であることを表示
+  listElement.innerHTML = "<p style='color: #aaaaaa;'>データを取得中...</p>";
+
   try {
     const response = await fetch(GAS_URL);
     const data = await response.json();
     
-    const listElement = document.getElementById("messageList");
     listElement.innerHTML = ""; // 表示をクリア
 
-    // 逆順（新しい順）に表示
-    // getMessages関数内の div.innerHTML の部分を修正
+    if (data.length === 0) {
+      listElement.innerHTML = "<p>まだ投稿がありません。</p>";
+      return;
+    }
+
     data.reverse().forEach(item => {
       const div = document.createElement("div");
       div.className = "post-item";
       div.innerHTML = `
-      <div class="post-header">
-        <span class="post-name">${item.name} さん</span>
-        <span class="post-date">${item.date || ""}</span> </div>
-      <div class="post-text">${item.message}</div>
+        <div class="post-header">
+          <span class="post-name">${item.name} さん</span>
+          <span class="post-date">${item.date || ""}</span>
+        </div>
+        <div class="post-text">${item.message}</div>
       `;
       listElement.appendChild(div);
     });
   } catch (error) {
+    listElement.innerHTML = "<p>読み込みに失敗しました。再試行してください。</p>";
     console.error("読み込みエラー:", error);
   }
 }
