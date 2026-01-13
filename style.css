@@ -158,3 +158,28 @@ footer {
   color: #ffffff;
   padding: 10px;
 }
+/* style.css に追加 */
+.list-header {
+  display: flex;
+  justify-content: space-between; /* タイトルとボタンを左右に離す */
+  align-items: center;
+  border-bottom: 2px solid #800000;
+  margin-bottom: 20px;
+  padding-bottom: 8px;
+}
+
+/* 更新ボタン専用のスタイル */
+.reload-btn {
+  background-color: transparent; /* 背景は透明 */
+  border: 1px solid #ffffff;    /* 白い枠線 */
+  color: #ffffff;
+  padding: 5px 15px;
+  font-size: 14px;
+  border-radius: 20px;          /* 丸みをつける */
+  width: auto;                  /* 幅を自動に */
+}
+
+.reload-btn:hover {
+  background-color: #ffffff;    /* ホバーで白くなる */
+  color: #001200;
+}
