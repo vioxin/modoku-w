@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ログイン - Bakery BBS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <h1>Member Login</h1>
+        <div class="input-group">
+            <input type="text" id="loginId" placeholder="ユーザーID">
+            <input type="password" id="loginPass" placeholder="パスワード">
+            <button onclick="login()">ログイン</button>
+        </div>
+        <p id="errorMsg" style="color: red;"></p>
+    </div>
+
+    <script>
+        const LOGIN_API_URL = "ここにGASのURLを貼る";
+
+        async function login() {
+            const id = document.getElementById("loginId").value;
+            const pass = document.getElementById("loginPass").value;
+            const errorMsg = document.getElementById("errorMsg");
+
+            const response = await fetch(LOGIN_API_URL, {
+                method: "POST",
+                body: JSON.stringify({ id: id, password: pass })
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                // ログイン成功：ユーザー名を保存して移動
+                localStorage.setItem("userName", result.name);
+                location.href = "main.html"; // 飛ぶ先のページ
+            } else {
+                errorMsg.innerText = "IDまたはパスワードが違います";
+            }
+        }
+    </script>
+</body>
+</html>
