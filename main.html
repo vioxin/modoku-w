@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>マイページ - Bakery BBS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Welcome!</h1>
+    </header>
+
+    <section>
+        <h2 id="welcomeMsg">ようこそ！</h2>
+        <p>ここはログインした人だけが見られるページです。</p>
+        
+        <button onclick="logout()" class="reload-btn">ログアウト</button>
+    </section>
+
+    <script>
+        // ログインチェック：名前が保存されていなければログイン画面へ戻す
+        const userName = localStorage.getItem("userName");
+        if (!userName) {
+            location.href = "login.html";
+        } else {
+            document.getElementById("welcomeMsg").innerText = `ようこそ、${userName} さん！`;
+        }
+
+        function logout() {
+            localStorage.removeItem("userName");
+            location.href = "login.html";
+        }
+    </script>
+</body>
+</html>
