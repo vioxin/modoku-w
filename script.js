@@ -1,77 +1,94 @@
 // 【重要】Google Apps Scriptで発行したURLをここに貼り付けてください
 const GAS_URL = "https://script.google.com/macros/s/AKfycbzOpcoQtkoLBCUhmfd4RPCV6BhQs8ngf9fLiXYE8ALgDmJsr_ic4LnrSyFj5ChgwJoRhQ/exec";
 
-// 投稿を読み込む関数
-// script.js の getMessages 関数を少し改良
+
+// 1. メッセージを取得して表示する関数
 async function getMessages() {
   const listElement = document.getElementById("messageList");
-  
-  // 読み込み中であることを表示
-  listElement.innerHTML = "<p style='color: #aaaaaa;'>データを取得中...</p>";
+  const statusElement = document.getElementById("syncStatus");
 
+  // --- キャッシュの読み込み ---
+  const cachedData = localStorage.getItem("bbs_cache");
+  if (cachedData) {
+    renderMessages(JSON.parse(cachedData));
+    statusElement.innerText = "同期中...";
+    statusElement.classList.add("is-loading");
+    listElement.classList.add("loading-fade");
+  } else {
+    listElement.innerHTML = "<p>読み込み中...</p>";
+  }
+
+  // --- サーバーから最新取得 ---
   try {
     const response = await fetch(GAS_URL);
     const data = await response.json();
     
-    listElement.innerHTML = ""; // 表示をクリア
-
-    if (data.length === 0) {
-      listElement.innerHTML = "<p>まだ投稿がありません。</p>";
-      return;
-    }
-
-    data.reverse().forEach(item => {
-      const div = document.createElement("div");
-      div.className = "post-item";
-      div.innerHTML = `
-        <div class="post-header">
-          <span class="post-name">${item.name} さん</span>
-          <span class="post-date">${item.date || ""}</span>
-        </div>
-        <div class="post-text">${item.message}</div>
-      `;
-      listElement.appendChild(div);
-    });
+    localStorage.setItem("bbs_cache", JSON.stringify(data));
+    renderMessages(data);
+    
+    statusElement.innerText = "最新の状態";
+    setTimeout(() => statusElement.classList.remove("is-loading"), 2000);
   } catch (error) {
-    listElement.innerHTML = "<p>読み込みに失敗しました。再試行してください。</p>";
-    console.error("読み込みエラー:", error);
+    console.error("エラー:", error);
+    statusElement.innerText = "オフライン表示中";
+  } finally {
+    listElement.classList.remove("loading-fade");
   }
 }
 
-// 投稿を送信する関数
-async function postMessage() {
-  const name = document.getElementById("userName").value;
-  const message = document.getElementById("userMsg").value;
+// 2. 画面に投稿を描画する関数
+function renderMessages(data) {
+  const listElement = document.getElementById("messageList");
+  listElement.innerHTML = "";
 
-  if (!name || !message) {
+  if (!data || data.length === 0) {
+    listElement.innerHTML = "<p>まだ投稿がありません。</p>";
+    return;
+  }
+
+  // 最新が上に来るように逆順で表示
+  [...data].reverse().forEach(item => {
+    const div = document.createElement("div");
+    div.className = "post-item";
+    div.innerHTML = `
+      <div class="post-header">
+        <span class="post-name">${item.name} さん</span>
+        <span class="post-date">${item.date || ""}</span>
+      </div>
+      <div class="post-text">${item.message}</div>
+    `;
+    listElement.appendChild(div);
+  });
+}
+
+// 3. 投稿を送信する関数
+async function postMessage() {
+  const nameEl = document.getElementById("userName");
+  const msgEl = document.getElementById("userMsg");
+  const btn = document.getElementById("postBtn");
+
+  if (!nameEl.value || !msgEl.value) {
     alert("名前とメッセージを入力してください");
     return;
   }
 
-  // 送信中はボタンを無効化
-  const btn = document.querySelector("button");
   btn.disabled = true;
   btn.innerText = "送信中...";
 
   try {
     await fetch(GAS_URL, {
       method: "POST",
-      body: JSON.stringify({ name: name, message: message })
+      body: JSON.stringify({ name: nameEl.value, message: msgEl.value })
     });
-
-    // 入力欄を空にする
-    document.getElementById("userName").value = "";
-    document.getElementById("userMsg").value = "";
-    
-    // 一覧を再読み込み
-    await getMessages();
-  } catch (error) {
-    alert("投稿に失敗しました");
+    msgEl.value = ""; // メッセージのみクリア
+    await getMessages(); // リストを更新
+  } catch (e) {
+    alert("送信に失敗しました");
   } finally {
     btn.disabled = false;
     btn.innerText = "投稿する";
   }
 }
 
-// ページを開いた時に実行
+// 起動時に実行
 getMessages();
