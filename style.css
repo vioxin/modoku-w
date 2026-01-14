@@ -1,185 +1,127 @@
 /* ===== 全体のスタイル ===== */
 body {
   margin: 0;
-  font-family: sans-serif;
+  font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif;
   background-color: #001200;
+  color: #ffffff;
 }
 
 header {
-  background-image: url(images/IMG_0304.jpeg);
-  padding: 100px;
+  background-image: url(images/IMG_0304.jpeg); /* 画像がない場合は背景色のみ表示されます */
+  background-color: #333;
+  padding: 80px 20px;
   background-size: cover;
   background-position: center;
+  text-align: center;
 }
 
 h1 {
   color: white;
-  font-size: 80px;
-  text-align: center;
+  font-size: 60px;
   margin: 0;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
 }
 
-/* ===== 投稿フォーム ===== */
+/* ===== フォーム部分 ===== */
 section {
-  padding: 32px;
-  color: white;
+  padding: 30px 20px;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 h2 {
   color: #ffffff;
-  border-bottom: 2px solid #800000;
-  padding-bottom: 8px;
+  border-left: 5px solid #800000;
+  padding-left: 15px;
+  margin-bottom: 20px;
 }
 
 .input-group {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-width: 500px;
-  margin: 0 auto;
 }
 
 input, textarea {
-  padding: 10px;
+  padding: 12px;
   border-radius: 5px;
-  border: none;
+  border: 1px solid #333;
+  background-color: #f9f9f9;
+  font-size: 16px;
 }
 
-button {
+#postBtn {
   background-color: #800000;
   color: white;
-  padding: 10px;
+  padding: 12px;
   border: none;
+  border-radius: 5px;
   cursor: pointer;
   font-weight: bold;
+  font-size: 16px;
 }
 
-/* ===== 投稿一覧 ===== */
-#messageList {
-  margin-top: 20px;
+#postBtn:disabled {
+  background-color: #555;
 }
 
-.post-item {
-  background-color: rgba(255, 255, 255, 0.1);
-  padding: 15px;
-  margin-bottom: 10px;
-  border-left: 5px solid #800000;
-}
-
-.post-name {
-  font-weight: bold;
-  color: #ffcc00;
-  margin-bottom: 5px;
-}
-
-footer {
-  text-align: center;
-  background-color: #800000;
-  color: #ffffff;
-  padding: 10px;
-}
-/* ===== 全体のスタイル ===== */
-body {
-  margin: 0;
-  font-family: sans-serif;
-  background-color: #001200;
-}
-
-header {
-  background-image: url(images/IMG_0304.jpeg);
-  padding: 100px;
-  background-size: cover;
-  background-position: center;
-}
-
-h1 {
-  color: white;
-  font-size: 80px;
-  text-align: center;
-  margin: 0;
-}
-
-/* ===== 投稿フォーム ===== */
-section {
-  padding: 32px;
-  color: white;
-}
-
-h2 {
-  color: #ffffff;
-  border-bottom: 2px solid #800000;
-  padding-bottom: 8px;
-}
-
-.input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-width: 500px;
-  margin: 0 auto;
-}
-
-input, textarea {
-  padding: 10px;
-  border-radius: 5px;
-  border: none;
-}
-
-button {
-  background-color: #800000;
-  color: white;
-  padding: 10px;
-  border: none;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-/* ===== 投稿一覧 ===== */
-#messageList {
-  margin-top: 20px;
-}
-
-.post-item {
-  background-color: rgba(255, 255, 255, 0.1);
-  padding: 15px;
-  margin-bottom: 10px;
-  border-left: 5px solid #800000;
-}
-
-.post-name {
-  font-weight: bold;
-  color: #ffcc00;
-  margin-bottom: 5px;
-}
-
-footer {
-  text-align: center;
-  background-color: #800000;
-  color: #ffffff;
-  padding: 10px;
-}
-/* style.css に追加 */
+/* ===== 投稿一覧部分 ===== */
 .list-header {
   display: flex;
-  justify-content: space-between; /* タイトルとボタンを左右に離す */
+  justify-content: space-between;
   align-items: center;
-  border-bottom: 2px solid #800000;
-  margin-bottom: 20px;
-  padding-bottom: 8px;
+  margin-top: 20px;
 }
 
-/* 更新ボタン専用のスタイル */
-.reload-btn {
-  background-color: transparent; /* 背景は透明 */
-  border: 1px solid #ffffff;    /* 白い枠線 */
-  color: #ffffff;
-  padding: 5px 15px;
+.sync-text {
   font-size: 14px;
-  border-radius: 20px;          /* 丸みをつける */
-  width: auto;                  /* 幅を自動に */
+  color: #ffcc00;
+  font-weight: normal;
+  opacity: 0;
+  transition: opacity 0.3s;
 }
 
-.reload-btn:hover {
-  background-color: #ffffff;    /* ホバーで白くなる */
-  color: #001200;
+.is-loading { opacity: 1; }
+
+.reload-btn {
+  background-color: transparent;
+  border: 1px solid #ffffff;
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+.post-item {
+  background-color: rgba(255, 255, 255, 0.05);
+  padding: 15px;
+  margin-bottom: 15px;
+  border-radius: 5px;
+  border-bottom: 1px solid #222;
+  transition: opacity 0.3s;
+}
+
+.loading-fade { opacity: 0.5; }
+
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.post-name {
+  font-weight: bold;
+  color: #ffcc00;
+}
+
+.post-date {
+  font-size: 12px;
+  color: #aaaaaa;
+}
+
+footer {
+  text-align: center;
+  padding: 20px;
+  background-color: #800000;
+  font-size: 14px;
 }
