@@ -2,37 +2,38 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>moudoku掲示板</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>パン屋さんの掲示板</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <header>
-  <h1>moudoku掲示板</h1>
+  <h1>Bakery Board</h1>
 </header>
 
-<section class="post-form">
+<section class="post-section">
   <h2>掲示板に書き込む</h2>
   <div class="input-group">
     <input type="text" id="userName" placeholder="お名前">
-    <textarea id="userMsg" placeholder="メッセージを入力してください"></textarea>
-    <button onclick="postMessage()">投稿する</button>
+    <textarea id="userMsg" placeholder="メッセージを入力してください" rows="3"></textarea>
+    <button onclick="postMessage()" id="postBtn">投稿する</button>
   </div>
 </section>
+
 <section class="ph">
   <div class="photo">
     <div class="list-header">
-      <h2>投稿一覧</h2>
+      <h2>投稿一覧 <span id="syncStatus" class="sync-text"></span></h2>
       <button onclick="getMessages()" class="reload-btn">最新に更新</button>
     </div>
     <div id="messageList">
-      <p>読み込み中...</p>
-    </div>
+      </div>
   </div>
 </section>
 
 <footer>
-  <p>&copy; 2026 vioxin-moudoku</p>
+  <p>&copy; 2024 My Bakery</p>
 </footer>
 
 <script src="script.js"></script>
