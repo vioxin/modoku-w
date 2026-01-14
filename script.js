@@ -92,3 +92,27 @@ async function postMessage() {
 
 // 起動時に実行
 getMessages();
+// script.js の最後の方に追加
+
+function updateNavigation() {
+  const navArea = document.getElementById("nav-area");
+  const userName = localStorage.getItem("userName"); // ログイン情報を確認
+
+  if (userName) {
+    // ログインしている時
+    navArea.innerHTML = `
+      <div class="user-info">
+        <span>こんにちは、${userName} さん</span>
+        <button onclick="location.href='main.html'" class="nav-btn">マイページへ</button>
+      </div>
+    `;
+  } else {
+    // ログインしていない時
+    navArea.innerHTML = `
+      <button onclick="location.href='login.html'" class="nav-btn login-style">ログイン</button>
+    `;
+  }
+}
+
+// ページ読み込み時に実行
+window.addEventListener('load', updateNavigation);
