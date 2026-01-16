@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>新規登録 - Bakery BBS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <h1>Sign Up</h1>
+        <div class="input-group">
+            <input type="text" id="id" placeholder="希望ID">
+            <input type="text" id="name" placeholder="お名前（表示名）">
+            <input type="password" id="pass" placeholder="パスワード">
+            <button onclick="signUp()">登録する</button>
+        </div>
+        <p id="msg"></p>
+        <a href="login.html" style="color: white; font-size: 12px;">ログインはこちら</a>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbzzdPk8BxStCsLa0iyhkHeLp3AGnbcvn5FtMrFjRSIvO2aNXQZMdvlsdC44Mrmn6MZ7/exec";
+        async function signUp() {
+            const res = await fetch(API_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    action: "signup",
+                    id: document.getElementById("id").value,
+                    name: document.getElementById("name").value,
+                    password: document.getElementById("pass").value
+                })
+            });
+            const result = await res.json();
+            if(result.success) {
+                alert("登録完了！ログインしてください");
+                location.href = "login.html";
+            } else {
+                document.getElementById("msg").innerText = result.message;
+            }
+        }
+    </script>
+</body>
+</html>
