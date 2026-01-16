@@ -32,6 +32,7 @@
 
             if (result.success) {
                 // ログイン成功：ユーザー名を保存して移動
+                localStorage.setItem("userId", result.id);
                 localStorage.setItem("userName", result.name);
                 location.href = "main.html"; // 飛ぶ先のページ
             } else {
