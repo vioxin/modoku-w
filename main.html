@@ -2,33 +2,108 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>マイページ - Bakery BBS</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
-        <h1>Welcome!</h1>
+        <h1>My Page</h1>
     </header>
 
     <section>
         <h2 id="welcomeMsg">ようこそ！</h2>
-        <p>ここはログインした人だけが見られるページです。</p>
+        <p>ここはログインした人だけが見られる専用ページです。</p>
         
-        <button onclick="logout()" class="reload-btn">ログアウト</button>
+        <div class="btn-group">
+            <button onclick="location.href='index.html'" class="nav-btn">掲示板へ戻る</button>
+            <button onclick="logout()" class="reload-btn">ログアウト</button>
+        </div>
     </section>
 
+    <section class="profile-section">
+        <h2>プロフィール変更</h2>
+        <p style="font-size: 13px; color: #aaaaaa;">ユーザー名やパスワードを変更できます。</p>
+        <div class="input-group">
+            <input type="text" id="newName" placeholder="新しいユーザー名">
+            <input type="password" id="newPass" placeholder="新しいパスワード（変更する場合のみ）">
+            <button onclick="updateProfile()" id="updateBtn">情報を更新する</button>
+        </div>
+        <p id="updateMsg"></p>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 My Bakery</p>
+    </footer>
+
     <script>
-        // ログインチェック：名前が保存されていなければログイン画面へ戻す
+        // 【重要】あなたのGASのURLをここに貼ってください
+        const API_URL = "あなたのGASのURL";
+        
+        // 1. ログインチェック（ページを開いた瞬間に実行）
+        const userId = localStorage.getItem("userId");
         const userName = localStorage.getItem("userName");
-        if (!userName) {
+
+        if (!userId) {
+            // IDが保存されていなければ未ログインとみなし、ログイン画面へ飛ばす
+            alert("ログインが必要です");
             location.href = "login.html";
         } else {
             document.getElementById("welcomeMsg").innerText = `ようこそ、${userName} さん！`;
+            document.getElementById("newName").value = userName; // 最初から現在の名前を入れておく
         }
 
+        // 2. プロフィール更新機能
+        async function updateProfile() {
+            const newName = document.getElementById("newName").value;
+            const newPass = document.getElementById("newPass").value;
+            const btn = document.getElementById("updateBtn");
+            const msg = document.getElementById("updateMsg");
+
+            if (!newName) {
+                alert("ユーザー名は空にできません");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "更新中...";
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        action: "update",
+                        currentId: userId,
+                        newName: newName,
+                        newPassword: newPass
+                    })
+                });
+                const result = await res.json();
+
+                if (result.success) {
+                    // ブラウザに保存している名前も更新する
+                    localStorage.setItem("userName", result.newName);
+                    alert("情報を更新しました！");
+                    location.reload(); // ページを再読み込みして表示を更新
+                } else {
+                    msg.innerText = "更新に失敗しました。";
+                }
+            } catch (e) {
+                console.error(e);
+                alert("エラーが発生しました");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "情報を更新する";
+            }
+        }
+
+        // 3. ログアウト機能
         function logout() {
-            localStorage.removeItem("userName");
-            location.href = "login.html";
+            if(confirm("ログアウトしますか？")) {
+                localStorage.removeItem("userId");
+                localStorage.removeItem("userName");
+                location.href = "index.html";
+            }
         }
     </script>
 </body>
