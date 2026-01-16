@@ -194,3 +194,70 @@ footer {
   font-size: 14px;
   text-shadow: 1px 1px 2px black;
 }
+/* --- メニューボタン (左上) --- */
+.menu-btn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  font-size: 30px;
+  color: white;
+  cursor: pointer;
+  z-index: 101; /* 他の要素より上に */
+}
+
+/* --- サイドメニュー本体 --- */
+.side-menu {
+  position: fixed;
+  top: 0;
+  left: -250px; /* 最初は画面の外（左）に隠す */
+  width: 250px;
+  height: 100%;
+  background-color: #001200; /* 背景色 */
+  border-right: 1px solid #800000;
+  transition: 0.3s; /* スライドのアニメーション */
+  z-index: 200;
+  padding-top: 60px;
+}
+
+/* メニューが開いている時 */
+.side-menu.open {
+  left: 0;
+}
+
+.side-menu ul {
+  list-style: none;
+  padding: 0;
+}
+
+.side-menu ul li a {
+  display: block;
+  padding: 15px 25px;
+  color: white;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.side-menu ul li a:hover {
+  background-color: #800000;
+}
+
+/* 閉じるボタン */
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  font-size: 30px;
+  color: white;
+  cursor: pointer;
+}
+
+/* --- 右上ナビゲーションの調整 --- */
+.guest-nav {
+  display: flex;
+  gap: 10px;
+}
+
+.signup-style {
+  background-color: white !important;
+  color: #800000 !important;
+}
