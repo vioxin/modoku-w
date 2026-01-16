@@ -9,9 +9,21 @@
 <body>
 
 <header>
-  <div id="nav-area" class="nav-container">
-    </div>
-  <h1>もうどくけいじばん</h1>
+  <div class="menu-btn" onclick="toggleMenu()">☰</div>
+
+  <nav id="side-menu" class="side-menu">
+    <div class="close-btn" onclick="toggleMenu()">×</div>
+    <ul>
+      <li><a href="index.html">ホーム</a></li>
+      <li><a href="signup.html">新規登録</a></li>
+      <li><a href="login.html">ログイン</a></li>
+      <li><a href="main.html">マイページ</a></li>
+    </ul>
+  </nav>
+
+  <div id="nav-area" class="nav-container"></div>
+  
+  <h1>modoku-w</h1>
 </header>
 
 <section class="post-section">
