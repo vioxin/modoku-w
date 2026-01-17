@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>お知らせ - modoku-w</title>
+    <style>
+        /* 全体のスタイル（掲示板ページと合わせると統一感が出ます） */
+        body {
+            font-family: "Helvetica Neue", Arial, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        h1 { color: #2c3e50; margin: 0; }
+        .back-link {
+            text-decoration: none;
+            color: #3498db;
+            font-weight: bold;
+        }
+
+        /* お知らせ一覧のスタイル */
+        #news-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .news-item {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .news-date {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+        .news-title {
+            font-size: 1.25em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            border-left: 4px solid #3498db;
+            padding-left: 10px;
+        }
+        .news-inform {
+            line-height: 1.6;
+            white-space: pre-wrap; /* 改行を反映させる */
+        }
+        .loading {
+            text-align: center;
+            color: #7f8c8d;
+            margin-top: 50px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>お知らせ</h1>
+        <a href="index.html" class="back-link">← 掲示板へ戻る</a>
+    </header>
+
+    <div id="news-container">
+        <p class="loading">お知らせを読み込んでいます...</p>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // 【設定】お知らせ用GASのURLをここに貼り付けてください
+    // ==========================================
+    const NEWS_GAS_URL = "https://script.google.com/macros/s/AKfycbzOm_RDGEyq_kPsbER9GT4vTwZD68X39dgrZ0-udH1CyTN9sQcjW3_MgRmAd29BwLjIsQ/exec";
+
+    async function fetchNews() {
+        const container = document.getElementById('news-container');
+        
+        try {
+            // GASからデータを取得 (doGetを実行)
+            const response = await fetch(NEWS_GAS_URL);
+            const data = await response.json();
+
+            // 読み込み中メッセージを消去
+            container.innerHTML = '';
+
+            if (data.length === 0) {
+                container.innerHTML = '<p class="loading">現在お知らせはありません。</p>';
+                return;
+            }
+
+            // 取得したデータをループして表示
+            data.forEach(item => {
+                const newsHtml = `
+                    <div class="news-item">
+                        <div class="news-date">${item.date}</div>
+                        <div class="news-title">${item.title}</div>
+                        <div class="news-inform">${item.inform}</div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', newsHtml);
+            });
+
+        } catch (error) {
+            console.error('Error:', error);
+            container.innerHTML = '<p class="loading" style="color: red;">お知らせの取得に失敗しました。</p>';
+        }
+    }
+
+    // ページ表示時に実行
+    fetchNews();
+</script>
+
+</body>
+</html>
