@@ -23,10 +23,13 @@
             const id = document.getElementById("loginId").value;
             const pass = document.getElementById("loginPass").value;
             const errorMsg = document.getElementById("errorMsg");
-
+            if (!id || !pass) {
+                errorMsg.innerText = "IDとパスワードを入力してください";
+                return;
+            }
             const response = await fetch(LOGIN_API_URL, {
                 method: "POST",
-                body: JSON.stringify({ id: id, password: pass })
+                body: JSON.stringify({ action: "login", id: id, password: pass })
             });
             const result = await response.json();
 
