@@ -100,7 +100,7 @@
         fetch(BBS_GAS_URL).then(r => r.json()).then(d => renderTable("postListBody", d, p => `<td>${p.date}</td><td>${p.name}</td><td>${p.message || p.inform}</td><td><button class="del-btn" onclick="deleteItem('${BBS_GAS_URL}','admin_delete_post','row',${p.row})">削除</button></td>`));
 
         // お知らせ取得
-        fetch(NEWS_GAS_URL).then(r => r.json()).then(d => renderTable("newsListBody", d, n => `<td>${n.date}</td><td>${n.title}</td><td><button class="del-btn" onclick="deleteItem('${NEWS_GAS_URL}','admin_delete_news','row',${n.row})">削除</button></td>`));
+        fetch(NEWS_GAS_URL).then(r => r.json()).then(d => renderTable("newsListBody", d, n => `<td>${n.date}</td><td>${n.tittle}</td><td><button class="del-btn" onclick="deleteItem('${NEWS_GAS_URL}','admin_delete_news','row',${n.row})">削除</button></td>`));
     }
 
     function renderTable(id, data, htmlFunc) {
