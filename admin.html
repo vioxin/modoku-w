@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理者パネル - modoku-w</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1, h2 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .admin-section { margin-top: 30px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f8f8f8; }
+        .del-btn { background: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+        .del-btn:hover { background: #c0392b; }
+        #loginSection { text-align: center; margin-top: 100px; }
+        input[type="password"] { padding: 10px; width: 250px; border: 1px solid #ddd; border-radius: 4px; }
+        .refresh-btn { float: right; padding: 8px 15px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="loginSection">
+        <h1>Admin Authentication</h1>
+        <p>管理パスワードを入力してください</p>
+        <input type="password" id="adminInput" placeholder="Password">
+        <button onclick="adminAuth()" style="padding: 10px 20px; cursor: pointer;">ログイン</button>
+        <p id="loginError" style="color: red;"></p>
+    </div>
+
+    <div id="adminContent" style="display:none;">
+        <h1>管理者ダッシュボード</h1>
+        <button class="refresh-btn" onclick="loadAllData()">データ更新</button>
+
+        <div class="admin-section">
+            <h2>ユーザーアカウント管理</h2>
+            <table id="userTable">
+                <thead>
+                    <tr><th>ユーザーID</th><th>表示名</th><th>操作</th></tr>
+                </thead>
+                <tbody id="userListBody"></tbody>
+            </table>
+        </div>
+
+        <div class="admin-section">
+            <h2>掲示板投稿管理</h2>
+            <table id="postTable">
+                <thead>
+                    <tr><th>日時</th><th>名前</th><th>メッセージ</th><th>操作</th></tr>
+                </thead>
+                <tbody id="postListBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // 設定：2つのGAS URLをここに貼り付けてください
+    // ==========================================
+    const AUTH_GAS_URL = "https://script.google.com/macros/s/AKfycbzzdPk8BxStCsLa0iyhkHeLp3AGnbcvn5FtMrFjRSIvO2aNXQZMdvlsdC44Mrmn6MZ7/exec";
+    const BBS_GAS_URL = "https://script.google.com/macros/s/AKfycbzOpcoQtkoLBCUhmfd4RPCV6BhQs8ngf9fLiXYE8ALgDmJsr_ic4LnrSyFj5ChgwJoRhQ/exec";
+
+    let currentAdminPass = "";
+
+    // 管理者ログイン認証
+    async function adminAuth() {
+        const pass = document.getElementById("adminInput").value;
+        const errorMsg = document.getElementById("loginError");
+
+        try {
+            const res = await fetch(AUTH_GAS_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "admin_login", password: pass })
+            });
+            const result = await res.json();
+
+            if (result.success) {
+                currentAdminPass = pass;
+                document.getElementById("loginSection").style.display = "none";
+                document.getElementById("adminContent").style.display = "block";
+                loadAllData();
+            } else {
+                errorMsg.innerText = "パスワードが正しくありません。";
+            }
+        } catch (e) {
+            errorMsg.innerText = "認証通信エラーが発生しました。";
+        }
+    }
+
+    // 両方のGASから最新データを取得
+    async function loadAllData() {
+        // 1. アカウント一覧の取得（AUTH_GASから）
+        try {
+            const userRes = await fetch(AUTH_GAS_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "admin_get_users", adminPass: currentAdminPass })
+            });
+            const userData = await userRes.json();
+            renderUsers(userData.users);
+        } catch (e) { console.error("User Load Error:", e); }
+
+        // 2. 投稿一覧の取得（BBS_GASのGETリクエストから）
+        try {
+            const postRes = await fetch(BBS_GAS_URL);
+            const postData = await postRes.json();
+            renderPosts(postData);
+        } catch (e) { console.error("Post Load Error:", e); }
+    }
+
+    // ユーザー情報の描画
+    function renderUsers(users) {
+        const tbody = document.getElementById("userListBody");
+        tbody.innerHTML = "";
+        users.forEach(u => {
+            const row = `<tr>
+                <td>${u.id}</td>
+                <td>${u.name}</td>
+                <td><button class="del-btn" onclick="deleteUser('${u.id}')">削除</button></td>
+            </tr>`;
+            tbody.innerHTML += row;
+        });
+    }
+
+    // 投稿情報の描画
+    function renderPosts(posts) {
+        const tbody = document.getElementById("postListBody");
+        tbody.innerHTML = "";
+        // 掲示板用GASのdoGetが返すデータ構造に合わせてループ
+        posts.forEach(p => {
+            const row = `<tr>
+                <td>${p.date}</td>
+                <td>${p.name}</td>
+                <td>${p.message}</td>
+                <td><button class="del-btn" onclick="deletePost(${p.row})">削除</button></td>
+            </tr>`;
+            tbody.innerHTML += row;
+        });
+    }
+
+    // ユーザー削除実行
+    async function deleteUser(targetId) {
+        if (!confirm(`ユーザー [${targetId}] を削除しますか？`)) return;
+        
+        const res = await fetch(AUTH_GAS_URL, {
+            method: "POST",
+            body: JSON.stringify({ action: "admin_delete_user", targetId: targetId, adminPass: currentAdminPass })
+        });
+        const result = await res.json();
+        if (result.success) {
+            alert("ユーザーを削除しました");
+            loadAllData();
+        }
+    }
+
+    // 投稿削除実行
+    async function deletePost(rowNum) {
+        if (!confirm("この投稿を削除しますか？")) return;
+        
+        const res = await fetch(BBS_GAS_URL, {
+            method: "POST",
+            body: JSON.stringify({ action: "admin_delete_post", row: rowNum, adminPass: currentAdminPass })
+        });
+        const result = await res.json();
+        if (result.success) {
+            alert("投稿を削除しました");
+            loadAllData();
+        }
+    }
+</script>
+
+</body>
+</html>
