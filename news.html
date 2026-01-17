@@ -5,123 +5,149 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>お知らせ - modoku-w</title>
     <style>
-        /* 全体のスタイル（掲示板ページと合わせると統一感が出ます） */
+        /* 掲示板（index.html）と共通のメインデザイン */
         body {
-            font-family: "Helvetica Neue", Arial, sans-serif;
-            background-color: #f4f7f6;
-            color: #333;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
             margin: 0;
+            display: flex;
+        }
+
+        /* サイドバー（必要に応じて共通化してください） */
+        .sidebar {
+            width: 250px;
+            background-color: #ffffff;
+            height: 100vh;
+            position: fixed;
+            border-right: 1px solid #ddd;
             padding: 20px;
+            box-sizing: border-box;
         }
-        .container {
+        .sidebar h2 { font-size: 1.2em; color: #1877f2; }
+        .sidebar a {
+            display: block;
+            padding: 10px;
+            color: #333;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 5px;
+        }
+        .sidebar a:hover { background-color: #f0f2f5; }
+        .sidebar a.active { background-color: #e7f3ff; color: #1877f2; font-weight: bold; }
+
+        /* メインコンテンツエリア */
+        .main-content {
+            margin-left: 250px;
+            flex: 1;
+            padding: 20px;
             max-width: 800px;
-            margin: 0 auto;
         }
+
         header {
+            background-color: #fff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        /* お知らせカード（掲示板の投稿風） */
+        .news-card {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            border: 1px solid #ddd;
+        }
+        .news-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
-        }
-        h1 { color: #2c3e50; margin: 0; }
-        .back-link {
-            text-decoration: none;
-            color: #3498db;
-            font-weight: bold;
-        }
-
-        /* お知らせ一覧のスタイル */
-        #news-container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .news-item {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-        .news-date {
-            font-size: 0.9em;
-            color: #7f8c8d;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
         }
         .news-title {
-            font-size: 1.25em;
+            font-size: 1.2em;
             font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 10px;
-            border-left: 4px solid #3498db;
-            padding-left: 10px;
+            color: #1c1e21;
         }
-        .news-inform {
-            line-height: 1.6;
-            white-space: pre-wrap; /* 改行を反映させる */
+        .news-date {
+            font-size: 0.85em;
+            color: #65676b;
         }
-        .loading {
-            text-align: center;
-            color: #7f8c8d;
-            margin-top: 50px;
+        .news-body {
+            font-size: 1em;
+            line-height: 1.5;
+            color: #050505;
+            white-space: pre-wrap;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <h1>お知らせ</h1>
-        <a href="index.html" class="back-link">← 掲示板へ戻る</a>
-    </header>
-
-    <div id="news-container">
-        <p class="loading">お知らせを読み込んでいます...</p>
+    <div class="sidebar">
+        <h2>modoku-w</h2>
+        <a href="index.html">掲示板</a>
+        <a href="news.html" class="active">お知らせ</a>
+        <a href="login.html">ログイン</a>
     </div>
-</div>
+
+    <div class="main-content">
+        <header>
+            <h1>📢 管理者からのお知らせ</h1>
+        </header>
+
+        <div id="news-list">
+            <p style="text-align: center; color: #65676b;">読み込み中...</p>
+        </div>
+    </div>
 
 <script>
-    // ==========================================
-    // 【設定】お知らせ用GASのURLをここに貼り付けてください
-    // ==========================================
     const NEWS_GAS_URL = "https://script.google.com/macros/s/AKfycbzOm_RDGEyq_kPsbER9GT4vTwZD68X39dgrZ0-udH1CyTN9sQcjW3_MgRmAd29BwLjIsQ/exec";
 
-    async function fetchNews() {
-        const container = document.getElementById('news-container');
-        
+    async function loadNews() {
+        const list = document.getElementById('news-list');
         try {
-            // GASからデータを取得 (doGetを実行)
             const response = await fetch(NEWS_GAS_URL);
             const data = await response.json();
-
-            // 読み込み中メッセージを消去
-            container.innerHTML = '';
+            list.innerHTML = '';
 
             if (data.length === 0) {
-                container.innerHTML = '<p class="loading">現在お知らせはありません。</p>';
+                list.innerHTML = '<p>お知らせはまだありません。</p>';
                 return;
             }
 
-            // 取得したデータをループして表示
             data.forEach(item => {
-                const newsHtml = `
-                    <div class="news-item">
-                        <div class="news-date">${item.date}</div>
-                        <div class="news-title">${item.title}</div>
-                        <div class="news-inform">${item.inform}</div>
-                    </div>
-                `;
-                container.insertAdjacentHTML('beforeend', newsHtml);
-            });
+                const card = document.createElement('div');
+                card.className = 'news-card';
+                
+                // 【修正ポイント】GAS側でタイトルに使っている列名と合わせる
+                // スプレッドシートの1行目が「tittle」なら item.tittle にする
+                const titleText = item.title || item.tittle || "無題のお知らせ";
+                const infoText = item.inform || item.message || "";
 
-        } catch (error) {
-            console.error('Error:', error);
-            container.innerHTML = '<p class="loading" style="color: red;">お知らせの取得に失敗しました。</p>';
+                card.innerHTML = `
+                    <div class="news-header">
+                        <span class="news-title">${titleText}</span>
+                        <span class="news-date">${item.date || ''}</span>
+                    </div>
+                    <div class="news-body">${infoText}</div>
+                `;
+                list.appendChild(card);
+            });
+        } catch (e) {
+            list.innerHTML = '<p>読み込みに失敗しました。</p>';
         }
     }
 
-    // ページ表示時に実行
-    fetchNews();
+    loadNews();
 </script>
-
 </body>
 </html>
