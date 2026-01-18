@@ -5,20 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>スレッド掲示板 - modoku-w</title>
     <style>
-        /* スタイルは前回のデザインを継承 */
         body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; margin: 0; display: flex; }
         .sidebar { width: 250px; background: white; height: 100vh; position: fixed; border-right: 1px solid #ddd; padding: 20px; box-sizing: border-box; }
+        .sidebar h2 { color: #1877f2; }
         .sidebar a { display: block; padding: 12px; color: #333; text-decoration: none; border-radius: 8px; margin-bottom: 5px; }
+        .sidebar a:hover { background: #f0f2f5; }
         .sidebar a.active { background: #e7f3ff; color: #1877f2; font-weight: bold; }
+        
         .main-content { margin-left: 250px; flex: 1; padding: 20px; max-width: 800px; }
         header { background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd; }
         .thread-item { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; cursor: pointer; border: 1px solid #ddd; }
         .post-card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-bottom: 1px solid #eee; }
         input, textarea { width: 100%; padding: 10px; margin-top: 8px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        .btn-primary { background: #1877f2; color: white; padding: 10px; border: none; border-radius: 6px; width: 100%; cursor: pointer; font-weight: bold; }
+        .btn-primary { background: #1877f2; color: white; padding: 10px; border: none; border-radius: 6px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px;}
+        .btn-refresh { background: #e4e6eb; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
         .hidden { display: none; }
-        .refresh-status { font-size: 0.8em; color: #65676b; }
+        .refresh-status { font-size: 0.8em; color: #65676b; margin-right: 10px; }
     </style>
 </head>
 <body>
@@ -28,7 +31,6 @@
     <a href="index.html">トップ掲示板</a>
     <a href="news.html">お知らせ</a>
     <a href="threads.html" class="active">スレッド掲示板</a>
-    <a href="signup.html">新規登録</a>
     <a href="login.html">ログイン</a>
 </div>
 
@@ -37,7 +39,7 @@
         <h1 id="page-title">スレッド一覧</h1>
         <div>
             <span id="status-label" class="refresh-status"></span>
-            <button class="btn-refresh" onclick="refreshCurrentView()">更新</button>
+            <button class="btn-refresh" onclick="refreshCurrentView()">🔄 更新</button>
         </div>
     </header>
 
@@ -52,7 +54,7 @@
     </div>
 
     <div id="thread-detail-view" class="hidden">
-        <button onclick="showThreadList()">← 戻る</button>
+        <button onclick="showThreadList()" style="margin-bottom:15px; cursor:pointer;">← 戻る</button>
         <div class="card">
             <h3 id="current-thread-label"></h3>
             <input type="text" id="userName" placeholder="名前">
@@ -64,13 +66,12 @@
 </div>
 
 <script>
-    const THREAD_GAS_URL = "https://script.google.com/macros/s/AKfycbzNRFg-clJykjin35_EbMBiTzcdN73mHkqEuDfIQFaj-1Bf9ZSbwGGxnn4kBV8l25OBmw/exec";
+    const THREAD_GAS_URL = "https://script.google.com/macros/s/AKfycbzNRFg-clJykjin35_EbMBiTzcdN73mHkqEuDfIQFaj-1Bf9ZSbwGGxnn4kBV8l25OBmw/exec"; // ★ここにURLを貼る
     let currentThreadId = "";
 
-    // ページ読み込み時の処理
     window.onload = () => {
-        loadThreads(true); // キャッシュから読み込み
-        loadThreads(false); // 最新をフェッチ
+        loadThreads(true);  // まずキャッシュを表示
+        loadThreads(false); // 次に最新を取得
     };
 
     function refreshCurrentView() {
@@ -78,18 +79,16 @@
         else loadPosts(false);
     }
 
-    // --- スレッド一覧の取得 (useCache: true でキャッシュ優先) ---
+    // --- スレッド一覧取得 ---
     async function loadThreads(useCache = false) {
-        const container = document.getElementById('list-container');
         const cacheKey = "cached_thread_list";
-
         if (useCache) {
-            const cachedData = localStorage.getItem(cacheKey);
-            if (cachedData) renderThreads(JSON.parse(cachedData));
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) renderThreads(JSON.parse(cached));
             return;
         }
 
-        document.getElementById('status-label').innerText = "更新中...";
+        document.getElementById('status-label').innerText = "読み込み中...";
         try {
             const res = await fetch(THREAD_GAS_URL);
             const threads = await res.json();
@@ -97,7 +96,7 @@
             renderThreads(threads);
             document.getElementById('status-label').innerText = "最新";
         } catch (e) {
-            document.getElementById('status-label').innerText = "通信エラー";
+            document.getElementById('status-label').innerText = "エラー";
         }
     }
 
@@ -108,30 +107,29 @@
             const div = document.createElement('div');
             div.className = 'thread-item';
             div.onclick = () => showThreadDetail(t.threadName);
-            div.innerHTML = `<b>${t.threadName}</b><br><small>${t.creator} | ${t.date}</small>`;
+            div.innerHTML = `<b>${t.threadName}</b><br><small>${t.creator || '匿名'} | ${t.date || ''}</small>`;
             container.appendChild(div);
         });
     }
 
-    // --- 特定のスレッド表示 ---
+    // --- 詳細画面切り替え ---
     function showThreadDetail(name) {
         currentThreadId = name;
         document.getElementById('thread-list-view').classList.add('hidden');
         document.getElementById('thread-detail-view').classList.remove('hidden');
         document.getElementById('page-title').innerText = name;
+        document.getElementById('current-thread-label').innerText = name + " に書き込む";
         
-        loadPosts(true); // キャッシュから即表示
-        loadPosts(false); // 最新を取得
+        loadPosts(true);
+        loadPosts(false);
     }
 
-    // --- 投稿の取得 ---
+    // --- 投稿取得 ---
     async function loadPosts(useCache = false) {
-        const container = document.getElementById('posts-container');
         const cacheKey = "cached_posts_" + currentThreadId;
-
         if (useCache) {
-            const cachedData = localStorage.getItem(cacheKey);
-            if (cachedData) renderPosts(JSON.parse(cachedData));
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) renderPosts(JSON.parse(cached));
             return;
         }
 
@@ -143,7 +141,7 @@
             renderPosts(posts);
             document.getElementById('status-label').innerText = "最新";
         } catch (e) {
-            document.getElementById('status-label').innerText = "通信エラー";
+            document.getElementById('status-label').innerText = "エラー";
         }
     }
 
@@ -153,7 +151,7 @@
         posts.forEach(p => {
             const div = document.createElement('div');
             div.className = 'post-card';
-            div.innerHTML = `<small><b>${p.name}</b> ${p.date}</small><div style="margin-top:5px;">${p.message}</div>`;
+            div.innerHTML = `<small><b>${p.name}</b> ${p.date}</small><div style="margin-top:5px; white-space:pre-wrap;">${p.message}</div>`;
             container.appendChild(div);
         });
     }
@@ -166,10 +164,52 @@
         loadThreads(true);
     }
 
-    // 作成・投稿処理は前回のロジックと同じ（省略せずに実装してください）
-    async function createThread() { /* ...前回と同じ... */ }
-    async function postToThread() { /* ...前回と同じ... */ }
+    // --- 【重要】スレッド新規作成 ---
+    async function createThread() {
+        const name = document.getElementById('newThreadName').value;
+        const creator = document.getElementById('creatorName').value;
+        if(!name || !creator) return alert("タイトルと名前を入力してください");
 
+        document.getElementById('status-label').innerText = "作成中...";
+        try {
+            const res = await fetch(THREAD_GAS_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "create_thread", threadName: name, creator: creator })
+            });
+            const result = await res.json();
+            if(result.success) {
+                document.getElementById('newThreadName').value = "";
+                await loadThreads(false); // 作成後に強制的に最新を読み込む
+                alert("スレッドを作成しました！");
+            } else {
+                alert("エラー: " + result.msg);
+            }
+        } catch (e) {
+            alert("通信に失敗しました。");
+        }
+    }
+
+    // --- 【重要】投稿の送信 ---
+    async function postToThread() {
+        const name = document.getElementById('userName').value;
+        const msg = document.getElementById('postMessage').value;
+        if(!name || !msg) return alert("名前と本文を入力してください");
+
+        document.getElementById('status-label').innerText = "送信中...";
+        try {
+            const res = await fetch(THREAD_GAS_URL, {
+                method: "POST",
+                body: JSON.stringify({ threadId: currentThreadId, name: name, message: msg })
+            });
+            const result = await res.json();
+            if(result.success) {
+                document.getElementById('postMessage').value = "";
+                await loadPosts(false); // 送信後に強制的に最新を読み込む
+            }
+        } catch (e) {
+            alert("送信に失敗しました。");
+        }
+    }
 </script>
 </body>
 </html>
