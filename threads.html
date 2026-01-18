@@ -5,37 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>スレッド掲示板 - modoku-w</title>
     <style>
-        body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; display: flex; }
+        /* 基本デザイン */
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; margin: 0; display: flex; }
         .sidebar { width: 250px; background: white; height: 100vh; position: fixed; border-right: 1px solid #ddd; padding: 20px; box-sizing: border-box; }
-        .sidebar a { display: block; padding: 10px; color: #333; text-decoration: none; border-radius: 8px; }
+        .sidebar h2 { color: #1877f2; }
+        .sidebar a { display: block; padding: 12px; color: #333; text-decoration: none; border-radius: 8px; margin-bottom: 5px; }
+        .sidebar a:hover { background: #f0f2f5; }
         .sidebar a.active { background: #e7f3ff; color: #1877f2; font-weight: bold; }
         
         .main-content { margin-left: 250px; flex: 1; padding: 20px; max-width: 800px; }
-        header { background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        header { background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        h1 { font-size: 1.5rem; margin: 0; color: #1c1e21; }
         
-        /* スレッド一覧のカード */
-        .thread-card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; cursor: pointer; border: 1px solid #ddd; transition: 0.2s; }
-        .thread-card:hover { border-color: #1877f2; background: #f7f9fc; }
-        .thread-title { font-size: 1.1em; font-weight: bold; color: #1877f2; }
+        /* ボタン類 */
+        button { cursor: pointer; border: none; border-radius: 6px; font-weight: bold; transition: 0.2s; }
+        .btn-refresh { background: #e4e6eb; color: #050505; padding: 8px 15px; }
+        .btn-refresh:hover { background: #d8dadf; }
+        .btn-primary { background: #1877f2; color: white; padding: 10px 20px; margin-top: 10px; width: 100%; }
+        .btn-primary:hover { background: #166fe5; }
+        .btn-back { background: #606770; color: white; padding: 8px 15px; margin-bottom: 15px; }
+
+        /* カードデザイン */
+        .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .thread-item { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; cursor: pointer; border: 1px solid #ddd; }
+        .thread-item:hover { border-color: #1877f2; background: #f7f9fc; }
+        .thread-title { font-size: 1.1em; font-weight: bold; color: #1877f2; margin-bottom: 5px; }
         
-        /* 投稿カード */
-        .post-card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #eee; }
+        .post-card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-bottom: 1px solid #eee; }
         .post-info { font-size: 0.85em; color: #65676b; margin-bottom: 5px; }
-        
-        /* フォーム類 */
-        .form-area { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd; }
-        input, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        button { background: #1877f2; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-top: 10px; }
-        
+        .post-body { line-height: 1.5; white-space: pre-wrap; }
+
+        /* 入力エリア */
+        input, textarea { width: 100%; padding: 10px; margin-top: 8px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; background: #f0f2f5; }
         .hidden { display: none; }
-        .back-btn { background: #606770; margin-bottom: 15px; }
+        
+        @media (max-width: 768px) { .sidebar { display: none; } .main-content { margin-left: 0; } }
     </style>
 </head>
 <body>
 
 <div class="sidebar">
     <h2>modoku-w</h2>
-    <a href="index.html">掲示板</a>
+    <a href="index.html">トップ掲示板</a>
     <a href="news.html">お知らせ</a>
     <a href="threads.html" class="active">スレッド掲示板</a>
     <a href="login.html">ログイン</a>
@@ -44,83 +55,115 @@
 <div class="main-content">
     <header>
         <h1 id="page-title">スレッド一覧</h1>
+        <button id="top-refresh-btn" class="btn-refresh" onclick="refreshCurrentView()">🔄 更新</button>
     </header>
 
     <div id="thread-list-view">
-        <div class="form-area">
+        <div class="card">
             <h3>新しいスレッドを立てる</h3>
-            <input type="text" id="newThreadName" placeholder="スレッドのタイトル">
-            <input type="text" id="creatorName" placeholder="あなたの名前">
-            <button onclick="createThread()">スレッドを作成</button>
+            <input type="text" id="newThreadName" placeholder="スレッドのタイトル（話題）">
+            <input type="text" id="creatorName" placeholder="作成者の名前">
+            <button class="btn-primary" onclick="createThread()">スレッドを作成</button>
         </div>
         <div id="list-container">読み込み中...</div>
     </div>
 
     <div id="thread-detail-view" class="hidden">
-        <button class="back-btn" onclick="showThreadList()">← 一覧に戻る</button>
-        <div class="form-area">
-            <h3 id="current-thread-name"></h3>
+        <button class="btn-back" onclick="showThreadList()">← 一覧に戻る</button>
+        <div class="card">
+            <h3 id="current-thread-label"></h3>
             <input type="text" id="userName" placeholder="名前">
             <textarea id="postMessage" placeholder="メッセージを入力"></textarea>
-            <button onclick="postToThread()">書き込む</button>
+            <button class="btn-primary" onclick="postToThread()">送信する</button>
         </div>
         <div id="posts-container"></div>
     </div>
 </div>
 
 <script>
-    const THREAD_GAS_URL = "https://script.google.com/macros/s/AKfycbzNRFg-clJykjin35_EbMBiTzcdN73mHkqEuDfIQFaj-1Bf9ZSbwGGxnn4kBV8l25OBmw/exec"; // 先ほどデプロイしたURL
+    // ==========================================
+    // 【設定】スレッド用GASのURLを貼り付けてください
+    // ==========================================
+    const THREAD_GAS_URL = "https://script.google.com/macros/s/AKfycbzNRFg-clJykjin35_EbMBiTzcdN73mHkqEuDfIQFaj-1Bf9ZSbwGGxnn4kBV8l25OBmw/exec";
     let currentThreadId = "";
 
-    // スレッド一覧を取得
-    async function loadThreads() {
-        const res = await fetch(THREAD_GAS_URL);
-        const threads = await res.json();
-        const container = document.getElementById('list-container');
-        container.innerHTML = '';
-
-        threads.forEach(t => {
-            const div = document.createElement('div');
-            div.className = 'thread-card';
-            div.onclick = () => showThreadDetail(t.threadName);
-            div.innerHTML = `
-                <div class="thread-title">${t.threadName}</div>
-                <div style="font-size:0.8em; color:gray;">作成者: ${t.creator} | ${t.date}</div>
-            `;
-            container.appendChild(div);
-        });
+    // 画面全体を更新する汎用関数
+    function refreshCurrentView() {
+        if (currentThreadId === "") {
+            loadThreads();
+        } else {
+            loadPosts();
+        }
     }
 
-    // スレッドの中身を表示
-    async function showThreadDetail(name) {
+    // --- スレッド一覧を取得 ---
+    async function loadThreads() {
+        const container = document.getElementById('list-container');
+        container.innerHTML = '<p style="text-align:center;">更新中...</p>';
+        try {
+            const res = await fetch(THREAD_GAS_URL);
+            const threads = await res.json();
+            container.innerHTML = '';
+
+            if (threads.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:gray;">まだスレッドがありません。</p>';
+                return;
+            }
+
+            threads.forEach(t => {
+                const div = document.createElement('div');
+                div.className = 'thread-item';
+                div.onclick = () => showThreadDetail(t.threadName);
+                div.innerHTML = `
+                    <div class="thread-title">${t.threadName}</div>
+                    <div style="font-size:0.85em; color:#65676b;">作成者: ${t.creator || '不明'} | ${t.date || ''}</div>
+                `;
+                container.appendChild(div);
+            });
+        } catch (e) {
+            container.innerHTML = '<p style="color:red;">データの取得に失敗しました。</p>';
+        }
+    }
+
+    // --- 特定のスレッド画面へ切り替え ---
+    function showThreadDetail(name) {
         currentThreadId = name;
         document.getElementById('thread-list-view').classList.add('hidden');
         document.getElementById('thread-detail-view').classList.remove('hidden');
         document.getElementById('page-title').innerText = name;
-        document.getElementById('current-thread-name').innerText = name + " に書き込む";
-        
+        document.getElementById('current-thread-label').innerText = name + " への書き込み";
         loadPosts();
     }
 
-    // 投稿一覧を取得
+    // --- スレッド内の投稿一覧を取得 ---
     async function loadPosts() {
-        const res = await fetch(`${THREAD_GAS_URL}?thread=${encodeURIComponent(currentThreadId)}`);
-        const posts = await res.json();
         const container = document.getElementById('posts-container');
-        container.innerHTML = '';
+        container.innerHTML = '<p style="text-align:center;">最新の投稿を取得中...</p>';
+        try {
+            const res = await fetch(`${THREAD_GAS_URL}?thread=${encodeURIComponent(currentThreadId)}`);
+            const posts = await res.json();
+            container.innerHTML = '';
 
-        posts.forEach(p => {
-            const div = document.createElement('div');
-            div.className = 'post-card';
-            div.innerHTML = `
-                <div class="post-info"><b>${p.name}</b> | ${p.date}</div>
-                <div>${p.message}</div>
-            `;
-            container.appendChild(div);
-        });
+            if (posts.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:gray;">まだ投稿がありません。</p>';
+                return;
+            }
+
+            posts.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'post-card';
+                div.innerHTML = `
+                    <div class="post-info"><b>${p.name}</b> <span style="margin-left:10px;">${p.date}</span></div>
+                    <div class="post-body">${p.message}</div>
+                `;
+                container.appendChild(div);
+            });
+        } catch (e) {
+            container.innerHTML = '<p style="color:red;">投稿の読み込みに失敗しました。</p>';
+        }
     }
 
-    // 一覧に戻る
+    // --- 一覧へ戻る ---
     function showThreadList() {
         currentThreadId = "";
         document.getElementById('thread-list-view').classList.remove('hidden');
@@ -129,11 +172,11 @@
         loadThreads();
     }
 
-    // スレッド作成
+    // --- スレッドを新規作成 ---
     async function createThread() {
         const name = document.getElementById('newThreadName').value;
         const creator = document.getElementById('creatorName').value;
-        if(!name || !creator) return alert("入力してください");
+        if(!name || !creator) return alert("タイトルと名前を入力してください");
 
         const res = await fetch(THREAD_GAS_URL, {
             method: "POST",
@@ -143,25 +186,27 @@
         if(result.success) {
             document.getElementById('newThreadName').value = "";
             loadThreads();
-        } else { alert(result.msg); }
+        } else { alert(result.msg || "作成に失敗しました"); }
     }
 
-    // スレッドへの投稿
+    // --- スレッドに書き込む ---
     async function postToThread() {
         const name = document.getElementById('userName').value;
         const msg = document.getElementById('postMessage').value;
-        if(!name || !msg) return alert("入力してください");
+        if(!name || !msg) return alert("名前とメッセージを入力してください");
 
         const res = await fetch(THREAD_GAS_URL, {
             method: "POST",
             body: JSON.stringify({ threadId: currentThreadId, name: name, message: msg })
         });
-        if((await res.json()).success) {
+        const result = await res.json();
+        if(result.success) {
             document.getElementById('postMessage').value = "";
             loadPosts();
         }
     }
 
+    // 起動時に一覧をロード
     loadThreads();
 </script>
 </body>
