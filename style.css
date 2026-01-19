@@ -160,3 +160,32 @@ footer { text-align: center; padding: 20px; background-color: #800000; font-size
 .side-menu ul li a { display: block; padding: 15px 25px; color: white; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.1); }
 .side-menu ul li a:hover { background-color: #800000; }
 .close-btn { position: absolute; top: 10px; right: 20px; font-size: 30px; color: white; cursor: pointer; }
+/* --- アンカー・レス番号用追加スタイル --- */
+
+.res-num {
+  color: #ffcc00; /* 名前と同じ黄色系で強調 */
+  font-weight: bold;
+  margin-right: 10px;
+  font-family: monospace; /* 番号を揃えやすく */
+}
+
+.anchor {
+  color: #4da6ff; /* ダーク背景に映える明るい青 */
+  text-decoration: underline;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.post-item {
+    scroll-margin-top: 50px; /* アンカー移動時の上部余白 */
+}
+
+/* アンカーで飛んだ先の投稿を光らせる（ターゲット指定） */
+.post-item:target {
+  animation: anchor-flash 2s ease-out;
+}
+
+@keyframes anchor-flash {
+  0% { background-color: rgba(255, 204, 0, 0.3); } /* 一瞬黄色く光る */
+  100% { background-color: rgba(255, 255, 255, 0.05); } /* 元の透明度に戻る */
+}
