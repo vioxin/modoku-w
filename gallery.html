@@ -4,12 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>画像掲示板 - modoku-w</title>
-    <link rel="stylesheet" href="style.css"> <style>
-        .image-preview { max-width: 100%; height: 200px; border: 2px dashed #333; margin-top: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    <link rel="stylesheet" href="style.css"> 
+    <style>
+        .image-preview { max-width: 100%; height: 200px; border: 2px dashed #333; margin-top: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; color: #888; }
         .image-preview img { max-width: 100%; max-height: 100%; }
-        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
-        .post-item img { width: 100%; border-radius: 5px; margin-top: 10px; cursor: pointer; transition: 0.3s; }
-        .post-item img:hover { opacity: 0.8; }
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 20px; }
+        .post-item { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; border: 1px solid #333; }
+        .post-item img { width: 100%; border-radius: 5px; margin-top: 10px; cursor: pointer; transition: 0.3s; border: 1px solid #444; }
+        .post-item img:hover { opacity: 0.8; transform: scale(1.02); }
+        
+        /* 再読み込みボタンのスタイル */
+        .refresh-area { text-align: right; margin-bottom: 10px; }
+        .btn-refresh { 
+            background: #2980b9; color: white; border: none; padding: 8px 15px; 
+            border-radius: 4px; cursor: pointer; font-size: 14px; transition: 0.3s;
+        }
+        .btn-refresh:hover { background: #3498db; }
+        .btn-refresh:disabled { background: #555; cursor: not-allowed; }
+
+        .loading-text { color: #ffcc00; font-weight: bold; animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity:1; } 50% { opacity:0.5; } 100% { opacity:1; } }
     </style>
 </head>
 <body>
@@ -39,11 +53,18 @@
         <div class="image-preview" id="previewBox">画像プレビュー</div>
         
         <button id="postBtn" onclick="postImageMessage()">投稿する</button>
-        <p id="syncStatus" class="sync-text">同期中...</p>
+    </div>
+
+    <hr style="border: 0; border-top: 1px solid #333; margin: 30px 0;">
+
+    <div class="refresh-area">
+        <span id="loadStatus" class="sync-text" style="margin-right: 10px;"></span>
+        <button id="refreshBtn" class="btn-refresh" onclick="loadGallery()">🔄 最新に更新</button>
     </div>
 
     <div id="messageList" class="gallery-grid">
-        </div>
+        <p>読み込み中...</p>
+    </div>
 </section>
 
 <script>
@@ -73,7 +94,6 @@
         let base64Image = null;
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
-            // 簡易的なサイズチェック (5MB以上はアラート)
             if (file.size > 5 * 1024 * 1024) return alert("画像が大きすぎます(5MBまで)");
             
             base64Image = await new Promise(resolve => {
@@ -91,33 +111,59 @@
                 method: "POST",
                 body: JSON.stringify({ name: name, message: msg, imageFile: base64Image })
             });
-            location.reload(); // 完了後リロード
+            // 投稿後、リロードせずにリストだけ更新する
+            alert("投稿が完了しました");
+            document.getElementById("userMsg").value = "";
+            document.getElementById("imageInput").value = "";
+            document.getElementById("previewBox").innerHTML = "画像プレビュー";
+            loadGallery(); 
         } catch (e) {
             alert("送信に失敗しました");
+        } finally {
             btn.disabled = false;
+            btn.innerText = "投稿する";
         }
     }
 
-    // メッセージ取得・描画
+    // メッセージ取得・描画（再読み込み対応）
     async function loadGallery() {
-        const res = await fetch(GAS_URL);
-        const data = await res.json();
         const list = document.getElementById("messageList");
-        list.innerHTML = "";
+        const status = document.getElementById("loadStatus");
+        const refBtn = document.getElementById("refreshBtn");
 
-        data.forEach(item => {
-            const div = document.createElement("div");
-            div.className = "post-item";
-            div.innerHTML = `
-                <div class="post-header">
-                    <span class="post-name">${item.name}</span>
-                </div>
-                <div class="post-text">${item.message}</div>
-                ${item.imageUrl ? `<a href="${item.imageUrl}" target="_blank"><img src="${item.imageUrl}"></a>` : ""}
-                <div class="post-date" style="margin-top:5px;">${item.date}</div>
-            `;
-            list.appendChild(div);
-        });
+        status.innerHTML = '<span class="loading-text">更新中...</span>';
+        refBtn.disabled = true;
+
+        try {
+            const res = await fetch(GAS_URL);
+            const data = await res.json();
+            list.innerHTML = "";
+
+            if (!data || data.length === 0) {
+                list.innerHTML = "<p>まだ投稿がありません。</p>";
+            } else {
+                data.forEach(item => {
+                    const div = document.createElement("div");
+                    div.className = "post-item";
+                    div.innerHTML = `
+                        <div class="post-header">
+                            <span class="post-name">${item.name} さん</span>
+                        </div>
+                        <div class="post-text" style="margin: 10px 0;">${item.message}</div>
+                        ${item.imageUrl ? `<a href="${item.imageUrl}" target="_blank"><img src="${item.imageUrl}" loading="lazy"></a>` : ""}
+                        <div class="post-date" style="font-size: 11px; color: #888; margin-top:10px;">${item.date}</div>
+                    `;
+                    list.appendChild(div);
+                });
+            }
+            status.innerText = "最新の状態です";
+        } catch (e) {
+            status.innerText = "読み込みエラー";
+            console.error(e);
+        } finally {
+            refBtn.disabled = false;
+            setTimeout(() => { if(status.innerText === "最新の状態です") status.innerText = ""; }, 3000);
+        }
     }
 
     window.onload = loadGallery;
