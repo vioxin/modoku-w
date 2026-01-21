@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画像掲示板 - modoku-w</title>
+    <link rel="stylesheet" href="style.css"> <style>
+        .image-preview { max-width: 100%; height: 200px; border: 2px dashed #333; margin-top: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .image-preview img { max-width: 100%; max-height: 100%; }
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
+        .post-item img { width: 100%; border-radius: 5px; margin-top: 10px; cursor: pointer; transition: 0.3s; }
+        .post-item img:hover { opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+<div class="menu-btn" onclick="toggleMenu()">☰</div>
+<div class="side-menu" id="side-menu">
+    <div class="close-btn" onclick="toggleMenu()">×</div>
+    <ul>
+        <li><a href="index.html">掲示板トップ</a></li>
+        <li><a href="threads.html">スレッド掲示板</a></li>
+        <li><a href="gallery.html">画像掲示板</a></li>
+        <li><a href="admin.html">管理者</a></li>
+    </ul>
+</div>
+
+<header>
+    <h1>画像掲示板</h1>
+</header>
+
+<section>
+    <div class="input-group admin-card" style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px;">
+        <h2>画像を投稿する</h2>
+        <input type="text" id="userName" placeholder="名前">
+        <textarea id="userMsg" placeholder="メッセージを入力"></textarea>
+        
+        <input type="file" id="imageInput" accept="image/*" onchange="previewImage(this)" style="margin-top:10px;">
+        <div class="image-preview" id="previewBox">画像プレビュー</div>
+        
+        <button id="postBtn" onclick="postImageMessage()">投稿する</button>
+        <p id="syncStatus" class="sync-text">同期中...</p>
+    </div>
+
+    <div id="messageList" class="gallery-grid">
+        </div>
+</section>
+
+<script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxnHllm4fJ-qNCbPHfFjdHJ69alo-5EOBdTmPcCUL3356b9iUedAmwkpJs9p-7en4Y8/exec";
+
+    // 画像プレビュー表示
+    function previewImage(input) {
+        const box = document.getElementById('previewBox');
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                box.innerHTML = `<img src="${e.target.result}">`;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // 投稿処理
+    async function postImageMessage() {
+        const name = document.getElementById("userName").value;
+        const msg = document.getElementById("userMsg").value;
+        const fileInput = document.getElementById("imageInput");
+        const btn = document.getElementById("postBtn");
+
+        if (!name || !msg) return alert("名前と本文を入力してください");
+
+        let base64Image = null;
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            // 簡易的なサイズチェック (5MB以上はアラート)
+            if (file.size > 5 * 1024 * 1024) return alert("画像が大きすぎます(5MBまで)");
+            
+            base64Image = await new Promise(resolve => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        btn.disabled = true;
+        btn.innerText = "送信中...";
+
+        try {
+            await fetch(GAS_URL, {
+                method: "POST",
+                body: JSON.stringify({ name: name, message: msg, imageFile: base64Image })
+            });
+            location.reload(); // 完了後リロード
+        } catch (e) {
+            alert("送信に失敗しました");
+            btn.disabled = false;
+        }
+    }
+
+    // メッセージ取得・描画
+    async function loadGallery() {
+        const res = await fetch(GAS_URL);
+        const data = await res.json();
+        const list = document.getElementById("messageList");
+        list.innerHTML = "";
+
+        data.forEach(item => {
+            const div = document.createElement("div");
+            div.className = "post-item";
+            div.innerHTML = `
+                <div class="post-header">
+                    <span class="post-name">${item.name}</span>
+                </div>
+                <div class="post-text">${item.message}</div>
+                ${item.imageUrl ? `<a href="${item.imageUrl}" target="_blank"><img src="${item.imageUrl}"></a>` : ""}
+                <div class="post-date" style="margin-top:5px;">${item.date}</div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    window.onload = loadGallery;
+    
+    function toggleMenu() {
+        document.getElementById("side-menu").classList.toggle("open");
+    }
+</script>
+</body>
+</html>
