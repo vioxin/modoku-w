@@ -23,6 +23,11 @@
         
         #loginSection { text-align: center; margin-top: 100px; }
         .thread-select { width: 100%; margin-top: 10px; }
+
+        /* セキュリティセクション用 */
+        .flex-row { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px; }
+        .flex-item { flex: 1; min-width: 200px; background: #252525; padding: 15px; border-radius: 6px; }
+        .log-viewer { background: #000; color: #00ff00; padding: 10px; height: 150px; overflow-y: scroll; font-family: monospace; font-size: 12px; margin-top: 10px; border: 1px solid #333; }
     </style>
 </head>
 <body>
@@ -37,6 +42,26 @@
     <div id="adminContent" style="display:none;">
         <button class="refresh-btn" onclick="loadAllData()">全更新</button>
         <h1>管理者ダッシュボード</h1>
+
+        <div class="admin-section">
+            <h2>🛡️ 防衛設定 & ログ</h2>
+            <div class="flex-row">
+                <div class="flex-item">
+                    <p style="color: #e67e22; font-weight: bold;">NGワード追加</p>
+                    <input type="text" id="ngInput" placeholder="禁止用語" style="width: 70%;">
+                    <button class="post-btn" style="width: 25%; margin:0;" onclick="updateSecurity('add_ng_word')">追加</button>
+                    <div id="ngList" style="margin-top:10px; font-size:0.8em; color:#888;"></div>
+                </div>
+                <div class="flex-item">
+                    <p style="color: #e67e22; font-weight: bold;">ユーザー禁止(BAN)</p>
+                    <input type="text" id="banInput" placeholder="名前" style="width: 70%;">
+                    <button class="del-btn" style="width: 25%; padding: 10px 0;" onclick="updateSecurity('add_banned_user')">禁止</button>
+                    <div id="banList" style="margin-top:10px; font-size:0.8em; color:#888;"></div>
+                </div>
+            </div>
+            <p style="margin-top:15px; color:#3498db;">操作履歴（最新50件）</p>
+            <div id="logViewer" class="log-viewer">ログを読み込んでいます...</div>
+        </div>
 
         <div class="admin-section">
             <h2>📢 お知らせ管理</h2>
@@ -63,25 +88,26 @@
         <div class="admin-section"><h2>💬 メイン掲示板管理</h2><table id="postTable"><thead><tr><th>日時</th><th>名前</th><th>本文</th><th>操作</th></tr></thead><tbody id="postListBody"></tbody></table></div>
         
         <div class="admin-section"><h2>👤 ユーザー管理</h2><table id="userTable"><thead><tr><th>ID</th><th>名前</th><th>操作</th></tr></thead><tbody id="userListBody"></tbody></table></div>
-    </div>
+        
         <div class="admin-section">
-        <h2>🖼️ 画像掲示板管理</h2>
-        <table id="galleryTable">
-            <thead>
-                <tr><th>名前</th><th>本文</th><th>画像</th><th>操作</th></tr>
-            </thead>
-            <tbody id="galleryListBody"></tbody>
-        </table>
+            <h2>🖼️ 画像掲示板管理</h2>
+            <table id="galleryTable">
+                <thead><tr><th>名前</th><th>本文</th><th>画像</th><th>操作</th></tr></thead>
+                <tbody id="galleryListBody"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 <script>
-    // 設定されているURL（そのまま維持）
-    const AUTH_GAS_URL   = "https://script.google.com/macros/s/AKfycbzzdPk8BxStCsLa0iyhkHeLp3AGnbcvn5FtMrFjRSIvO2aNXQZMdvlsdC44Mrmn6MZ7/exec";
-    const BBS_GAS_URL    = "https://script.google.com/macros/s/AKfycbzOpcoQtkoLBCUhmfd4RPCV6BhQs8ngf9fLiXYE8ALgDmJsr_ic4LnrSyFj5ChgwJoRhQ/exec";
-    const NEWS_GAS_URL   = "https://script.google.com/macros/s/AKfycbzOm_RDGEyq_kPsbER9GT4vTwZD68X39dgrZ0-udH1CyTN9sQcjW3_MgRmAd29BwLjIsQ/exec";
-    const THREAD_GAS_URL = "https://script.google.com/macros/s/AKfycbzNRFg-clJykjin35_EbMBiTzcdN73mHkqEuDfIQFaj-1Bf9ZSbwGGxnn4kBV8l25OBmw/exec";
+    // URL設定
+    const AUTH_GAS_URL    = "https://script.google.com/macros/s/AKfycbzzdPk8BxStCsLa0iyhkHeLp3AGnbcvn5FtMrFjRSIvO2aNXQZMdvlsdC44Mrmn6MZ7/exec";
+    const BBS_GAS_URL     = "https://script.google.com/macros/s/AKfycbzOpcoQtkoLBCUhmfd4RPCV6BhQs8ngf9fLiXYE8ALgDmJsr_ic4LnrSyFj5ChgwJoRhQ/exec";
+    const NEWS_GAS_URL    = "https://script.google.com/macros/s/AKfycbzOm_RDGEyq_kPsbER9GT4vTwZD68X39dgrZ0-udH1CyTN9sQcjW3_MgRmAd29BwLjIsQ/exec";
+    const THREAD_GAS_URL  = "https://script.google.com/macros/s/AKfycbzNRFg-clJykjin35_EbMBiTzcdN73mHkqEuDfIQFaj-1Bf9ZSbwGGxnn4kBV8l25OBmw/exec";
     const GALLERY_GAS_URL = "https://script.google.com/macros/s/AKfycbwg-qyb79tkZq6u8K5NyHXt_7vivvqKgk5vt8lpzkjTM5rpd3G3Tx9jOLFs12i2Wqqp/exec";
+    const ADMIN_SEC_URL   = "https://script.google.com/macros/s/AKfycbx5RTv_Lf_Fzs5L7c5Jly9z9KhkeLvjBAGScOK6Algg3hwiDOEL41Xi-en_YR_MryXOyA/exec"; 
+    
     let currentAdminPass = "";
 
     async function adminAuth() {
@@ -96,21 +122,44 @@
         } else { alert("認証失敗"); }
     }
 
+    // 防衛設定の読み込みと更新
+    async function loadSecurityData() {
+        try {
+            const res = await fetch(`${ADMIN_SEC_URL}?action=get_security_data`);
+            const data = await res.json();
+            document.getElementById("ngList").innerText = "現在: " + data.ngWords.join(", ");
+            document.getElementById("banList").innerText = "現在: " + data.bannedUsers.join(", ");
+            document.getElementById("logViewer").innerHTML = data.logs.map(l => `[${l[0]}] ${l[1]}: ${l[2]}`).join("<br>");
+        } catch(e) { console.log("Security data load failed"); }
+    }
+
+    async function updateSecurity(action) {
+        let payload = { adminPass: currentAdminPass, action: action };
+        if(action === 'add_ng_word') payload.word = document.getElementById("ngInput").value;
+        else payload.userName = document.getElementById("banInput").value;
+
+        const res = await fetch(ADMIN_SEC_URL, { method: "POST", body: JSON.stringify(payload) });
+        if((await res.json()).success) {
+            alert("更新しました");
+            loadSecurityData();
+        }
+    }
+
     async function loadAllData() {
-        // 既存の取得処理
+        loadSecurityData(); // 防衛データの読み込み
+        
         fetch(AUTH_GAS_URL, { method: "POST", body: JSON.stringify({ action: "admin_get_users", adminPass: currentAdminPass }) }).then(r=>r.json()).then(d=>renderTable("userListBody", d.users, u=>`<td>${u.id}</td><td>${u.name}</td><td><button class="del-btn" onclick="deleteItem('${AUTH_GAS_URL}','admin_delete_user','targetId','${u.id}')">削除</button></td>`));
         fetch(BBS_GAS_URL).then(r=>r.json()).then(d=>renderTable("postListBody", d, p=>`<td>${p.date}</td><td>${p.name}</td><td>${p.message}</td><td><button class="del-btn" onclick="deleteItem('${BBS_GAS_URL}','admin_delete_post','row',${p.row})">削除</button></td>`));
         fetch(NEWS_GAS_URL).then(r=>r.json()).then(d=>renderTable("newsListBody", d, n=>`<td>${n.date}</td><td>${n.title}</td><td><button class="del-btn" onclick="deleteItem('${NEWS_GAS_URL}','admin_delete_news','row',${n.row})">削除</button></td>`));
 
-        // スレッド一覧の取得
         const threadRes = await fetch(THREAD_GAS_URL);
         const threads = await threadRes.json();
         renderTable("threadListBody", threads, t => `<td>${t.threadName}</td><td>${t.creator}</td><td><button class="del-btn" onclick="deleteItem('${THREAD_GAS_URL}','admin_delete_thread','threadName','${t.threadName}')">スレ削除</button></td>`);
         
-        // セレクトボックスの更新
         const selector = document.getElementById("threadSelector");
         selector.innerHTML = '<option value="">スレッドを選択してください</option>';
         threads.forEach(t => selector.innerHTML += `<option value="${t.threadName}">${t.threadName}</option>`);
+
         fetch(GALLERY_GAS_URL).then(r=>r.json()).then(d=>renderTable("galleryListBody", d, g=>`
             <td>${g.name}</td>
             <td>${g.message.substring(0,15)}...</td>
@@ -119,33 +168,23 @@
         `));
     }
 
-    // --- 【新規追加】お知らせ投稿機能 ---
+    // お知らせ投稿
     async function postNews() {
         const title = document.getElementById("newsTitleInput").value;
         const content = document.getElementById("newsContentInput").value;
         if (!title || !content) return alert("タイトルと本文を入力してください");
-
         const res = await fetch(NEWS_GAS_URL, {
             method: "POST",
-            body: JSON.stringify({
-                action: "post_news",
-                title: title,
-                content: content,
-                adminPass: currentAdminPass
-            })
+            body: JSON.stringify({ action: "post_news", title: title, content: content, adminPass: currentAdminPass })
         });
-        const result = await res.json();
-        if (result.success) {
+        if ((await res.json()).success) {
             alert("お知らせを投稿しました");
             document.getElementById("newsTitleInput").value = "";
             document.getElementById("newsContentInput").value = "";
-            loadAllData(); // リストを更新
-        } else {
-            alert("投稿に失敗しました");
+            loadAllData();
         }
     }
 
-    // 選択したスレッド内の投稿を表示
     async function loadThreadPosts() {
         const threadId = document.getElementById("threadSelector").value;
         if(!threadId) return;
@@ -155,7 +194,7 @@
     }
 
     async function deleteThreadPost(threadId, row) {
-        if(!confirm("この投稿を削除しますか？")) return;
+        if(!confirm("削除しますか？")) return;
         const res = await fetch(THREAD_GAS_URL, {
             method: "POST",
             body: JSON.stringify({ action: "admin_delete_thread_post", threadId: threadId, row: row, adminPass: currentAdminPass })
