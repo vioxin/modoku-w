@@ -64,6 +64,15 @@
         
         <div class="admin-section"><h2>👤 ユーザー管理</h2><table id="userTable"><thead><tr><th>ID</th><th>名前</th><th>操作</th></tr></thead><tbody id="userListBody"></tbody></table></div>
     </div>
+        <div class="admin-section">
+        <h2>🖼️ 画像掲示板管理</h2>
+        <table id="galleryTable">
+            <thead>
+                <tr><th>名前</th><th>本文</th><th>画像</th><th>操作</th></tr>
+            </thead>
+            <tbody id="galleryListBody"></tbody>
+        </table>
+    </div>
 </div>
 
 <script>
@@ -72,7 +81,7 @@
     const BBS_GAS_URL    = "https://script.google.com/macros/s/AKfycbzOpcoQtkoLBCUhmfd4RPCV6BhQs8ngf9fLiXYE8ALgDmJsr_ic4LnrSyFj5ChgwJoRhQ/exec";
     const NEWS_GAS_URL   = "https://script.google.com/macros/s/AKfycbzOm_RDGEyq_kPsbER9GT4vTwZD68X39dgrZ0-udH1CyTN9sQcjW3_MgRmAd29BwLjIsQ/exec";
     const THREAD_GAS_URL = "https://script.google.com/macros/s/AKfycbzNRFg-clJykjin35_EbMBiTzcdN73mHkqEuDfIQFaj-1Bf9ZSbwGGxnn4kBV8l25OBmw/exec";
-
+    const GALLERY_GAS_URL = "https://script.google.com/macros/s/AKfycbwg-qyb79tkZq6u8K5NyHXt_7vivvqKgk5vt8lpzkjTM5rpd3G3Tx9jOLFs12i2Wqqp/exec";
     let currentAdminPass = "";
 
     async function adminAuth() {
@@ -102,6 +111,12 @@
         const selector = document.getElementById("threadSelector");
         selector.innerHTML = '<option value="">スレッドを選択してください</option>';
         threads.forEach(t => selector.innerHTML += `<option value="${t.threadName}">${t.threadName}</option>`);
+        fetch(GALLERY_GAS_URL).then(r=>r.json()).then(d=>renderTable("galleryListBody", d, g=>`
+            <td>${g.name}</td>
+            <td>${g.message.substring(0,15)}...</td>
+            <td>${g.imageUrl ? `<a href="${g.imageUrl}" target="_blank">画像</a>` : "なし"}</td>
+            <td><button class="del-btn" onclick="deleteItem('${GALLERY_GAS_URL}','admin_delete_post','row',${g.row})">削除</button></td>
+        `));
     }
 
     // --- 【新規追加】お知らせ投稿機能 ---
