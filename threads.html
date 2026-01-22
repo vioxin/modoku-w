@@ -4,66 +4,142 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>スレッド掲示板 - modoku-w</title>
+    <link rel="stylesheet" href="style.css">
     <style>
-        /* --- スレッド掲示板専用スタイル --- */
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; margin: 0; display: flex; }
-        
-        /* サイドバー */
-        .sidebar { width: 250px; background: white; height: 100vh; position: fixed; border-right: 1px solid #ddd; padding: 20px; box-sizing: border-box; }
-        .sidebar h2 { color: #1877f2; }
-        .sidebar a { display: block; padding: 12px; color: #333; text-decoration: none; border-radius: 8px; margin-bottom: 5px; }
-        .sidebar a:hover { background: #f0f2f5; }
-        .sidebar a.active { background: #e7f3ff; color: #1877f2; font-weight: bold; }
-        
+        /* --- ダークテーマベーススタイル --- */
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background-color: #001200; 
+            color: #ffffff;
+            margin: 0; 
+            display: block; 
+        }
+
+        /* サイドメニュー（隠しメニュー） */
+        .side-menu {
+            height: 100%;
+            width: 0;
+            position: fixed;
+            z-index: 1000;
+            top: 0;
+            left: 0;
+            background-color: #001a00;
+            overflow-x: hidden;
+            transition: 0.3s;
+            padding-top: 60px;
+            border-right: 1px solid #004d00;
+        }
+        .side-menu a {
+            padding: 15px 30px;
+            text-decoration: none;
+            font-size: 18px;
+            color: #ccc;
+            display: block;
+            transition: 0.2s;
+        }
+        .side-menu a:hover { color: #ffffff; background: #003300; }
+        .side-menu .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 25px;
+            font-size: 36px;
+            cursor: pointer;
+        }
+
+        /* ハンバーガーボタン */
+        .menu-btn {
+            font-size: 30px;
+            cursor: pointer;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 900;
+            background: rgba(0, 40, 0, 0.8);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 5px;
+            border: 1px solid #004d00;
+        }
+
         /* メインコンテンツ */
-        .main-content { margin-left: 250px; flex: 1; padding: 20px; max-width: 800px; }
-        header { background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .main-content { padding: 80px 20px 20px; max-width: 800px; margin: 0 auto; }
         
-        /* カード類 */
-        .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd; }
-        .thread-item { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; cursor: pointer; border: 1px solid #ddd; }
-        .thread-item:hover { border-color: #1877f2; }
-        
-        /* 投稿カード・アンカー機能 */
-        .post-card { 
-            background: white; 
+        header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 2px solid #800000;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        /* カード・アイテム類 */
+        .card { 
+            background: rgba(255, 255, 255, 0.05); 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            border: 1px solid #333; 
+        }
+        .thread-item { 
+            background: rgba(255, 255, 255, 0.03); 
             padding: 15px; 
             border-radius: 8px; 
             margin-bottom: 10px; 
-            border: 1px solid #eee; 
-            scroll-margin-top: 100px; /* ジャンプ時の余白 */
+            cursor: pointer; 
+            border: 1px solid #333; 
+            transition: 0.3s;
+        }
+        .thread-item:hover { border-color: #008000; background: rgba(0, 128, 0, 0.1); }
+        
+        /* 投稿カード */
+        .post-card { 
+            background: rgba(255, 255, 255, 0.05); 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 10px; 
+            border: 1px solid #222; 
+            scroll-margin-top: 100px;
         }
         
         /* レス番号とアンカーリンク */
-        .res-num { color: #1877f2; font-weight: bold; margin-right: 8px; }
-        .anchor { color: #1877f2; text-decoration: underline; font-weight: bold; cursor: pointer; }
+        .res-num { color: #ffcc00; font-weight: bold; margin-right: 8px; }
+        .anchor { color: #4da6ff; text-decoration: underline; font-weight: bold; cursor: pointer; }
         
-        /* アンカーで飛んだ時の光るアニメーション */
+        /* アンカー強調アニメーション */
         .post-card:target { animation: highlight-post 2s ease-out; }
         @keyframes highlight-post {
-            0% { background-color: #fff9c4; }
-            100% { background-color: white; }
+            0% { background-color: #4d4d00; }
+            100% { background-color: rgba(255, 255, 255, 0.05); }
         }
 
         /* フォーム・ボタン */
-        input, textarea { width: 100%; padding: 10px; margin-top: 8px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        textarea { height: 100px; resize: vertical; }
-        .btn-primary { background: #1877f2; color: white; padding: 12px; border: none; border-radius: 6px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px;}
-        .btn-refresh { background: #e4e6eb; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+        input, textarea { 
+            width: 100%; padding: 10px; margin-top: 8px; 
+            background: #1a1a1a; border: 1px solid #444; color: white; border-radius: 6px; box-sizing: border-box; 
+        }
+        .btn-primary { 
+            background: #006400; color: white; padding: 12px; border: none; border-radius: 6px; 
+            width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.3s;
+        }
+        .btn-primary:hover { background: #008000; }
+        .btn-refresh { background: #333; color: white; border: 1px solid #555; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
         .hidden { display: none; }
-        .refresh-status { font-size: 0.8em; color: #65676b; margin-right: 10px; }
+        .refresh-status { font-size: 0.8em; color: #aaa; margin-right: 10px; }
+        .back-btn { background: #444; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
-<div class="sidebar">
-    <h2>modoku-w</h2>
+<div class="menu-btn" onclick="toggleMenu()">☰</div>
+
+<div id="side-menu" class="side-menu">
+    <span class="close-btn" onclick="toggleMenu()">×</span>
     <a href="index.html">トップ掲示板</a>
     <a href="news.html">お知らせ</a>
-    <a href="threads.html" class="active">スレッド掲示板</a>
-    <a href="signup.html">新規登録</a>
-    <a href="login.html">ログイン</a>
-    <a href="main.html">マイページ</a>
+    <a href="threads.html" style="color: #ffcc00; font-weight: bold;">スレッド掲示板</a>
+    <a href="gallery.html">画像掲示板</a>
+    <a href="admin.html">管理者パネル</a>
 </div>
 
 <div class="main-content">
@@ -86,11 +162,11 @@
     </div>
 
     <div id="thread-detail-view" class="hidden">
-        <button onclick="showThreadList()" style="margin-bottom:15px; cursor:pointer; padding:5px 15px;">← 戻る</button>
+        <button class="back-btn" onclick="showThreadList()">← 戻る</button>
         <div class="card">
             <h3 id="current-thread-label"></h3>
             <input type="text" id="userName" placeholder="名前">
-            <textarea id="postMessage" placeholder="メッセージを入力してください（>>番号 でアンカー可能）"></textarea>
+            <textarea id="postMessage" placeholder="メッセージを入力（>>番号 でアンカー可能）"></textarea>
             <button class="btn-primary" onclick="postToThread()">書き込む</button>
         </div>
         <div id="posts-container"></div>
@@ -98,27 +174,23 @@
 </div>
 
 <script>
-    // --- スレッド掲示板専用スクリプト ---
-    
-    // 【重要】スレッド用GASのURLをここに貼り付けてください
     const THREAD_GAS_URL = "https://script.google.com/macros/s/AKfycbzNRFg-clJykjin35_EbMBiTzcdN73mHkqEuDfIQFaj-1Bf9ZSbwGGxnn4kBV8l25OBmw/exec"; 
     let currentThreadId = "";
 
+    function toggleMenu() {
+        const menu = document.getElementById("side-menu");
+        menu.style.width = menu.style.width === "250px" ? "0" : "250px";
+    }
+
     window.onload = () => {
-        loadThreads(true);  // まずはキャッシュ（前回のデータ）を表示
-        loadThreads(false); // その後、インターネットから最新を取得
+        loadThreads(true);
+        loadThreads(false);
     };
 
-    // メッセージ内の >>1 などをリンク化する
     function formatMessage(text) {
         if (!text) return "";
-        // セキュリティのためタグを無効化（エスケープ）
         const escaped = text.toString()
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;");
-        
-        // >>数字 をアンカーリンクに置き換える
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         return escaped.replace(/&gt;&gt;(\d+)/g, '<a href="#post-$1" class="anchor">>>$1</a>');
     }
 
@@ -127,7 +199,6 @@
         else loadPosts(false);
     }
 
-    // スレッド一覧を取得
     async function loadThreads(useCache = false) {
         const cacheKey = "cached_thread_list";
         if (useCache) {
@@ -135,10 +206,8 @@
             if (cached) renderThreads(JSON.parse(cached));
             return;
         }
-
         const statusLabel = document.getElementById('status-label');
         if(statusLabel) statusLabel.innerText = "同期中...";
-
         try {
             const res = await fetch(THREAD_GAS_URL);
             const threads = await res.json();
@@ -158,19 +227,17 @@
             const div = document.createElement('div');
             div.className = 'thread-item';
             div.onclick = () => showThreadDetail(t.threadName);
-            div.innerHTML = `<b>${t.threadName}</b><br><small>${t.creator || '匿名'} | ${t.date || ''}</small>`;
+            div.innerHTML = `<b>${t.threadName}</b><br><small style="color:#888;">${t.creator || '匿名'} | ${t.date || ''}</small>`;
             container.appendChild(div);
         });
     }
 
-    // スレッドの中身を表示
     function showThreadDetail(name) {
         currentThreadId = name;
         document.getElementById('thread-list-view').classList.add('hidden');
         document.getElementById('thread-detail-view').classList.remove('hidden');
         document.getElementById('page-title').innerText = name;
         document.getElementById('current-thread-label').innerText = name + " に書き込む";
-        
         loadPosts(true);
         loadPosts(false);
     }
@@ -182,15 +249,12 @@
             if (cached) renderPosts(JSON.parse(cached));
             return;
         }
-
         try {
             const res = await fetch(`${THREAD_GAS_URL}?thread=${encodeURIComponent(currentThreadId)}`);
             const posts = await res.json();
             localStorage.setItem(cacheKey, JSON.stringify(posts));
             renderPosts(posts);
-        } catch (e) {
-            console.error("Posts fetch error");
-        }
+        } catch (e) { console.error("Posts fetch error"); }
     }
 
     function renderPosts(posts) {
@@ -200,13 +264,13 @@
         posts.forEach(p => {
             const div = document.createElement('div');
             div.className = 'post-card';
-            div.id = `post-${p.id}`; // これがアンカーの飛び先になる
+            div.id = `post-${p.id}`;
             div.innerHTML = `
                 <div style="font-size:0.9em; margin-bottom:5px;">
                     <span class="res-num">${p.id}</span>
-                    <b>${p.name}</b> <span style="color:#65676b; margin-left:10px;">${p.date}</span>
+                    <b>${p.name}</b> <span style="color:#888; margin-left:10px;">${p.date}</span>
                 </div>
-                <div style="white-space:pre-wrap; word-break: break-all;">${formatMessage(p.message)}</div>
+                <div style="white-space:pre-wrap; word-break: break-all; color:#ddd;">${formatMessage(p.message)}</div>
             `;
             container.appendChild(div);
         });
@@ -220,12 +284,10 @@
         loadThreads(true);
     }
 
-    // スレッド新規作成
     async function createThread() {
         const name = document.getElementById('newThreadName').value;
         const creator = document.getElementById('creatorName').value;
         if(!name || !creator) return alert("タイトルと名前を入力してください");
-        
         const res = await fetch(THREAD_GAS_URL, {
             method: "POST",
             body: JSON.stringify({ action: "create_thread", threadName: name, creator: creator })
@@ -238,12 +300,10 @@
         }
     }
 
-    // 投稿送信
     async function postToThread() {
         const name = document.getElementById('userName').value;
         const msg = document.getElementById('postMessage').value;
         if(!name || !msg) return alert("名前とメッセージを入力してください");
-
         const res = await fetch(THREAD_GAS_URL, {
             method: "POST",
             body: JSON.stringify({ threadId: currentThreadId, name: name, message: msg })
@@ -251,7 +311,7 @@
         const result = await res.json();
         if(result.success) {
             document.getElementById('postMessage').value = "";
-            loadPosts(false); // 最新に更新
+            loadPosts(false);
         }
     }
 </script>
