@@ -2,7 +2,8 @@
 // 1. 設定：あなたのGASのURLをここに貼り付けてください
 // ==========================================
 const GAS_URL = "https://script.google.com/macros/s/AKfycbzOpcoQtkoLBCUhmfd4RPCV6BhQs8ngf9fLiXYE8ALgDmJsr_ic4LnrSyFj5ChgwJoRhQ/exec";
-
+const userId = localStorage.getItem("userId");
+const userName = localStorage.getItem("userName");
 // ==========================================
 // 2. ページ読み込み時の初期化処理
 // ==========================================
@@ -149,7 +150,10 @@ async function postMessage() {
     const ipRes = await fetch('https://api.ipify.org?format=json');
     const ipData = await ipRes.json();
     const currentIp = ipData.ip;
-
+    if (!userId) {
+        alert("ログインしてください");
+        return;
+    }
     if (!nameEl.value || !msgEl.value) {
         alert("名前とメッセージを入力してください");
         return;
