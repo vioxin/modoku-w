@@ -3,26 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>マイページ - modoku-w id</title>
+    <title>マイページ - modoku-w</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* 追加のスタイル */
-        .pro-status-card {
-            background: #2c3e50;
+        /* 追加のデザイン調整 */
+        .plan-status-box {
+            background: #1e293b;
             padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border-left: 5px solid #8e44ad;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+            border: 1px solid #334155;
         }
-        .status-badge {
-            padding: 4px 10px;
-            border-radius: 4px;
+        .pro-active {
+            border: 1px solid #fbbf24;
+            background: linear-gradient(145deg, #1e293b, #2d1b4e);
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 50px;
             font-weight: bold;
-            font-size: 0.9em;
+            font-size: 14px;
+            margin-top: 10px;
         }
-        .free { background: #7f8c8d; color: white; }
-        .pro { background: #f1c40f; color: #2c3e50; }
-        .expire-date { color: #f1c40f; font-weight: bold; }
+        .badge-free { background: #475569; color: white; }
+        .badge-pro { background: #fbbf24; color: #000; box-shadow: 0 0 10px #fbbf24; }
+        
+        .token-section {
+            background: #111827;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .token-input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: #000;
+            border: 1px solid #334155;
+            color: #fff;
+            box-sizing: border-box;
+        }
+        .token-btn {
+            background: #d946ef;
+            color: white;
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -30,45 +62,46 @@
         <h1>My Page</h1>
     </header>
 
-    <section>
-        <h2 id="welcomeMsg">ようこそ！</h2>
-        
-        <div class="pro-status-card">
-            <h3>現在のプラン: <span id="planLabel" class="status-badge free">読み込み中...</span></h3>
-            <div id="proExpiryArea" style="display:none; margin-top: 10px;">
-                <p>有効期限: <span id="expireDate" class="expire-date">----/--/--</span></p>
+    <div class="container">
+        <section>
+            <h2 id="welcomeMsg">ようこそ！</h2>
+            
+            <div id="statusCard" class="plan-status-box">
+                <div style="color: #94a3b8; font-size: 14px;">現在のプラン</div>
+                <div id="planBadge" class="badge badge-free">読み込み中...</div>
+                <div id="expiryLabel" style="margin-top: 10px; font-size: 13px; color: #fbbf24;"></div>
             </div>
-        </div>
 
-        <div class="btn-group">
-            <button onclick="location.href='index.html'" class="nav-btn">掲示板へ戻る</button>
-            <button onclick="logout()" class="reload-btn">ログアウト</button>
-        </div>
-    </section>
+            <div class="btn-group">
+                <button onclick="location.href='index.html'" class="nav-btn">掲示板へ戻る</button>
+                <button onclick="logout()" class="reload-btn">ログアウト</button>
+            </div>
+        </section>
 
-    <section class="profile-section">
-        <h2>Proプラン・トークン入力</h2>
-        <p style="font-size: 13px; color: #aaaaaa;">お手持ちのトークンを入力してProプランにアップグレードします。</p>
-        <div class="input-group">
-            <input type="text" id="tokenInput" placeholder="PRO-XXXX-XXXX">
-            <button onclick="redeemToken()" id="tokenBtn" style="background: #8e44ad; color: white;">トークンを適用する</button>
-        </div>
-        <p id="tokenMsg"></p>
-    </section>
+        <section class="token-section">
+            <h2 style="font-size: 18px;">🎫 トークンを適用する</h2>
+            <p style="font-size: 12px; color: #aaa;">発行されたProプラン用トークンを入力してください。</p>
+            <input type="text" id="tokenInput" class="token-input" placeholder="PRO-XXXX-XXXX">
+            <button onclick="redeemToken()" id="tokenBtn" class="token-btn">適用してProになる</button>
+        </section>
 
-    <section class="profile-section">
-        <h2>プロフィール変更</h2>
-        <p style="font-size: 13px; color: #aaaaaa;">ユーザー名やパスワードを変更できます。</p>
-        <div class="input-group">
-            <input type="text" id="newName" placeholder="新しいユーザー名">
-            <input type="password" id="newPass" placeholder="新しいパスワード（変更する場合のみ）">
-            <button onclick="updateProfile()" id="updateBtn">情報を更新する</button>
-        </div>
-        <p id="updateMsg"></p>
-    </section>
+        <section class="profile-section">
+            <h2>プロフィール変更</h2>
+            <div class="input-group">
+                <input type="text" id="newName" placeholder="新しいユーザー名">
+                <input type="password" id="newPass" placeholder="新しいパスワード（変更する場合のみ）">
+                <button onclick="updateProfile()" id="updateBtn">情報を更新する</button>
+            </div>
+            <p id="updateMsg"></p>
+        </section>
+    </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbzzdPk8BxStCsLa0iyhkHeLp3AGnbcvn5FtMrFjRSIvO2aNXQZMdvlsdC44Mrmn6MZ7/exec";
+        // --- URL設定 ---
+        // 1. ユーザー管理（ログイン・更新用）
+        const USER_API_URL = "https://script.google.com/macros/s/AKfycbzzdPk8BxStCsLa0iyhkHeLp3AGnbcvn5FtMrFjRSIvO2aNXQZMdvlsdC44Mrmn6MZ7/exec";
+        // 2. トークン管理（プラン確認・トークン適用用）
+        const TOKEN_API_URL = "https://script.google.com/macros/s/AKfycbzGt1f97bwGpUhfmwKfxrrhryT9g76myvC0x4jwfxGYjJM3b2aGnTjs2aA5QxOOepo/exec";
         
         const userId = localStorage.getItem("userId");
         const userName = localStorage.getItem("userName");
@@ -82,79 +115,74 @@
             fetchUserStatus(); // プラン情報を取得
         }
 
-        // 1. プラン情報と期限を取得する
+        // プラン情報をGASから取得して表示
         async function fetchUserStatus() {
             try {
-                const res = await fetch(`${API_URL}?action=getUserStatus&userId=${userId}`);
+                const res = await fetch(`${TOKEN_API_URL}?action=getUserStatus&userId=${userId}`);
                 const data = await res.json();
-                
-                const label = document.getElementById("planLabel");
-                const expiryArea = document.getElementById("proExpiryArea");
+                const card = document.getElementById("statusCard");
+                const badge = document.getElementById("planBadge");
+                const expiry = document.getElementById("expiryLabel");
 
                 if (data.isPro) {
-                    label.innerText = "Proプラン";
-                    label.className = "status-badge pro";
-                    expiryArea.style.display = "block";
-                    document.getElementById("expireDate").innerText = data.expireDate;
+                    card.classList.add("pro-active");
+                    badge.innerText = "PRO PLAN";
+                    badge.className = "badge badge-pro";
+                    expiry.innerText = "有効期限: " + data.expireDate;
                 } else {
-                    label.innerText = "通常プラン";
-                    label.className = "status-badge free";
-                    expiryArea.style.display = "none";
+                    card.classList.remove("pro-active");
+                    badge.innerText = "FREE PLAN";
+                    badge.className = "badge badge-free";
+                    expiry.innerText = "期限なし（広告あり）";
                 }
             } catch (e) {
-                console.error("ステータス取得失敗", e);
+                document.getElementById("planBadge").innerText = "取得エラー";
             }
         }
 
-        // 2. トークンを適用する
+        // トークンを適用してランクアップ
         async function redeemToken() {
             const token = document.getElementById("tokenInput").value;
             const btn = document.getElementById("tokenBtn");
-            const msg = document.getElementById("tokenMsg");
-
             if (!token) return alert("トークンを入力してください");
 
             btn.disabled = true;
-            btn.innerText = "適用中...";
+            btn.innerText = "検証中...";
 
             try {
-                const res = await fetch(API_URL, {
+                const res = await fetch(TOKEN_API_URL, {
                     method: "POST",
-                    body: JSON.stringify({
-                        action: "redeem_token",
-                        userId: userId,
-                        token: token
-                    })
+                    body: JSON.stringify({ action: "redeem_token", userId: userId, token: token })
                 });
                 const result = await res.json();
 
                 if (result.success) {
-                    alert(`${result.addedDays}日分のProプランを適用しました！`);
+                    alert(`成功！${result.addedDays}日間Proが適用されました。`);
                     location.reload();
                 } else {
-                    msg.style.color = "red";
-                    msg.innerText = result.msg || "無効なトークンです。";
+                    alert("失敗: " + result.msg);
                 }
             } catch (e) {
                 alert("通信エラーが発生しました");
             } finally {
                 btn.disabled = false;
-                btn.innerText = "トークンを適用する";
+                btn.innerText = "適用してProになる";
             }
         }
 
-        // --- 以下、既存の updateProfile と logout ---
+        // プロフィール更新
         async function updateProfile() {
             const newName = document.getElementById("newName").value;
             const newPass = document.getElementById("newPass").value;
             const btn = document.getElementById("updateBtn");
-            const msg = document.getElementById("updateMsg");
 
-            if (!newName) { alert("ユーザー名は空にできません"); return; }
-            btn.disabled = true; btn.innerText = "更新中...";
+            if (!newName) return alert("ユーザー名は空にできません");
+
+            btn.disabled = true;
+            btn.innerText = "更新中...";
 
             try {
-                const res = await fetch(API_URL, {
+                const res = await fetch(USER_API_URL, {
                     method: "POST",
                     body: JSON.stringify({
                         action: "update",
@@ -168,13 +196,12 @@
                     localStorage.setItem("userName", result.newName);
                     alert("情報を更新しました！");
                     location.reload();
-                } else {
-                    msg.innerText = "更新に失敗しました。";
                 }
             } catch (e) {
                 alert("エラーが発生しました");
             } finally {
-                btn.disabled = false; btn.innerText = "情報を更新する";
+                btn.disabled = false;
+                btn.innerText = "情報を更新する";
             }
         }
 
