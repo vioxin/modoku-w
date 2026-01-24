@@ -42,7 +42,25 @@
     <div id="adminContent" style="display:none;">
         <button class="refresh-btn" onclick="loadAllData()">全更新</button>
         <h1>管理者ダッシュボード</h1>
+        <div class="admin-section">
+            <h2>🎫 Proプラン トークン発行</h2>
+            <div style="margin-bottom: 15px;">
+                付与日数: <input type="number" id="tokenDays" value="30" style="width: 60px;"> 日
+                <button class="btn" style="background:#8e44ad" onclick="generateToken()">トークンを生成</button>
+            </div>
+    
+            <div id="newTokenDisplay" style="display:none; background:#2c3e50; padding:10px; border-left:4px solid #8e44ad; margin-bottom:10px;">
+                <strong>発行完了：</strong> <span id="generatedToken" style="color:#f1c40f; font-family:monospace; font-size:1.2em;"></span>
+                <br><small id="tokenInfo"></small>
+            </div>
 
+            <table>
+                <thead>
+                    <tr><th>トークン</th><th>日数</th><th>状態</th><th>作成日</th></tr>
+                </thead>
+                <tbody id="tokenList"></tbody>
+            </table>
+        </div>
         <div class="admin-section">
             <h2>🛡️ 防衛設定 & ログ</h2>
             <div class="flex-row">
