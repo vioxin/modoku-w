@@ -5,6 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>マイページ - modoku-w id</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* 追加のスタイル */
+        .pro-status-card {
+            background: #2c3e50;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 5px solid #8e44ad;
+        }
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        .free { background: #7f8c8d; color: white; }
+        .pro { background: #f1c40f; color: #2c3e50; }
+        .expire-date { color: #f1c40f; font-weight: bold; }
+    </style>
 </head>
 <body>
     <header>
@@ -13,12 +32,28 @@
 
     <section>
         <h2 id="welcomeMsg">ようこそ！</h2>
-        <p>ここはログインした人だけが見られる専用ページです。</p>
         
+        <div class="pro-status-card">
+            <h3>現在のプラン: <span id="planLabel" class="status-badge free">読み込み中...</span></h3>
+            <div id="proExpiryArea" style="display:none; margin-top: 10px;">
+                <p>有効期限: <span id="expireDate" class="expire-date">----/--/--</span></p>
+            </div>
+        </div>
+
         <div class="btn-group">
             <button onclick="location.href='index.html'" class="nav-btn">掲示板へ戻る</button>
             <button onclick="logout()" class="reload-btn">ログアウト</button>
         </div>
+    </section>
+
+    <section class="profile-section">
+        <h2>Proプラン・トークン入力</h2>
+        <p style="font-size: 13px; color: #aaaaaa;">お手持ちのトークンを入力してProプランにアップグレードします。</p>
+        <div class="input-group">
+            <input type="text" id="tokenInput" placeholder="PRO-XXXX-XXXX">
+            <button onclick="redeemToken()" id="tokenBtn" style="background: #8e44ad; color: white;">トークンを適用する</button>
+        </div>
+        <p id="tokenMsg"></p>
     </section>
 
     <section class="profile-section">
@@ -31,37 +66,92 @@
         </div>
         <p id="updateMsg"></p>
     </section>
+
     <script>
-        // 【重要】あなたのGASのURLをここに貼ってください
         const API_URL = "https://script.google.com/macros/s/AKfycbzzdPk8BxStCsLa0iyhkHeLp3AGnbcvn5FtMrFjRSIvO2aNXQZMdvlsdC44Mrmn6MZ7/exec";
         
-        // 1. ログインチェック（ページを開いた瞬間に実行）
         const userId = localStorage.getItem("userId");
         const userName = localStorage.getItem("userName");
 
         if (!userId) {
-            // IDが保存されていなければ未ログインとみなし、ログイン画面へ飛ばす
             alert("ログインが必要です");
             location.href = "login.html";
         } else {
             document.getElementById("welcomeMsg").innerText = `ようこそ、${userName} さん！`;
-            document.getElementById("newName").value = userName; // 最初から現在の名前を入れておく
+            document.getElementById("newName").value = userName;
+            fetchUserStatus(); // プラン情報を取得
         }
 
-        // 2. プロフィール更新機能
+        // 1. プラン情報と期限を取得する
+        async function fetchUserStatus() {
+            try {
+                const res = await fetch(`${API_URL}?action=getUserStatus&userId=${userId}`);
+                const data = await res.json();
+                
+                const label = document.getElementById("planLabel");
+                const expiryArea = document.getElementById("proExpiryArea");
+
+                if (data.isPro) {
+                    label.innerText = "Proプラン";
+                    label.className = "status-badge pro";
+                    expiryArea.style.display = "block";
+                    document.getElementById("expireDate").innerText = data.expireDate;
+                } else {
+                    label.innerText = "通常プラン";
+                    label.className = "status-badge free";
+                    expiryArea.style.display = "none";
+                }
+            } catch (e) {
+                console.error("ステータス取得失敗", e);
+            }
+        }
+
+        // 2. トークンを適用する
+        async function redeemToken() {
+            const token = document.getElementById("tokenInput").value;
+            const btn = document.getElementById("tokenBtn");
+            const msg = document.getElementById("tokenMsg");
+
+            if (!token) return alert("トークンを入力してください");
+
+            btn.disabled = true;
+            btn.innerText = "適用中...";
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        action: "redeem_token",
+                        userId: userId,
+                        token: token
+                    })
+                });
+                const result = await res.json();
+
+                if (result.success) {
+                    alert(`${result.addedDays}日分のProプランを適用しました！`);
+                    location.reload();
+                } else {
+                    msg.style.color = "red";
+                    msg.innerText = result.msg || "無効なトークンです。";
+                }
+            } catch (e) {
+                alert("通信エラーが発生しました");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "トークンを適用する";
+            }
+        }
+
+        // --- 以下、既存の updateProfile と logout ---
         async function updateProfile() {
             const newName = document.getElementById("newName").value;
             const newPass = document.getElementById("newPass").value;
             const btn = document.getElementById("updateBtn");
             const msg = document.getElementById("updateMsg");
 
-            if (!newName) {
-                alert("ユーザー名は空にできません");
-                return;
-            }
-
-            btn.disabled = true;
-            btn.innerText = "更新中...";
+            if (!newName) { alert("ユーザー名は空にできません"); return; }
+            btn.disabled = true; btn.innerText = "更新中...";
 
             try {
                 const res = await fetch(API_URL, {
@@ -74,25 +164,20 @@
                     })
                 });
                 const result = await res.json();
-
                 if (result.success) {
-                    // ブラウザに保存している名前も更新する
                     localStorage.setItem("userName", result.newName);
                     alert("情報を更新しました！");
-                    location.reload(); // ページを再読み込みして表示を更新
+                    location.reload();
                 } else {
                     msg.innerText = "更新に失敗しました。";
                 }
             } catch (e) {
-                console.error(e);
                 alert("エラーが発生しました");
             } finally {
-                btn.disabled = false;
-                btn.innerText = "情報を更新する";
+                btn.disabled = false; btn.innerText = "情報を更新する";
             }
         }
 
-        // 3. ログアウト機能
         function logout() {
             if(confirm("ログアウトしますか？")) {
                 localStorage.removeItem("userId");
