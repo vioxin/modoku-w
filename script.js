@@ -169,7 +169,8 @@ async function postMessage() {
             body: JSON.stringify({ 
                 name: nameEl.value, 
                 message: msgEl.value,
-                userid: userid,
+                userid: userId,
+                username: userName,
                 userip: currentIp
             })
         });
