@@ -146,6 +146,9 @@ async function postMessage() {
     const nameEl = document.getElementById("userName");
     const msgEl = document.getElementById("userMsg");
     const btn = document.getElementById("postBtn");
+    const ipRes = await fetch('https://api.ipify.org?format=json');
+    const ipData = await ipRes.json();
+    const currentIp = ipData.ip;
 
     if (!nameEl.value || !msgEl.value) {
         alert("名前とメッセージを入力してください");
@@ -161,7 +164,9 @@ async function postMessage() {
             method: "POST",
             body: JSON.stringify({ 
                 name: nameEl.value, 
-                message: msgEl.value 
+                message: msgEl.value,
+                loginUser: userData.username,
+                userip: currentIp
             })
         });
 
