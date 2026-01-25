@@ -164,7 +164,7 @@ async function postMessage() {
     btn.innerText = "送信中...";
 
     try {
-        await fetch(GAS_URL, {
+        const res = await fetch(GAS_URL, {
             method: "POST",
             body: JSON.stringify({ 
                 name: nameEl.value, 
