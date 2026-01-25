@@ -283,14 +283,22 @@
         document.getElementById('page-title').innerText = "スレッド一覧";
         loadThreads(true);
     }
-
+    const userId = localStorage.getItem("userId");
+    const userName = localStorage.getItem("userName");
     async function createThread() {
         const name = document.getElementById('newThreadName').value;
         const creator = document.getElementById('creatorName').value;
+        const ipRes = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipRes.json();
+        const currentIp = ipData.ip;
+        if (!userId) {
+            alert("ログインしてください");
+            return;
+        }
         if(!name || !creator) return alert("タイトルと名前を入力してください");
         const res = await fetch(THREAD_GAS_URL, {
             method: "POST",
-            body: JSON.stringify({ action: "create_thread", threadName: name, creator: creator })
+            body: JSON.stringify({ action: "create_thread", threadName: name, creator: creator, userip: currentIp, userid: userId })
         });
         const result = await res.json();
         if(result.success) {
@@ -304,9 +312,17 @@
         const name = document.getElementById('userName').value;
         const msg = document.getElementById('postMessage').value;
         if(!name || !msg) return alert("名前とメッセージを入力してください");
+        const ipRes = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipRes.json();
+        const currentIp = ipData.ip;
+        if (!userId) {
+            alert("ログインしてください");
+            return;
+        }
+        if(!name || !creator) return alert("タイトルと名前を入力してください");
         const res = await fetch(THREAD_GAS_URL, {
             method: "POST",
-            body: JSON.stringify({ threadId: currentThreadId, name: name, message: msg })
+            body: JSON.stringify({ threadId: currentThreadId, name: name, message: msg, userip: currentIp, userid: userId })
         });
         const result = await res.json();
         if(result.success) {
