@@ -106,7 +106,7 @@
             <table id="threadPostTable"><thead><tr><th>名前</th><th>本文</th><th>操作</th></tr></thead><tbody id="threadPostListBody"></tbody></table>
         </div>
 
-        <div class="admin-section"><h2>💬 メイン掲示板管理</h2><table id="postTable"><thead><tr><th>日時</th><th>名前</th><th>本文</th><th>ipアドレス</th><th>操作</th></tr></thead><tbody id="postListBody"></tbody></table></div>
+        <div class="admin-section"><h2>💬 メイン掲示板管理</h2><table id="postTable"><thead><tr><th>日時</th><th>名前</th><th>本文</th><th>ipアドレス</th><th>id</th><th>操作</th></tr></thead><tbody id="postListBody"></tbody></table></div>
         
         <div class="admin-section"><h2>👤 ユーザー管理</h2><table id="userTable"><thead><tr><th>ID</th><th>名前</th><th>操作</th></tr></thead><tbody id="userListBody"></tbody></table></div>
         
@@ -218,7 +218,7 @@
         loadTokenList(); // トークン一覧も更新
         
         fetch(AUTH_GAS_URL, { method: "POST", body: JSON.stringify({ action: "admin_get_users", adminPass: currentAdminPass }) }).then(r=>r.json()).then(d=>renderTable("userListBody", d.users, u=>`<td>${u.id}</td><td>${u.name}</td><td><button class="del-btn" onclick="deleteItem('${AUTH_GAS_URL}','admin_delete_user','targetId','${u.id}')">削除</button></td>`));
-        fetch(BBS_GAS_URL).then(r=>r.json()).then(d=>renderTable("postListBody", d, p=>`<td>${p.date}</td><td>${p.name}</td><td>${p.message}</td><td>${p.ip || '---'}</td><td><button class="del-btn" onclick="deleteItem('${BBS_GAS_URL}','admin_delete_post','row',${p.row})">削除</button></td>`));
+        fetch(BBS_GAS_URL).then(r=>r.json()).then(d=>renderTable("postListBody", d, p=>`<td>${p.date}</td><td>${p.name}</td><td>${p.message}</td><td>${p.ip || '---'}</td><td>${p.id || '---'}<td><button class="del-btn" onclick="deleteItem('${BBS_GAS_URL}','admin_delete_post','row',${p.row})">削除</button></td>`));
         fetch(NEWS_GAS_URL).then(r=>r.json()).then(d=>renderTable("newsListBody", d, n=>`<td>${n.date}</td><td>${n.title}</td><td><button class="del-btn" onclick="deleteItem('${NEWS_GAS_URL}','admin_delete_news','row',${n.row})">削除</button></td>`));
 
         const threadRes = await fetch(THREAD_GAS_URL);
