@@ -328,7 +328,6 @@
             alert("ログインしてください");
             return;
         }
-        if(!name || !creator) return alert("タイトルと名前を入力してください");
         const res = await fetch(THREAD_GAS_URL, {
             method: "POST",
             body: JSON.stringify({ threadId: currentThreadId, name: name, message: msg, userip: currentIp, userid: userId })
@@ -337,6 +336,7 @@
         if(result.success) {
             document.getElementById('postMessage').value = "";
             loadPosts(false);
+            alert("投稿しました！");
         } else {
             // GASからエラーが返ってきた場合
             if (result.errorType === "EMOJI_RESTRICTED") {
