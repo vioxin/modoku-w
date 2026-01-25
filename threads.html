@@ -305,7 +305,16 @@
             document.getElementById('newThreadName').value = "";
             loadThreads(false);
             alert("スレッドを作成しました！");
+        } else {
+            // GASからエラーが返ってきた場合
+            if (result.errorType === "EMOJI_RESTRICTED") {
+                alert("🚨 " + result.msg); // ここで「絵文字はproプラン専用です」が出る
+            } else {
+                alert("エラー: " + result.msg);
+            }
         }
+        msgEl.value = ""; 
+        await getMessages();
     }
 
     async function postToThread() {
@@ -328,7 +337,16 @@
         if(result.success) {
             document.getElementById('postMessage').value = "";
             loadPosts(false);
+        } else {
+            // GASからエラーが返ってきた場合
+            if (result.errorType === "EMOJI_RESTRICTED") {
+                alert("🚨 " + result.msg); // ここで「絵文字はproプラン専用です」が出る
+            } else {
+                alert("エラー: " + result.msg);
+            }
         }
+        msgEl.value = ""; 
+        await getMessages();
     }
 </script>
 </body>
