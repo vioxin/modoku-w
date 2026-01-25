@@ -174,7 +174,19 @@ async function postMessage() {
                 userip: currentIp
             })
         });
+        const result = await res.json();
 
+        if (result.success) {
+            alert("投稿しました！");
+            location.reload();
+        } else {
+            // GASからエラーが返ってきた場合
+            if (result.errorType === "EMOJI_RESTRICTED") {
+                alert("🚨 " + result.msg); // ここで「絵文字はproプラン専用です」が出る
+            } else {
+                alert("エラー: " + result.msg);
+            }
+        }
         msgEl.value = ""; 
         await getMessages(); 
     } catch (e) {
