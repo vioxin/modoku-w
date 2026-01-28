@@ -120,10 +120,10 @@ function renderMessages(data) {
     // すでに逆順（最新上）で届いている想定ですが、
     // ここで .reverse() を使うか使わないかはGAS側の出力順に合わせて調整してください
     data.forEach(item => {
+        const myId = localStorage.getItem("userId");
         const div = document.createElement("div");
         div.className = "post-item";
-        div.id = `post-${item.id}`; // ★アンカーの飛び先IDを設定
-        
+        div.id = `post-${item.id}`; 
         div.innerHTML = `
             <div class="post-header">
                 <div>
@@ -136,9 +136,17 @@ function renderMessages(data) {
                 ${formatAnchor(item.message)}
             </div>
         `;
+        if (item.userId === myId) {
+            const deleteBtn = document.createElement("button");
+            deleteBtn.innerText = "🗑️ 削除";
+            deleteBtn.style = "margin-top:5px; color:red; cursor:pointer; background:none; border:1px solid red; border-radius:4px; padding:2px 5px; font-size:12px;";
+            deleteBtn.onclick = () => {
+                deleteMyPost(item.row);
+            };
+            div.appendChild(deleteBtn);
+        }
         listElement.appendChild(div);
     });
-}
 
 // ==========================================
 // 7. 掲示板：投稿送信機能
