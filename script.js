@@ -120,10 +120,15 @@ function renderMessages(data) {
     // すでに逆順（最新上）で届いている想定ですが、
     // ここで .reverse() を使うか使わないかはGAS側の出力順に合わせて調整してください
     data.forEach(item => {
+        // 1. 自分のIDを取得
         const myId = localStorage.getItem("userId");
+
+        // 2. 投稿の外枠（div）を作成
         const div = document.createElement("div");
         div.className = "post-item";
-        div.id = `post-${item.id}`; 
+        div.id = `post-${item.id}`; // アンカー用ID
+    
+        // 3. 投稿のヘッダーと本文のHTMLを組み立て
         div.innerHTML = `
             <div class="post-header">
                 <div>
@@ -136,18 +141,34 @@ function renderMessages(data) {
                 ${formatAnchor(item.message)}
             </div>
         `;
-        if (item.userId === myId) {
+
+        // 4. 自分の投稿なら削除ボタンを追加
+        // ※item.userid か item.userId か、スプレッドシートのヘッダーに合わせて調整してください
+        if (item.userId === myId || item.userid === myId) {
             const deleteBtn = document.createElement("button");
-            deleteBtn.innerText = "🗑️ 削除";
-            deleteBtn.style = "margin-top:5px; color:red; cursor:pointer; background:none; border:1px solid red; border-radius:4px; padding:2px 5px; font-size:12px;";
-            deleteBtn.onclick = () => {
-                deleteMyPost(item.row);
-            };
+            deleteBtn.innerText = "🗑️ 自分の投稿を削除";
+        
+            // デザイン（枠組みの設定）
+            deleteBtn.style.marginTop = "8px";
+            deleteBtn.style.color = "#ff4d4d";
+            deleteBtn.style.background = "none";
+            deleteBtn.style.border = "1px solid #ff4d4d";
+            deleteBtn.style.borderRadius = "4px";
+            deleteBtn.style.cursor = "pointer";
+            deleteBtn.style.fontSize = "11px";
+            deleteBtn.style.padding = "2px 6px";
+
+            // クリックイベント
+            deleteBtn.onclick = () => deleteMyPost(item.row);
+        
+            // 投稿枠(div)の最後に追加
             div.appendChild(deleteBtn);
         }
+
+        // 5. 最後にリスト本体に追加
         listElement.appendChild(div);
     });
-
+}
 // ==========================================
 // 7. 掲示板：投稿送信機能
 // ==========================================
