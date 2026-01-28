@@ -205,3 +205,29 @@ async function postMessage() {
         btn.innerText = originalText;
     }
 }
+async function deleteMyPost(rowNumber) {
+    if (!confirm("自分の投稿を削除してもよろしいですか？")) return;
+
+    try {
+        const response = await fetch(GAS_URL, { // GAS_URLは自分のURLに書き換えてください
+            method: "POST",
+            body: JSON.stringify({
+                action: "user_delete_post",
+                row: rowNumber,
+                userId: localStorage.getItem("userId")
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert("削除に成功しました！");
+            location.reload(); // 画面を更新して削除を反映
+        } else {
+            // ここでGAS側からの「Pro限定です」などのエラーメッセージが表示されます
+            alert("削除できませんでした: " + result.msg);
+        }
+    } catch (error) {
+        alert("通信エラーが発生しました。");
+    }
+}
