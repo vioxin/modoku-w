@@ -144,7 +144,7 @@ function renderMessages(data) {
 
         // 4. 自分の投稿なら削除ボタンを追加
         // ※item.userid か item.userId か、スプレッドシートのヘッダーに合わせて調整してください
-        if (item.userId === myId || item.userid === myId) {
+        if (item.uId === myId || item.uid === myId) {
             const deleteBtn = document.createElement("button");
             deleteBtn.innerText = "🗑️ 自分の投稿を削除";
         
