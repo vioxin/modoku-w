@@ -252,3 +252,58 @@ async function deleteMyPost(rowNumber) {
         alert("通信エラーが発生しました。");
     }
 }
+const themes = {
+  default: {
+    '--main-bg': '#001200',
+    '--text-color': '#ffffff',
+    '--accent-color': '#800000',
+    '--post-bg': 'rgba(255, 255, 255, 0.05)',
+    '--name-color': '#ffcc00',
+    '--input-bg': '#f9f9f9',
+    '--input-text': '#333333',
+    '--anchor-color': '#4da6ff',
+    '--border-color': '#222222',
+    '--date-color': '#aaaaaa'
+  },
+  light: {
+    '--main-bg': '#f4f7f6',
+    '--text-color': '#333333',
+    '--accent-color': '#4a90e2',
+    '--post-bg': '#ffffff',
+    '--name-color': '#d0021b',
+    '--input-bg': '#ffffff',
+    '--input-text': '#333333',
+    '--anchor-color': '#0056b3',
+    '--border-color': '#dddddd',
+    '--date-color': '#888888'
+  },
+  cyber: {
+    '--main-bg': '#000000',
+    '--text-color': '#39ff14',
+    '--accent-color': '#ff00ff',
+    '--post-bg': 'rgba(57, 255, 20, 0.1)',
+    '--name-color': '#00ffff',
+    '--input-bg': '#111111',
+    '--input-text': '#39ff14',
+    '--anchor-color': '#ff00ff',
+    '--border-color': '#39ff14',
+    '--date-color': '#00ffff'
+  }
+};
+
+function applyTheme(themeName) {
+  const theme = themes[themeName] || themes.default;
+  const root = document.documentElement;
+
+  Object.keys(theme).forEach(key => {
+    root.style.setProperty(key, theme[key]);
+  });
+
+  localStorage.setItem('selectedTheme', themeName);
+}
+
+// ページ読み込み時に保存されたテーマを適用
+window.addEventListener('DOMContentLoaded', () => {
+  const savedTheme = localStorage.getItem('selectedTheme') || 'default';
+  applyTheme(savedTheme);
+});
