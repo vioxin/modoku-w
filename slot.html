@@ -71,8 +71,33 @@
 
 <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbyCNH7nojIIXwwDqmnRBf6YTMdVAohZG14KShr0Bnms-fYo5GukyJ5l2XuztOU7BZF7/exec";
-    const userId = localStorage.getItem("userId"); // 掲示板と共通の保存名
+    const userId = localStorage.getItem("userId"); 
     const symbols = ['💀', '☣️', '🧪', '🩸', '💎', '7️⃣'];
+
+    // --- 1. ポイントだけをロードする関数 ---
+    async function loadPoints() {
+        if (!userId) {
+            document.getElementById('status-msg').innerText = "ログイン情報が見つからないぜ。";
+            return;
+        }
+        try {
+            // GAS側にポイント確認用のaction（checkPlanやgetUserDataなど）がある想定
+            // なければ今回のslotSpinの引数調整などで対応可能
+            const res = await fetch(`${GAS_URL}?action=checkPlan&name=${userId}`);
+            const data = await res.json();
+            // GAS側から「point」という名前で返ってくる想定
+            if (data.point !== undefined) {
+                document.getElementById('pt-val').innerText = data.point;
+            } else if (data.newPoint !== undefined) {
+                document.getElementById('pt-val').innerText = data.newPoint;
+            }
+        } catch (e) {
+            console.error("ポイントロード失敗:", e);
+        }
+    }
+
+    // --- 2. ページ読み込み時に実行 ---
+    window.onload = loadPoints;
 
     async function runSlot() {
         const btn = document.getElementById('spinBtn');
@@ -81,7 +106,6 @@
         msg.innerText = "通信中...";
 
         try {
-            // GASへスロット実行をリクエスト
             const res = await fetch(`${GAS_URL}?action=slotSpin&name=${userId}`);
             const data = await res.json();
 
@@ -107,9 +131,13 @@
                     document.getElementById('r2').innerText = resultSym;
                     document.getElementById('r3').innerText = data.win ? resultSym : '🧪';
                     
+                    // --- 3. スロット終了時に最新ポイントを反映 ---
                     document.getElementById('pt-val').innerText = data.newPoint;
                     msg.innerText = data.win ? `🎉 当たり！ ${data.payout}pt獲得！` : "ハズレ...";
                     btn.disabled = false;
+                    
+                    // 念のため少し後に全体ロードもかけて同期を確実にする
+                    setTimeout(loadPoints, 1000);
                 }
             }, 50);
 
