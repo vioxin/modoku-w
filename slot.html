@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>もうどくスロット ☣️</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #39ff14;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .casino-frame {
+            border: 5px double #39ff14;
+            padding: 40px;
+            background: rgba(0, 20, 0, 0.9);
+            box-shadow: 0 0 20px #39ff14;
+            text-align: center;
+            border-radius: 20px;
+        }
+        .reels {
+            display: flex;
+            gap: 20px;
+            font-size: 80px;
+            margin: 30px 0;
+            background: #111;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #ff00ff;
+        }
+        .point-display {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        button {
+            background: #39ff14;
+            color: #000;
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #1b8a0a;
+        }
+        button:active { transform: translateY(5px); box-shadow: none; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        #status-msg { margin-top: 20px; height: 24px; color: #ff00ff; }
+    </style>
+</head>
+<body>
+
+<div class="casino-frame">
+    <h1>☣️ MOU-DOKU SLOT ☣️</h1>
+    <div class="point-display">所持金: <span id="pt-val">---</span> pt</div>
+    
+    <div class="reels">
+        <div id="r1">💀</div>
+        <div id="r2">💀</div>
+        <div id="r3">💀</div>
+    </div>
+
+    <button id="spinBtn" onclick="runSlot()">SPIN (100pt)</button>
+    <div id="status-msg"></div>
+</div>
+
+<script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyCNH7nojIIXwwDqmnRBf6YTMdVAohZG14KShr0Bnms-fYo5GukyJ5l2XuztOU7BZF7/exec";
+    const userId = localStorage.getItem("userId"); // 掲示板と共通の保存名
+    const symbols = ['💀', '☣️', '🧪', '🩸', '💎', '7️⃣'];
+
+    async function runSlot() {
+        const btn = document.getElementById('spinBtn');
+        const msg = document.getElementById('status-msg');
+        btn.disabled = true;
+        msg.innerText = "通信中...";
+
+        try {
+            // GASへスロット実行をリクエスト
+            const res = await fetch(`${GAS_URL}?action=slotSpin&name=${userId}`);
+            const data = await res.json();
+
+            if (!data.success) {
+                msg.innerText = data.msg;
+                btn.disabled = false;
+                return;
+            }
+
+            // 演出開始
+            let count = 0;
+            const timer = setInterval(() => {
+                document.getElementById('r1').innerText = symbols[Math.floor(Math.random()*symbols.length)];
+                document.getElementById('r2').innerText = symbols[Math.floor(Math.random()*symbols.length)];
+                document.getElementById('r3').innerText = symbols[Math.floor(Math.random()*symbols.length)];
+                count++;
+
+                if (count > 20) {
+                    clearInterval(timer);
+                    // 結果反映
+                    const resultSym = data.win ? (data.item === '777' ? '7️⃣' : '💎') : '💀';
+                    document.getElementById('r1').innerText = resultSym;
+                    document.getElementById('r2').innerText = resultSym;
+                    document.getElementById('r3').innerText = data.win ? resultSym : '🧪';
+                    
+                    document.getElementById('pt-val').innerText = data.newPoint;
+                    msg.innerText = data.win ? `🎉 当たり！ ${data.payout}pt獲得！` : "ハズレ...";
+                    btn.disabled = false;
+                }
+            }, 50);
+
+        } catch (e) {
+            msg.innerText = "エラーが発生したぜ。";
+            btn.disabled = false;
+        }
+    }
+</script>
+</body>
+</html>
