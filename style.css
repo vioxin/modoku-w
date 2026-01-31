@@ -1,9 +1,25 @@
-/* ===== 全体のスタイル ===== */
+/* ===== 0. 変数の定義（元のコードの数値をそのままセット） ===== */
+:root {
+  --main-bg: #001200;           /* body等の背景色 */
+  --text-color: #ffffff;        /* 基本の文字色 */
+  --accent-color: #800000;      /* h2の線、ボタン、フッター等のエンジ色 */
+  --post-bg: rgba(255, 255, 255, 0.05); /* 投稿枠の背景 */
+  --name-color: #ffcc00;        /* 名前やレス番号の黄色 */
+  --input-bg: #f9f9f9;          /* 入力欄の背景 */
+  --input-text: #333333;        /* 入力欄の文字色 */
+  --anchor-color: #4da6ff;      /* アンカーの青色 */
+  --border-color: #333333;      /* 入力枠などの線 */
+  --post-border: #222222;       /* 投稿の下線 */
+  --date-color: #aaaaaa;        /* 日付のグレー */
+}
+
+/* ===== 1. 全体のスタイル ===== */
 body {
   margin: 0;
   font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif;
-  background-color: #001200;
-  color: #ffffff;
+  background-color: var(--main-bg);
+  color: var(--text-color);
+  transition: background-color 0.3s, color 0.3s;
 }
 
 header {
@@ -30,8 +46,8 @@ section {
 }
 
 h2 {
-  color: #ffffff;
-  border-left: 5px solid #800000;
+  color: var(--text-color);
+  border-left: 5px solid var(--accent-color);
   padding-left: 15px;
   margin-bottom: 20px;
 }
@@ -45,14 +61,14 @@ h2 {
 input, textarea {
   padding: 12px;
   border-radius: 5px;
-  border: 1px solid #333;
-  background-color: #f9f9f9;
+  border: 1px solid var(--border-color);
+  background-color: var(--input-bg);
   font-size: 16px;
-  color: #333; /* 文字が見えるように黒系に */
+  color: var(--input-text);
 }
 
 #postBtn {
-  background-color: #800000;
+  background-color: var(--accent-color);
   color: white;
   padding: 12px;
   border: none;
@@ -62,9 +78,7 @@ input, textarea {
   font-size: 16px;
 }
 
-#postBtn:disabled {
-  background-color: #555;
-}
+#postBtn:disabled { background-color: #555; }
 
 /* ===== 投稿一覧部分 ===== */
 .list-header {
@@ -76,57 +90,55 @@ input, textarea {
 
 .sync-text {
   font-size: 14px;
-  color: #ffcc00;
+  color: var(--name-color);
   font-weight: normal;
   opacity: 0;
   transition: opacity 0.3s;
 }
-
 .is-loading { opacity: 1; }
 
 .reload-btn {
   background-color: transparent;
-  border: 1px solid #ffffff;
-  color: #ffffff;
+  border: 1px solid var(--text-color);
+  color: var(--text-color);
   padding: 6px 12px;
   border-radius: 20px;
   cursor: pointer;
 }
 
 .post-item {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--post-bg);
   padding: 15px;
   margin-bottom: 15px;
   border-radius: 5px;
-  border-bottom: 1px solid #222;
-  transition: opacity 0.3s;
-  /* アンカージャンプ時の位置調整 */
-  scroll-margin-top: 20px;
+  border-bottom: 1px solid var(--post-border);
+  transition: opacity 0.3s, background-color 0.3s;
+  scroll-margin-top: 50px; /* ジャンプ位置：最新版の50pxを採用 */
 }
 
-/* ★アンカー・レス番号用追加スタイル★ */
+/* ★アンカー・レス番号機能（維持）★ */
 .res-num {
-  color: #ffcc00;
+  color: var(--name-color);
   font-weight: bold;
   margin-right: 10px;
   font-family: monospace;
 }
 
 .anchor {
-  color: #4da6ff; /* 暗い背景に映える青色 */
+  color: var(--anchor-color);
   text-decoration: underline;
   font-weight: bold;
   cursor: pointer;
 }
 
-/* アンカーで飛んだ先の投稿を光らせる（ターゲット指定） */
+/* アンカーで飛んだ先の投稿を光らせる（維持） */
 .post-item:target {
   animation: anchor-flash 2s ease-out;
 }
 
 @keyframes anchor-flash {
-  0% { background-color: rgba(255, 204, 0, 0.3); } /* 黄色く光る */
-  100% { background-color: rgba(255, 255, 255, 0.05); }
+  0% { background-color: rgba(255, 204, 0, 0.3); } 
+  100% { background-color: var(--post-bg); }
 }
 
 .loading-fade { opacity: 0.5; }
@@ -139,53 +151,30 @@ input, textarea {
 
 .post-name {
   font-weight: bold;
-  color: #ffcc00;
+  color: var(--name-color);
 }
 
 .post-date {
   font-size: 12px;
-  color: #aaaaaa;
+  color: var(--date-color);
 }
 
-/* フッター、ナビ、サイドメニューは元のコードを維持 */
-footer { text-align: center; padding: 20px; background-color: #800000; font-size: 14px; }
-.login-page { display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #001200; }
-.login-container { background: rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 10px; text-align: center; width: 300px; }
+/* ===== ナビ、メニュー、フッター ===== */
+footer { text-align: center; padding: 20px; background-color: var(--accent-color); font-size: 14px; color: white; }
+
 .nav-container { position: absolute; top: 20px; right: 20px; z-index: 100; }
-.nav-btn { background-color: #800000; color: white; padding: 8px 20px; border: 1px solid white; border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+.nav-btn { background-color: var(--accent-color); color: white; padding: 8px 20px; border: 1px solid white; border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+
 .menu-btn { position: absolute; top: 20px; left: 20px; font-size: 30px; color: white; cursor: pointer; z-index: 101; }
-.side-menu { position: fixed; top: 0; left: -250px; width: 250px; height: 100%; background-color: #001200; border-right: 1px solid #800000; transition: 0.3s; z-index: 200; padding-top: 60px; }
+
+.side-menu { 
+  position: fixed; top: 0; left: -250px; width: 250px; height: 100%; 
+  background-color: var(--main-bg); 
+  border-right: 1px solid var(--accent-color); 
+  transition: 0.3s; z-index: 200; padding-top: 60px; 
+}
 .side-menu.open { left: 0; }
 .side-menu ul { list-style: none; padding: 0; }
-.side-menu ul li a { display: block; padding: 15px 25px; color: white; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.1); }
-.side-menu ul li a:hover { background-color: #800000; }
+.side-menu ul li a { display: block; padding: 15px 25px; color: var(--text-color); text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.side-menu ul li a:hover { background-color: var(--accent-color); }
 .close-btn { position: absolute; top: 10px; right: 20px; font-size: 30px; color: white; cursor: pointer; }
-/* --- アンカー・レス番号用追加スタイル --- */
-
-.res-num {
-  color: #ffcc00; /* 名前と同じ黄色系で強調 */
-  font-weight: bold;
-  margin-right: 10px;
-  font-family: monospace; /* 番号を揃えやすく */
-}
-
-.anchor {
-  color: #4da6ff; /* ダーク背景に映える明るい青 */
-  text-decoration: underline;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.post-item {
-    scroll-margin-top: 50px; /* アンカー移動時の上部余白 */
-}
-
-/* アンカーで飛んだ先の投稿を光らせる（ターゲット指定） */
-.post-item:target {
-  animation: anchor-flash 2s ease-out;
-}
-
-@keyframes anchor-flash {
-  0% { background-color: rgba(255, 204, 0, 0.3); } /* 一瞬黄色く光る */
-  100% { background-color: rgba(255, 255, 255, 0.05); } /* 元の透明度に戻る */
-}
