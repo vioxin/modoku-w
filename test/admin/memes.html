@@ -7,6 +7,8 @@
         body { background: #000; color: #39ff14; font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
         header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #39ff14; padding-bottom: 10px; margin-bottom: 30px; }
         
+        .header-btns { display: flex; gap: 10px; }
+
         /* リスト表示 */
         .meme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
         .meme-card { 
@@ -24,16 +26,30 @@
         .meme-text { font-size: 1.2rem; font-weight: bold; word-break: break-all; margin-bottom: 10px; }
         .meme-meta { font-size: 0.8rem; color: #888; text-align: right; }
 
+        /* ボタンデザイン */
+        .btn { 
+            background: #39ff14; color: #000; border: none; padding: 12px 25px; 
+            cursor: pointer; font-weight: bold; border-radius: 5px; font-size: 1rem;
+            transition: 0.2s;
+        }
+        .btn:hover { opacity: 0.8; }
+        
+        /* 読み込み中（灰色）の状態 */
+        .btn:disabled { 
+            background: #555 !important; 
+            color: #888 !important; 
+            cursor: not-allowed; 
+            box-shadow: none !important;
+        }
+
+        .btn-reload { background: #1b8a0a; color: #fff; }
+
         /* 投稿画面 */
         #post-view { display: none; text-align: center; max-width: 400px; margin: 50px auto; }
         input { 
             width: 100%; padding: 12px; margin: 10px 0; 
             background: #111; border: 1px solid #39ff14; color: #39ff14; 
             font-size: 1rem; border-radius: 5px; box-sizing: border-box;
-        }
-        .btn { 
-            background: #39ff14; color: #000; border: none; padding: 12px 25px; 
-            cursor: pointer; font-weight: bold; border-radius: 5px; font-size: 1rem;
         }
         .btn-sub { background: #555; color: #fff; margin-top: 10px; }
     </style>
@@ -43,7 +59,10 @@
 <div id="list-view">
     <header>
         <h1>MEME ARCHIVE</h1>
-        <button class="btn" onclick="toggleView(true)">+ POST NEW</button>
+        <div class="header-btns">
+            <button id="reloadBtn" class="btn btn-reload" onclick="fetchMemes()">RELOAD</button>
+            <button class="btn" onclick="toggleView(true)">+ POST NEW</button>
+        </div>
     </header>
     <div id="meme-container" class="meme-grid">
         <p>Loading archives...</p>
@@ -51,7 +70,7 @@
 </div>
 
 <div id="post-view">
-    <h1>RECORD MEME</h1>
+    <h1>☣️ RECORD MEME</h1>
     <input type="text" id="memeName" placeholder="ミームの内容（短い一言）">
     <input type="text" id="poster" placeholder="あなたの名前">
     <button class="btn" onclick="submitMeme()">投稿を確定する</button>
@@ -62,30 +81,49 @@
 <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbw-I_Wafhcq8YwYXGhgFGOVgSqS0FRsPWTrr8fFxACbSvNP-K_TH3z3iKas1vYCmYsqPQ/exec";
 
-    // 画面切り替え
     function toggleView(isPost) {
         document.getElementById('list-view').style.display = isPost ? 'none' : 'block';
         document.getElementById('post-view').style.display = isPost ? 'block' : 'none';
     }
 
-    // データ読み込み
+    // --- 改良版：データ読み込み関数 ---
     async function fetchMemes() {
-        const res = await fetch(`${GAS_URL}?action=getMemes`);
-        const memes = await res.json();
+        const btn = document.getElementById('reloadBtn');
         const container = document.getElementById('meme-container');
-        container.innerHTML = memes.length ? '' : '<p>ミームがまだありません。</p>';
 
-        memes.forEach(m => {
-            container.innerHTML += `
-                <div class="meme-card">
-                    <div class="meme-text">"${m.memeName}"</div>
-                    <div class="meme-meta">by ${m.poster}</div>
-                </div>
-            `;
-        });
+        // 1. 読み込み中状態にする（ボタンを灰色にして無効化）
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = "読み込み中...";
+        }
+        container.style.opacity = "0.5"; // 一覧を少し薄くする演出
+
+        try {
+            const res = await fetch(`${GAS_URL}?action=getMemes`);
+            const memes = await res.json();
+            
+            container.innerHTML = memes.length ? '' : '<p>ミームがまだありません。</p>';
+
+            memes.forEach(m => {
+                container.innerHTML += `
+                    <div class="meme-card">
+                        <div class="meme-text">"${m.memeName}"</div>
+                        <div class="meme-meta">by ${m.poster}</div>
+                    </div>
+                `;
+            });
+        } catch (e) {
+            container.innerHTML = '<p>エラー：データの取得に失敗したぜ。</p>';
+        } finally {
+            // 2. 終わったら元に戻す
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = "RELOAD";
+            }
+            container.style.opacity = "1";
+        }
     }
 
-    // 投稿実行
     async function submitMeme() {
         const name = document.getElementById('memeName').value;
         const poster = document.getElementById('poster').value;
