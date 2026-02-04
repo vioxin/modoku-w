@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Moudoku Memes ☣️</title>
+    <style>
+        body { background: #000; color: #39ff14; font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #39ff14; padding-bottom: 10px; margin-bottom: 30px; }
+        
+        /* リスト表示 */
+        .meme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        .meme-card { 
+            background: #0a0a0a; 
+            border: 1px solid #39ff14; 
+            padding: 20px; 
+            border-radius: 5px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center;
+            min-height: 100px;
+            box-shadow: 4px 4px 0px #1b8a0a;
+        }
+        .meme-card:hover { background: #111; transform: translate(-2px, -2px); box-shadow: 6px 6px 0px #39ff14; }
+        .meme-text { font-size: 1.2rem; font-weight: bold; word-break: break-all; margin-bottom: 10px; }
+        .meme-meta { font-size: 0.8rem; color: #888; text-align: right; }
+
+        /* 投稿画面 */
+        #post-view { display: none; text-align: center; max-width: 400px; margin: 50px auto; }
+        input { 
+            width: 100%; padding: 12px; margin: 10px 0; 
+            background: #111; border: 1px solid #39ff14; color: #39ff14; 
+            font-size: 1rem; border-radius: 5px; box-sizing: border-box;
+        }
+        .btn { 
+            background: #39ff14; color: #000; border: none; padding: 12px 25px; 
+            cursor: pointer; font-weight: bold; border-radius: 5px; font-size: 1rem;
+        }
+        .btn-sub { background: #555; color: #fff; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="list-view">
+    <header>
+        <h1>☣️ MEME ARCHIVE</h1>
+        <button class="btn" onclick="toggleView(true)">+ POST NEW</button>
+    </header>
+    <div id="meme-container" class="meme-grid">
+        <p>Loading archives...</p>
+    </div>
+</div>
+
+<div id="post-view">
+    <h1>☣️ RECORD MEME</h1>
+    <input type="text" id="memeName" placeholder="ミームの内容（短い一言）">
+    <input type="text" id="poster" placeholder="あなたの名前">
+    <button class="btn" onclick="submitMeme()">投稿を確定する</button>
+    <br>
+    <button class="btn btn-sub" onclick="toggleView(false)">キャンセル</button>
+</div>
+
+<script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbw-I_Wafhcq8YwYXGhgFGOVgSqS0FRsPWTrr8fFxACbSvNP-K_TH3z3iKas1vYCmYsqPQ/exec";
+
+    // 画面切り替え
+    function toggleView(isPost) {
+        document.getElementById('list-view').style.display = isPost ? 'none' : 'block';
+        document.getElementById('post-view').style.display = isPost ? 'block' : 'none';
+    }
+
+    // データ読み込み
+    async function fetchMemes() {
+        const res = await fetch(`${GAS_URL}?action=getMemes`);
+        const memes = await res.json();
+        const container = document.getElementById('meme-container');
+        container.innerHTML = memes.length ? '' : '<p>ミームがまだありません。</p>';
+
+        memes.forEach(m => {
+            container.innerHTML += `
+                <div class="meme-card">
+                    <div class="meme-text">"${m.memeName}"</div>
+                    <div class="meme-meta">by ${m.poster}</div>
+                </div>
+            `;
+        });
+    }
+
+    // 投稿実行
+    async function submitMeme() {
+        const name = document.getElementById('memeName').value;
+        const poster = document.getElementById('poster').value;
+
+        if (!name || !poster) return alert("空欄を埋めろよ");
+
+        const btn = event.target;
+        btn.disabled = true;
+        btn.innerText = "記録中...";
+
+        await fetch(`${GAS_URL}?action=postMeme&name=${encodeURIComponent(name)}&poster=${encodeURIComponent(poster)}`);
+        
+        document.getElementById('memeName').value = "";
+        btn.disabled = false;
+        btn.innerText = "投稿を確定する";
+        
+        toggleView(false);
+        fetchMemes();
+    }
+
+    window.onload = fetchMemes;
+</script>
+</body>
+</html>
