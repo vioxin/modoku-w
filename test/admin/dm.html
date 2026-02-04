@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>毒電波（DM)</title>
+    <style>
+        body { background: #000; color: #39ff14; font-family: monospace; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+        h1 { text-align: center; font-size: 1.5rem; margin: 10px 0; }
+        
+        .main-container { display: flex; flex: 1; border: 1px solid #39ff14; overflow: hidden; background: #050505; }
+        
+        /* 左：会話リスト */
+        .sidebar { width: 150px; border-right: 1px solid #39ff14; display: flex; flex-direction: column; background: #0a0a0a; }
+        .sidebar-header { padding: 10px; border-bottom: 1px solid #39ff14; text-align: center; }
+        #partner-list { flex: 1; overflow-y: auto; }
+        .partner-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #222; font-size: 0.9rem; }
+        .partner-item:hover { background: #1b8a0a; color: #fff; }
+        .partner-item.active { background: #39ff14; color: #000; }
+
+        /* 右：チャット画面 */
+        .chat-view { flex: 1; display: flex; flex-direction: column; }
+        .chat-header { padding: 10px; border-bottom: 1px solid #39ff14; display: flex; justify-content: space-between; align-items: center; background: #0a0a0a; }
+        #chat-box { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; }
+        
+        /* メッセージ */
+        .msg { margin-bottom: 10px; padding: 8px 12px; border-radius: 5px; max-width: 80%; line-height: 1.4; position: relative; }
+        .msg.sent { background: #1b8a0a; color: #fff; align-self: flex-end; }
+        .msg.received { background: #222; border: 1px solid #39ff14; align-self: flex-start; }
+        .msg-time { font-size: 0.6rem; opacity: 0.6; margin-top: 4px; text-align: right; }
+
+        /* 入力エリア */
+        .input-area { padding: 15px; border-top: 1px solid #39ff14; background: #000; }
+        input, textarea { width: 100%; background: #111; border: 1px solid #39ff14; color: #39ff14; padding: 10px; margin-bottom: 5px; box-sizing: border-box; }
+        
+        /* ボタン共通 */
+        .btn { background: #39ff14; color: #000; border: none; padding: 8px; cursor: pointer; font-weight: bold; border-radius: 3px; }
+        .btn:disabled { background: #555 !important; color: #888 !important; cursor: not-allowed; }
+        .btn-reload { background: #1b8a0a; color: #fff; font-size: 0.7rem; padding: 5px 10px; }
+    </style>
+</head>
+<body>
+
+<h1>DIRECT MESSAGE</h1>
+
+<div class="main-container">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <button id="bulkReloadBtn" class="btn btn-reload" onclick="loadBulk()">一括更新</button>
+        </div>
+        <div id="partner-list"></div>
+    </div>
+
+    <div class="chat-view">
+        <div class="chat-header">
+            <span id="chat-with-name">相手を選択してください</span>
+            <button id="chatReloadBtn" class="btn btn-reload" onclick="loadChat()" disabled>チャット更新</button>
+        </div>
+        <div id="chat-box"></div>
+        
+        <div class="input-area">
+            <input type="text" id="targetUser" placeholder="新規宛先 (またはリストから選択)">
+            <textarea id="msgBody" rows="2" placeholder="メッセージを入力..."></textarea>
+            <button id="sendBtn" class="btn" onclick="sendDM()">送信</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxcrhf1sGO8KVh-A1yPiM4-14QUKlqgz_4hR1RKIxTgmAf5ghwNr0j5XrnY2iuXfKX3/exec";
+    const myName = localStorage.getItem("userName") || "ゲスト";
+    let currentPartner = "";
+
+    // 1. 一括更新（全メッセージから相手リストを作成）
+    async function loadBulk() {
+        const btn = document.getElementById('bulkReloadBtn');
+        btn.disabled = true;
+        btn.innerText = "読込中...";
+
+        try {
+            const res = await fetch(`${GAS_URL}?action=getDMs&myName=${encodeURIComponent(myName)}`);
+            const msgs = await res.json();
+            
+            // 相手の名前リストを抽出（重複削除）
+            const partners = [...new Set(msgs.map(m => m.sender === myName ? m.receiver : m.sender))];
+            const listDiv = document.getElementById('partner-list');
+            listDiv.innerHTML = '';
+            
+            partners.forEach(p => {
+                const div = document.createElement('div');
+                div.className = `partner-item ${p === currentPartner ? 'active' : ''}`;
+                div.innerText = p;
+                div.onclick = () => selectPartner(p);
+                listDiv.appendChild(div);
+            });
+
+        } catch (e) { console.error(e); }
+        btn.disabled = false;
+        btn.innerText = "一括更新";
+    }
+
+    // 2. 相手を選択
+    function selectPartner(name) {
+        currentPartner = name;
+        document.getElementById('targetUser').value = name;
+        document.getElementById('chat-with-name').innerText = name + " との密談";
+        document.getElementById('chatReloadBtn').disabled = false;
+        loadChat();
+        
+        // リストの選択表示更新
+        document.querySelectorAll('.partner-item').forEach(el => {
+            el.classList.toggle('active', el.innerText === name);
+        });
+    }
+
+    // 3. チャット更新（特定の相手との会話のみ）
+    async function loadChat() {
+        if (!currentPartner) return;
+        const btn = document.getElementById('chatReloadBtn');
+        const box = document.getElementById('chat-box');
+        
+        btn.disabled = true;
+        btn.innerText = "更新中...";
+        box.style.opacity = "0.5";
+
+        try {
+            const res = await fetch(`${GAS_URL}?action=getChat&myName=${encodeURIComponent(myName)}&partner=${encodeURIComponent(currentPartner)}`);
+            const msgs = await res.json();
+            
+            box.innerHTML = '';
+            msgs.forEach(m => {
+                const isSent = m.sender === myName;
+                box.innerHTML += `
+                    <div class="msg ${isSent ? 'sent' : 'received'}">
+                        <div>${m.body}</div>
+                        <div class="msg-time">${m.time}</div>
+                    </div>
+                `;
+            });
+            box.scrollTop = box.scrollHeight;
+        } catch (e) { box.innerHTML = "読込失敗"; }
+        
+        btn.disabled = false;
+        btn.innerText = "チャット更新";
+        box.style.opacity = "1";
+    }
+
+    // 4. 送信
+    async function sendDM() {
+        const target = document.getElementById('targetUser').value;
+        const body = document.getElementById('msgBody').value;
+        if (!target || !body) return;
+
+        const btn = document.getElementById('sendBtn');
+        btn.disabled = true;
+
+        await fetch(`${GAS_URL}?action=sendDM&sender=${encodeURIComponent(myName)}&receiver=${encodeURIComponent(target)}&body=${encodeURIComponent(body)}`);
+        
+        document.getElementById('msgBody').value = "";
+        btn.disabled = false;
+        
+        if (target === currentPartner) {
+            loadChat();
+        } else {
+            currentPartner = target;
+            loadBulk(); // 新しい相手ならリストも更新
+        }
+    }
+
+    window.onload = loadBulk;
+</script>
+</body>
+</html>
