@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プラン比較 | もうどく掲示板</title>
+    <style>
+        :root {
+            --bg-color: #000a00;
+            --card-bg: #0a1a0a;
+            --free-accent: #888;
+            --pro-accent: #39ff14;
+            --text-main: #ffffff;
+            --text-dim: #aaaaaa;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 3rem;
+            text-shadow: 0 0 10px var(--pro-accent);
+            margin-bottom: 10px;
+        }
+
+        p.subtitle {
+            color: var(--text-dim);
+            margin-bottom: 50px;
+        }
+
+        /* プランカードのレイアウト */
+        .pricing-container {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        .plan-card {
+            background: var(--card-bg);
+            border: 1px solid #222;
+            border-radius: 20px;
+            padding: 40px;
+            width: 300px;
+            text-align: center;
+            transition: transform 0.3s, border-color 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .plan-card.pro {
+            border: 2px solid var(--pro-accent);
+            box-shadow: 0 0 20px rgba(57, 255, 20, 0.2);
+        }
+
+        .plan-card.pro::before {
+            content: "RECOMMENDED";
+            position: absolute;
+            top: 20px;
+            right: -35px;
+            background: var(--pro-accent);
+            color: #000;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 5px 40px;
+            transform: rotate(45deg);
+        }
+
+        .plan-card:hover {
+            transform: translateY(-10px);
+        }
+
+        .plan-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .plan-price {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        .plan-price span {
+            font-size: 1rem;
+            color: var(--text-dim);
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 40px 0;
+            text-align: left;
+        }
+
+        .feature-list li {
+            margin-bottom: 15px;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+        }
+
+        .feature-list li::before {
+            content: "✔";
+            margin-right: 10px;
+            color: var(--pro-accent);
+        }
+
+        .feature-list li.not::before {
+            content: "✘";
+            color: #ff4444;
+        }
+
+        .btn {
+            display: block;
+            padding: 15px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: opacity 0.3s;
+        }
+
+        .btn-free { background: #333; color: white; }
+        .btn-pro { background: var(--pro-accent); color: black; box-shadow: 0 0 15px var(--pro-accent); }
+        .btn:hover { opacity: 0.8; }
+
+        /* 比較テーブル（PC用） */
+        .comparison-table {
+            margin-top: 80px;
+            width: 100%;
+            max-width: 800px;
+            border-collapse: collapse;
+        }
+
+        .comparison-table th, .comparison-table td {
+            padding: 20px;
+            border-bottom: 1px solid #222;
+            text-align: center;
+        }
+
+        .comparison-table th { color: var(--pro-accent); }
+        .feature-name { text-align: left; color: var(--text-main); }
+
+        
+    </style>
+</head>
+<body>
+
+    <h1>Choose Your Poison</h1>
+    <p class="subtitle">あなたにぴったりの「毒」をお選びください</p>
+
+    <div class="pricing-container">
+        <div class="plan-card">
+            <div class="plan-name">FREE</div>
+            <div class="plan-price">¥0<span>/永遠に</span></div>
+            <ul class="feature-list">
+                <li>掲示板への書き込み</li>
+                <li>標準テーマの使用</li>
+                <li>スロット（通常確率）</li>
+                <li class="not">動く背景（サイバー）</li>
+                <li class="not">Pro専用当たり（777）</li>
+                <li class="not">広告非表示</li>
+            </ul>
+            <a href="#" class="btn btn-free">今のまま楽しむ</a>
+        </div>
+
+        <div class="plan-card pro">
+            <div class="plan-name">PRO 💎</div>
+            <div class="plan-price">¥500<span>/月額</span></div>
+            <ul class="feature-list">
+                <li>掲示板への優先書き込み</li>
+                <li><b>全テーマ（動く背景）解禁</b></li>
+                <li><b>スロット的中率 1.5倍</b></li>
+                <li>Pro限定役「777」実装</li>
+                <li>限定バッジ表示</li>
+                <li>広告完全排除</li>
+            </ul>
+            <a href="#" class="btn btn-pro">毒の王になる</a>
+        </div>
+    </div>
+
+    <table class="comparison-table">
+        <thead>
+            <tr>
+                <th class="feature-name">機能</th>
+                <th>FREE</th>
+                <th>PRO</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="feature-name">もうどくポイント配給</td>
+                <td>100pt / 日</td>
+                <td>1,000pt / 日</td>
+            </tr>
+            <tr>
+                <td class="feature-name">スロット演出</td>
+                <td>通常</td>
+                <td>リッチ（ネオン）</td>
+            </tr>
+            <tr>
+                <td class="feature-name">アンケート作成</td>
+                <td>不可</td>
+                <td>無制限</td>
+            </tr>
+            <tr>
+                <td class="feature-name">着せ替え保存数</td>
+                <td>1つまで</td>
+                <td>無制限</td>
+            </tr>
+        </tbody>
+    </table>
+
+</body>
+</html>
