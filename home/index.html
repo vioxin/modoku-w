@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBER DIMENTION - Interactive Experience</title>
+    <style>
+        /* --- 共通変数設定 --- */
+        :root {
+            --primary: #00f3ff; /* サイアン */
+            --secondary: #bc13fe; /* パープル */
+            --bg-color: #050510; /* ダーク背景 */
+            --glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
+            --font-main: 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        /* --- 基本リセット & レイアウト --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: #ffffff;
+            font-family: var(--font-main);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* --- 背景Canvas (パーティクル) --- */
+        #canvas-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.8;
+        }
+
+        /* --- ローディング画面 --- */
+        #loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease;
+        }
+        .loader-circle {
+            width: 50px;
+            height: 50px;
+            border: 3px solid transparent;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        .loader-circle:before {
+            content: "";
+            position: absolute;
+            top: 5px; left: 5px; right: 5px; bottom: 5px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-top-color: var(--secondary);
+            animation: spin 2s linear infinite;
+        }
+
+        /* --- ヘッダー & ナビゲーション --- */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 20px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            background: rgba(5, 5, 16, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: #fff;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px var(--primary);
+        }
+
+        .nav-links button {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 10px 25px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.3s;
+            position: relative;
+            overflow: hidden;
+            margin-left: 20px;
+        }
+
+        .nav-links button:hover {
+            background: var(--primary);
+            color: #000;
+            box-shadow: 0 0 20px var(--primary);
+        }
+
+        /* --- ヒーローセクション (グリッチエフェクト) --- */
+        header {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        .glitch-wrapper {
+            position: relative;
+        }
+
+        .glitch {
+            font-size: 5rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            position: relative;
+            color: #fff;
+            letter-spacing: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .glitch { font-size: 3rem; }
+        }
+
+        .glitch::before, .glitch::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+        }
+
+        .glitch::before {
+            left: 2px;
+            text-shadow: -2px 0 var(--secondary);
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim 5s infinite linear alternate-reverse;
+        }
+
+        .glitch::after {
+            left: -2px;
+            text-shadow: -2px 0 var(--primary);
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim2 5s infinite linear alternate-reverse;
+        }
+
+        .subtitle {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            color: #ccc;
+            max-width: 600px;
+            opacity: 0;
+            animation: fadeUp 1s 1s forwards;
+        }
+
+        .cta-btn {
+            margin-top: 40px;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            background: linear-gradient(45deg, var(--secondary), var(--primary));
+            border: none;
+            color: white;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.3s;
+            opacity: 0;
+            animation: fadeUp 1s 1.5s forwards;
+            box-shadow: 0 10px 30px rgba(188, 19, 254, 0.4);
+        }
+
+        .cta-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 50px rgba(0, 243, 255, 0.6);
+        }
+
+        /* --- コンテンツセクション (3Dカード) --- */
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 60px;
+            position: relative;
+            display: inline-block;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 100px 20px;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+            perspective: 1000px;
+        }
+
+        .card {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.1s, box-shadow 0.3s;
+            transform-style: preserve-3d;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.2);
+        }
+
+        .card-content {
+            transform: translateZ(20px); /* 3D効果 */
+        }
+
+        .card h3 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+
+        .card p {
+            color: #aaa;
+            font-size: 1rem;
+        }
+
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            background: -webkit-linear-gradient(var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* --- 統計セクション (カウントアップ) --- */
+        .stats-section {
+            background: linear-gradient(180deg, rgba(0,0,0,0), rgba(188, 19, 254, 0.1), rgba(0,0,0,0));
+            padding: 100px 0;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .stat-item {
+            margin: 20px;
+        }
+
+        .stat-number {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #fff;
+            display: block;
+        }
+
+        .stat-label {
+            color: var(--primary);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* --- フッター --- */
+        footer {
+            padding: 50px;
+            text-align: center;
+            border-top: 1px solid var(--border);
+            font-size: 0.9rem;
+            color: #666;
+            background: #020205;
+        }
+
+        /* --- アニメーション用クラス --- */
+        .reveal {
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 0.8s ease-out;
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- Keyframes --- */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes glitch-anim {
+            0% { clip: rect(24px, 9999px, 91px, 0); }
+            20% { clip: rect(65px, 9999px, 19px, 0); }
+            40% { clip: rect(12px, 9999px, 3px, 0); }
+            60% { clip: rect(87px, 9999px, 62px, 0); }
+            80% { clip: rect(3px, 9999px, 36px, 0); }
+            100% { clip: rect(48px, 9999px, 14px, 0); }
+        }
+        @keyframes glitch-anim2 {
+            0% { clip: rect(65px, 9999px, 100px, 0); }
+            20% { clip: rect(3px, 9999px, 3px, 0); }
+            40% { clip: rect(90px, 9999px, 12px, 0); }
+            60% { clip: rect(10px, 9999px, 55px, 0); }
+            80% { clip: rect(54px, 9999px, 21px, 0); }
+            100% { clip: rect(2px, 9999px, 90px, 0); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas-bg"></canvas>
+
+    <div id="loader">
+        <div class="loader-circle"></div>
+    </div>
+
+    <nav>
+        <div class="logo">Cyber<span style="color:var(--primary)">Core</span></div>
+        <div class="nav-links">
+            <button onclick="scrollToTop()">INITIALIZE</button>
+        </div>
+    </nav>
+
+    <main>
+        <header>
+            <div class="glitch-wrapper">
+                <h1 class="glitch" data-text="FUTURE VISION">FUTURE VISION</h1>
+            </div>
+            <p class="subtitle">
+                デジタルとリアルの境界線を超える、次世代のイマーシブ体験。<br>
+                あなたの想像力が、新しい世界を創造する。
+            </p>
+            <button class="cta-btn">SYSTEM START</button>
+        </header>
+
+        <section class="container">
+            <h2 class="section-title reveal">CORE FEATURES</h2>
+            <div class="cards-grid">
+                <div class="card reveal tilt-card">
+                    <div class="card-content">
+                        <div class="card-icon">⚡</div>
+                        <h3>High Performance</h3>
+                        <p>最適化されたアルゴリズムにより、かつてない速度でデータ処理を実行。遅延のないリアルタイム体験を提供します。</p>
+                    </div>
+                </div>
+                <div class="card reveal tilt-card" style="transition-delay: 0.1s;">
+                    <div class="card-content">
+                        <div class="card-icon">🔮</div>
+                        <h3>Holographic UI</h3>
+                        <p>空間に浮かぶインターフェース。直感的な操作と視覚的な美しさを兼ね備えた次世代デザイン。</p>
+                    </div>
+                </div>
+                <div class="card reveal tilt-card" style="transition-delay: 0.2s;">
+                    <div class="card-content">
+                        <div class="card-icon">🛡️</div>
+                        <h3>Cyber Security</h3>
+                        <p>量子暗号技術を用いた鉄壁の守り。あなたの貴重なデジタル資産をあらゆる脅威から保護します。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="stats-section reveal">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-number" data-target="1024">0</span>
+                    <span class="stat-label">Terabytes</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" data-target="98">0</span>
+                    <span class="stat-label">Security Level</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" data-target="5000">0</span>
+                    <span class="stat-label">Active Users</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="container" style="display: flex; align-items: center; gap: 50px; flex-wrap: wrap;">
+            <div class="reveal" style="flex: 1; min-width: 300px;">
+                <h2 style="font-size: 2rem; margin-bottom: 20px; color: var(--secondary);">UNLIMITED POSSIBILITIES</h2>
+                <p style="color: #ccc; margin-bottom: 20px;">
+                    従来のWebデザインの枠を超え、Canvas APIとCSS3アニメーションを駆使した表現。
+                    パーティクルが織りなす星座のようなネットワークは、デジタル社会のつながりを象徴しています。
+                    スクロールするたびに現れる要素は、ユーザーを飽きさせないリズムを生み出します。
+                </p>
+                <button class="cta-btn" style="margin-top: 0; font-size: 1rem; padding: 10px 30px;">READ MORE</button>
+            </div>
+            <div class="reveal" style="flex: 1; min-width: 300px; height: 300px; background: rgba(0,243,255,0.1); border-radius: 20px; position: relative; border: 1px solid var(--primary);">
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100px; height: 100px; border: 2px solid var(--primary); animation: spin 4s linear infinite;"></div>
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(45deg); width: 80px; height: 80px; border: 2px solid var(--secondary); animation: spin 4s reverse infinite;"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 CYBER DIMENSION PROJECT. All Rights Reserved.</p>
+        <p style="font-size: 0.8rem; margin-top: 10px; color: #444;">System Status: Normal // Connected</p>
+    </footer>
+
+    <script>
+        // --- ローディング処理 ---
+        window.addEventListener('load', () => {
+            const loader = document.getElementById('loader');
+            loader.style.opacity = '0';
+            setTimeout(() => {
+                loader.style.display = 'none';
+            }, 500);
+        });
+
+        // --- Canvas パーティクルアニメーション ---
+        const canvas = document.getElementById('canvas-bg');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let particlesArray;
+
+        // マウス位置
+        let mouse = {
+            x: null,
+            y: null,
+            radius: (canvas.height/80) * (canvas.width/80)
+        }
+
+        window.addEventListener('mousemove', (event) => {
+            mouse.x = event.x;
+            mouse.y = event.y;
+        });
+
+        // パーティクルクラス
+        class Particle {
+            constructor(x, y, directionX, directionY, size, color) {
+                this.x = x;
+                this.y = y;
+                this.directionX = directionX;
+                this.directionY = directionY;
+                this.size = size;
+                this.color = color;
+            }
+            // 描画
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+                ctx.fillStyle = '#00f3ff';
+                ctx.fill();
+            }
+            // 更新
+            update() {
+                if (this.x > canvas.width || this.x < 0) {
+                    this.directionX = -this.directionX;
+                }
+                if (this.y > canvas.height || this.y < 0) {
+                    this.directionY = -this.directionY;
+                }
+
+                // マウスとのインタラクション
+                let dx = mouse.x - this.x;
+                let dy = mouse.y - this.y;
+                let distance = Math.sqrt(dx*dx + dy*dy);
+                if (distance < mouse.radius + this.size){
+                    if (mouse.x < this.x && this.x < canvas.width - this.size * 10) {
+                        this.x += 10;
+                    }
+                    if (mouse.x > this.x && this.x > this.size * 10) {
+                        this.x -= 10;
+                    }
+                    if (mouse.y < this.y && this.y < canvas.height - this.size * 10) {
+                        this.y += 10;
+                    }
+                    if (mouse.y > this.y && this.y > this.size * 10) {
+                        this.y -= 10;
+                    }
+                }
+                this.x += this.directionX;
+                this.y += this.directionY;
+                this.draw();
+            }
+        }
+
+        function init() {
+            particlesArray = [];
+            let numberOfParticles = (canvas.height * canvas.width) / 9000;
+            for (let i = 0; i < numberOfParticles; i++) {
+                let size = (Math.random() * 2) + 1; // 粒子のサイズ
+                let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
+                let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
+                let directionX = (Math.random() * 2) - 1; // 速度
+                let directionY = (Math.random() * 2) - 1;
+                let color = '#00f3ff';
+                
+                particlesArray.push(new Particle(x, y, directionX, directionY, size, color));
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            ctx.clearRect(0,0,innerWidth, innerHeight);
+
+            for (let i = 0; i < particlesArray.length; i++) {
+                particlesArray[i].update();
+            }
+            connect();
+        }
+
+        // 粒子同士を線で結ぶ
+        function connect() {
+            let opacityValue = 1;
+            for (let a = 0; a < particlesArray.length; a++) {
+                for (let b = a; b < particlesArray.length; b++) {
+                    let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x))
+                    + ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
+                    
+                    if (distance < (canvas.width/7) * (canvas.height/7)) {
+                        opacityValue = 1 - (distance/20000);
+                        ctx.strokeStyle = 'rgba(188, 19, 254,' + opacityValue + ')'; // 紫の線
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+                        ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            mouse.radius = (canvas.height/80) * (canvas.width/80);
+            init();
+        });
+
+        init();
+        animate();
+
+
+        // --- スクロールアニメーション (Intersection Observer) ---
+        const observerOptions = {
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    
+                    // 統計セクションならカウントアップ開始
+                    if (entry.target.classList.contains('stats-section')) {
+                        startCountAnimation();
+                    }
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal').forEach(el => {
+            observer.observe(el);
+        });
+
+
+        // --- 3Dチルト効果 (カード) ---
+        document.querySelectorAll('.tilt-card').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                const rotateX = ((y - centerY) / centerY) * -10; // 角度調整
+                const rotateY = ((x - centerX) / centerX) * 10;
+
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+            });
+
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg)`;
+            });
+        });
+
+        // --- 数字カウントアップアニメーション ---
+        let counted = false;
+        function startCountAnimation() {
+            if (counted) return;
+            const counters = document.querySelectorAll('.stat-number');
+            counters.forEach(counter => {
+                const target = +counter.getAttribute('data-target');
+                const speed = 200;
+                
+                const updateCount = () => {
+                    const count = +counter.innerText;
+                    const inc = target / speed;
+
+                    if (count < target) {
+                        counter.innerText = Math.ceil(count + inc);
+                        setTimeout(updateCount, 20);
+                    } else {
+                        counter.innerText = target;
+                    }
+                };
+                updateCount();
+            });
+            counted = true;
+        }
+
+        function scrollToTop() {
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+
+    </script>
+</body>
+</html>
