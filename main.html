@@ -3,215 +3,303 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>マイページ - modoku-w</title>
-    <link rel="stylesheet" href="style.css">
+    <title>MY TERMINAL - modoku-w</title>
     <style>
-        /* 追加のデザイン調整 */
+        /* ===== 0. デザイン変数定義 ===== */
+        :root {
+            --main-bg: #050510;
+            --text-color: #ffffff;
+            --primary: #00f3ff;
+            --secondary: #bc13fe;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --border-color: rgba(0, 243, 255, 0.3);
+            --font-main: "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* ===== 1. 全体スタイル ===== */
+        * { box-sizing: border-box; }
+        body {
+            font-family: var(--font-main); background-color: var(--main-bg); color: var(--text-color);
+            margin: 0; overflow-x: hidden; line-height: 1.6;
+        }
+        #canvas-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.6; }
+        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s ease; }
+        .loader-circle { width: 50px; height: 50px; border: 3px solid transparent; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        .loader-circle:before { content: ""; position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; border-radius: 50%; border: 3px solid transparent; border-top-color: var(--secondary); animation: spin 2s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 60px 20px 20px; position: relative; z-index: 1; }
+        header { border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 30px; text-align: center; }
+        h1 { font-size: 2rem; margin: 0; text-transform: uppercase; letter-spacing: 4px; color: #fff; text-shadow: 0 0 15px var(--primary); }
+
+        /* カードデザイン */
+        .cyber-card {
+            background: var(--glass-bg); padding: 30px; border-radius: 10px;
+            border: 1px solid var(--border-color); backdrop-filter: blur(5px);
+            margin-bottom: 30px; transform-style: preserve-3d;
+        }
+        h2 { color: var(--secondary); font-size: 1.2rem; text-transform: uppercase; margin-top: 0; letter-spacing: 1px; border-left: 3px solid var(--secondary); padding-left: 10px; }
+
+        /* ステータスボックス (HUD風) */
         .plan-status-box {
-            background: #1e293b;
-            padding: 20px;
-            border-radius: 12px;
-            margin: 20px 0;
-            text-align: center;
-            border: 1px solid #334155;
+            background: rgba(0, 0, 0, 0.6); border: 1px solid #333;
+            padding: 30px; border-radius: 5px; text-align: center;
+            position: relative; overflow: hidden;
         }
         .pro-active {
-            border: 1px solid #fbbf24;
-            background: linear-gradient(145deg, #1e293b, #2d1b4e);
+            border: 1px solid var(--primary);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2) inset;
         }
+        .pro-active:before {
+            content: ""; position: absolute; top:0; left:0; width:100%; height:2px;
+            background: var(--primary); box-shadow: 0 0 10px var(--primary);
+            animation: scanline 3s linear infinite;
+        }
+        @keyframes scanline { 0%{top:0; opacity:1;} 100%{top:100%; opacity:0;} }
+
         .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 50px;
-            font-weight: bold;
-            font-size: 14px;
-            margin-top: 10px;
+            display: inline-block; padding: 8px 25px; border-radius: 0;
+            font-weight: bold; font-family: monospace; font-size: 1.2rem; margin-top: 15px;
+            text-transform: uppercase; letter-spacing: 2px;
+            clip-path: polygon(10% 0, 100% 0, 100% 80%, 90% 100%, 0 100%, 0 20%);
         }
-        .badge-free { background: #475569; color: white; }
-        .badge-pro { background: #fbbf24; color: #000; box-shadow: 0 0 10px #fbbf24; }
+        .badge-free { background: #333; color: #888; border: 1px solid #555; }
+        .badge-pro { background: var(--primary); color: #000; box-shadow: 0 0 20px var(--primary); border: 1px solid #fff; }
+
+        /* 入力フォーム */
+        input {
+            width: 100%; padding: 15px; margin-top: 10px; margin-bottom: 15px;
+            background: rgba(0, 0, 0, 0.5); border: 1px solid var(--border-color);
+            color: var(--primary); border-radius: 3px; box-sizing: border-box;
+            font-family: monospace; transition: 0.3s;
+        }
+        input:focus { outline: none; box-shadow: 0 0 15px var(--primary); border-color: var(--primary); }
+
+        /* ボタン */
+        .action-btn {
+            background: linear-gradient(90deg, var(--secondary), var(--primary)); border: none;
+            color: #fff; padding: 12px; width: 100%; font-weight: bold; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 1px; transition: 0.3s; margin-top: 10px;
+        }
+        .action-btn:hover { transform: scale(1.02); box-shadow: 0 0 20px var(--secondary); }
         
-        .token-section {
-            background: #111827;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 20px;
-        }
-        .token-input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            background: #000;
-            border: 1px solid #334155;
-            color: #fff;
-            box-sizing: border-box;
-        }
-        .token-btn {
-            background: #d946ef;
-            color: white;
-            width: 100%;
-            padding: 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-        }
+        .nav-btn { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+        .nav-btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 10px var(--primary); }
+        
+        .logout-btn { background: transparent; border: 1px solid #ff0055; color: #ff0055; margin-left: 10px; }
+        .logout-btn:hover { background: #ff0055; color: #fff; box-shadow: 0 0 15px #ff0055; }
+
+        .btn-group { display: flex; margin-top: 20px; }
+        .btn-group button { flex: 1; margin: 0 5px; }
+
+        .welcome-msg { font-family: monospace; color: #aaa; margin-bottom: 20px; }
+        .welcome-msg strong { color: var(--primary); font-size: 1.2rem; }
     </style>
 </head>
 <body>
-    <header>
-        <h1>My Page</h1>
-    </header>
+    <canvas id="canvas-bg"></canvas>
+    <div id="loader"><div class="loader-circle"></div></div>
 
     <div class="container">
-        <section>
-            <h2 id="welcomeMsg">ようこそ！</h2>
-            
+        <header>
+            <h1>USER TERMINAL</h1>
+        </header>
+
+        <p class="welcome-msg" id="welcomeMsg">CONNECTING...</p>
+
+        <div class="cyber-card tilt-effect">
+            <h2>SYSTEM STATUS (プラン状況)</h2>
             <div id="statusCard" class="plan-status-box">
-                <div style="color: #94a3b8; font-size: 14px;">現在のプラン</div>
-                <div id="planBadge" class="badge badge-free">読み込み中...</div>
-                <div id="expiryLabel" style="margin-top: 10px; font-size: 13px; color: #fbbf24;"></div>
+                <div style="font-family: monospace; color: var(--primary); opacity: 0.8; font-size: 0.8rem;">CURRENT LICENSE</div>
+                <div id="planBadge" class="badge badge-free">CHECKING...</div>
+                <div id="expiryLabel" style="margin-top: 15px; font-size: 0.9rem; color: #fff; font-family: monospace;"></div>
             </div>
-
+            
             <div class="btn-group">
-                <button onclick="location.href='index.html'" class="nav-btn">掲示板へ戻る</button>
-                <button onclick="logout()" class="reload-btn">ログアウト</button>
+                <button onclick="location.href='index.html'" class="action-btn nav-btn">RETURN TO BBS</button>
+                <button onclick="logout()" class="action-btn logout-btn">DISCONNECT (LOGOUT)</button>
             </div>
-        </section>
+        </div>
 
-        <section class="token-section">
-            <h2 style="font-size: 18px;">🎫 トークンを適用する</h2>
-            <p style="font-size: 12px; color: #aaa;">発行されたProプラン用トークンを入力してください。</p>
-            <input type="text" id="tokenInput" class="token-input" placeholder="PRO-XXXX-XXXX">
-            <button onclick="redeemToken()" id="tokenBtn" class="token-btn">適用してProになる</button>
-        </section>
+        <div class="cyber-card tilt-effect">
+            <h2>LICENSE UPGRADE (トークン適用)</h2>
+            <p style="font-size: 0.8rem; color: #aaa; font-family: monospace;">ENTER ACTIVATION CODE:</p>
+            <input type="text" id="tokenInput" placeholder="PRO-XXXX-XXXX">
+            <button onclick="redeemToken()" id="tokenBtn" class="action-btn">ACTIVATE LICENSE</button>
+        </div>
 
-        <section class="profile-section">
-            <h2>プロフィール変更</h2>
-            <div class="input-group">
-                <input type="text" id="newName" placeholder="新しいユーザー名">
-                <input type="password" id="newPass" placeholder="新しいパスワード（変更する場合のみ）">
-                <button onclick="updateProfile()" id="updateBtn">情報を更新する</button>
-            </div>
-            <p id="updateMsg"></p>
-        </section>
+        <div class="cyber-card tilt-effect">
+            <h2>PROFILE CONFIG (設定変更)</h2>
+            <input type="text" id="newName" placeholder="NEW USERNAME">
+            <input type="password" id="newPass" placeholder="NEW PASSWORD (OPTIONAL)">
+            <button onclick="updateProfile()" id="updateBtn" class="action-btn">UPDATE CONFIG</button>
+            <p id="updateMsg" style="color:var(--primary); font-family:monospace; margin-top:10px;"></p>
+        </div>
     </div>
 
-    <script>
-        // --- URL設定 ---
-        // 1. ユーザー管理（ログイン・更新用）
-        const USER_API_URL = "https://script.google.com/macros/s/AKfycbzzdPk8BxStCsLa0iyhkHeLp3AGnbcvn5FtMrFjRSIvO2aNXQZMdvlsdC44Mrmn6MZ7/exec";
-        // 2. トークン管理（プラン確認・トークン適用用）
-        const TOKEN_API_URL = "https://script.google.com/macros/s/AKfycbzGt1f97bwGpUhfmwKfxrrhryT9g76myvC0x4jwfxGYjJM3b2aGnTjs2aA5QxOOepo/exec";
-        
-        const userId = localStorage.getItem("userId");
-        const userName = localStorage.getItem("userName");
-
-        if (!userId) {
-            alert("ログインが必要です");
-            location.href = "login.html";
-        } else {
-            document.getElementById("welcomeMsg").innerText = `ようこそ、${userName} さん！`;
-            document.getElementById("newName").value = userName;
-            fetchUserStatus(); // プラン情報を取得
-        }
-
-        // プラン情報をGASから取得して表示
-        async function fetchUserStatus() {
-            try {
-                const res = await fetch(`${TOKEN_API_URL}?action=getUserStatus&userId=${userId}`);
-                const data = await res.json();
-                const card = document.getElementById("statusCard");
-                const badge = document.getElementById("planBadge");
-                const expiry = document.getElementById("expiryLabel");
-
-                if (data.isPro) {
-                    card.classList.add("pro-active");
-                    badge.innerText = "PRO PLAN";
-                    badge.className = "badge badge-pro";
-                    expiry.innerText = "有効期限: " + data.expireDate;
-                } else {
-                    card.classList.remove("pro-active");
-                    badge.innerText = "FREE PLAN";
-                    badge.className = "badge badge-free";
-                    expiry.innerText = "期限なし";
-                }
-            } catch (e) {
-                document.getElementById("planBadge").innerText = "取得エラー";
+<script>
+    // ==========================================
+    // Visual Effects
+    // ==========================================
+    window.addEventListener('load', () => {
+        const loader = document.getElementById('loader');
+        loader.style.opacity = '0'; setTimeout(() => { loader.style.display = 'none'; }, 500);
+    });
+    const canvas = document.getElementById('canvas-bg');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    let particlesArray; let mouse = { x: null, y: null, radius: (canvas.height/80)*(canvas.width/80) }
+    window.addEventListener('mousemove', (event) => { mouse.x = event.x; mouse.y = event.y; });
+    class Particle {
+        constructor(x,y,dx,dy,size,color){this.x=x;this.y=y;this.directionX=dx;this.directionY=dy;this.size=size;this.color=color;}
+        draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.size,0,Math.PI*2,false);ctx.fillStyle='#00f3ff';ctx.fill();}
+        update(){
+            if(this.x>canvas.width||this.x<0)this.directionX=-this.directionX;
+            if(this.y>canvas.height||this.y<0)this.directionY=-this.directionY;
+            let dx=mouse.x-this.x;let dy=mouse.y-this.y;let distance=Math.sqrt(dx*dx+dy*dy);
+            if(distance<mouse.radius+this.size){
+                if(mouse.x<this.x&&this.x<canvas.width-this.size*10)this.x+=10;
+                if(mouse.x>this.x&&this.x>this.size*10)this.x-=10;
+                if(mouse.y<this.y&&this.y<canvas.height-this.size*10)this.y+=10;
+                if(mouse.y>this.y&&this.y>this.size*10)this.y-=10;
             }
+            this.x+=this.directionX;this.y+=this.directionY;this.draw();
         }
+    }
+    function initParticles(){
+        particlesArray=[];let numberOfParticles=(canvas.height*canvas.width)/9000;
+        for(let i=0;i<numberOfParticles;i++){
+            let size=(Math.random()*2)+1;let x=(Math.random()*((innerWidth-size*2)-(size*2))+size*2);
+            let y=(Math.random()*((innerHeight-size*2)-(size*2))+size*2);let dx=(Math.random()*2)-1;let dy=(Math.random()*2)-1;
+            particlesArray.push(new Particle(x,y,dx,dy,size,'#00f3ff'));
+        }
+    }
+    function animateParticles(){requestAnimationFrame(animateParticles);ctx.clearRect(0,0,innerWidth,innerHeight);for(let i=0;i<particlesArray.length;i++){particlesArray[i].update();}connectParticles();}
+    function connectParticles(){
+        let opacityValue=1;for(let a=0;a<particlesArray.length;a++){for(let b=a;b<particlesArray.length;b++){
+            let distance=((particlesArray[a].x-particlesArray[b].x)*(particlesArray[a].x-particlesArray[b].x))+((particlesArray[a].y-particlesArray[b].y)*(particlesArray[a].y-particlesArray[b].y));
+            if(distance<(canvas.width/7)*(canvas.height/7)){opacityValue=1-(distance/20000);ctx.strokeStyle='rgba(188,19,254,'+opacityValue+')';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(particlesArray[a].x,particlesArray[a].y);ctx.lineTo(particlesArray[b].x,particlesArray[b].y);ctx.stroke();}
+        }}
+    }
+    window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;mouse.radius=(canvas.height/80)*(canvas.width/80);initParticles();});
+    initParticles();animateParticles();
 
-        // トークンを適用してランクアップ
-        async function redeemToken() {
-            const token = document.getElementById("tokenInput").value;
-            const btn = document.getElementById("tokenBtn");
-            if (!token) return alert("トークンを入力してください");
+    document.querySelectorAll('.tilt-effect').forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+            const centerX = rect.width / 2; const centerY = rect.height / 2;
+            const rotateX = ((y - centerY) / centerY) * -3; const rotateY = ((x - centerX) / centerX) * 3;
+            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        });
+        card.addEventListener('mouseleave', () => { card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg)`; });
+    });
 
-            btn.disabled = true;
-            btn.innerText = "検証中...";
+    // ==========================================
+    // App Logic
+    // ==========================================
+    const USER_API_URL = "https://script.google.com/macros/s/AKfycbzzdPk8BxStCsLa0iyhkHeLp3AGnbcvn5FtMrFjRSIvO2aNXQZMdvlsdC44Mrmn6MZ7/exec";
+    const TOKEN_API_URL = "https://script.google.com/macros/s/AKfycbzGt1f97bwGpUhfmwKfxrrhryT9g76myvC0x4jwfxGYjJM3b2aGnTjs2aA5QxOOepo/exec";
+    
+    const userId = localStorage.getItem("userId");
+    const userName = localStorage.getItem("userName");
 
-            try {
-                const res = await fetch(TOKEN_API_URL, {
-                    method: "POST",
-                    body: JSON.stringify({ action: "redeem_token", userId: userId, token: token })
-                });
-                const result = await res.json();
+    if (!userId) {
+        alert("ACCESS DENIED: LOGIN REQUIRED");
+        location.href = "login.html";
+    } else {
+        document.getElementById("welcomeMsg").innerHTML = `USER DETECTED: <strong>${userName}</strong>`;
+        document.getElementById("newName").value = userName;
+        fetchUserStatus();
+    }
 
-                if (result.success) {
-                    alert(`成功！${result.addedDays}日間Proが適用されました。`);
-                    location.reload();
-                } else {
-                    alert("失敗: " + result.msg);
-                }
-            } catch (e) {
-                alert("通信エラーが発生しました");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "適用してProになる";
+    async function fetchUserStatus() {
+        try {
+            const res = await fetch(`${TOKEN_API_URL}?action=getUserStatus&userId=${userId}`);
+            const data = await res.json();
+            const card = document.getElementById("statusCard");
+            const badge = document.getElementById("planBadge");
+            const expiry = document.getElementById("expiryLabel");
+
+            if (data.isPro) {
+                card.classList.add("pro-active");
+                badge.innerText = "PRO LICENSE";
+                badge.className = "badge badge-pro";
+                expiry.innerHTML = `VALID UNTIL: <span style="color:var(--primary)">${data.expireDate}</span>`;
+            } else {
+                card.classList.remove("pro-active");
+                badge.innerText = "FREE LICENSE";
+                badge.className = "badge badge-free";
+                expiry.innerText = "NO EXPIRATION";
             }
+        } catch (e) {
+            document.getElementById("planBadge").innerText = "CONN ERROR";
         }
+    }
 
-        // プロフィール更新
-        async function updateProfile() {
-            const newName = document.getElementById("newName").value;
-            const newPass = document.getElementById("newPass").value;
-            const btn = document.getElementById("updateBtn");
+    async function redeemToken() {
+        const token = document.getElementById("tokenInput").value;
+        const btn = document.getElementById("tokenBtn");
+        if (!token) return alert("INPUT TOKEN");
 
-            if (!newName) return alert("ユーザー名は空にできません");
+        btn.disabled = true; btn.innerText = "VERIFYING...";
 
-            btn.disabled = true;
-            btn.innerText = "更新中...";
+        try {
+            const res = await fetch(TOKEN_API_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "redeem_token", userId: userId, token: token })
+            });
+            const result = await res.json();
 
-            try {
-                const res = await fetch(USER_API_URL, {
-                    method: "POST",
-                    body: JSON.stringify({
-                        action: "update",
-                        currentId: userId,
-                        newName: newName,
-                        newPassword: newPass
-                    })
-                });
-                const result = await res.json();
-                if (result.success) {
-                    localStorage.setItem("userName", result.newName);
-                    alert("情報を更新しました！");
-                    location.reload();
-                }
-            } catch (e) {
-                alert("エラーが発生しました");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "情報を更新する";
+            if (result.success) {
+                alert(`SUCCESS! ADDED ${result.addedDays} DAYS.`);
+                location.reload();
+            } else {
+                alert("FAILED: " + result.msg);
             }
+        } catch (e) {
+            alert("NETWORK ERROR");
+        } finally {
+            btn.disabled = false; btn.innerText = "ACTIVATE LICENSE";
         }
+    }
 
-        function logout() {
-            if(confirm("ログアウトしますか？")) {
-                localStorage.removeItem("userId");
-                localStorage.removeItem("userName");
-                location.href = "index.html";
+    async function updateProfile() {
+        const newName = document.getElementById("newName").value;
+        const newPass = document.getElementById("newPass").value;
+        const btn = document.getElementById("updateBtn");
+        const msg = document.getElementById("updateMsg");
+
+        if (!newName) return alert("USERNAME REQUIRED");
+
+        btn.disabled = true; btn.innerText = "UPDATING...";
+        msg.innerText = "";
+
+        try {
+            const res = await fetch(USER_API_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "update", currentId: userId, newName: newName, newPassword: newPass })
+            });
+            const result = await res.json();
+            if (result.success) {
+                localStorage.setItem("userName", result.newName);
+                alert("PROFILE UPDATED");
+                location.reload();
             }
+        } catch (e) {
+            alert("ERROR");
+        } finally {
+            btn.disabled = false; btn.innerText = "UPDATE CONFIG";
         }
-    </script>
+    }
+
+    function logout() {
+        if(confirm("TERMINATE SESSION?")) {
+            localStorage.removeItem("userId");
+            localStorage.removeItem("userName");
+            location.href = "index.html";
+        }
+    }
+</script>
 </body>
 </html>
