@@ -3,74 +3,225 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>画像掲示板 - modoku-w</title>
-    <link rel="stylesheet" href="style.css"> 
+    <title>CYBER GALLERY - modoku-w</title>
     <style>
-        .image-preview { max-width: 100%; height: 200px; border: 2px dashed #333; margin-top: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; color: #888; }
-        .image-preview img { max-width: 100%; max-height: 100%; }
-        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 20px; }
-        .post-item { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; border: 1px solid #333; }
-        .post-item img { width: 100%; border-radius: 5px; margin-top: 10px; cursor: pointer; transition: 0.3s; border: 1px solid #444; }
-        .post-item img:hover { opacity: 0.8; transform: scale(1.02); }
-        
-        /* 再読み込みボタンのスタイル */
-        .refresh-area { text-align: right; margin-bottom: 10px; }
-        .btn-refresh { 
-            background: #2980b9; color: white; border: none; padding: 8px 15px; 
-            border-radius: 4px; cursor: pointer; font-size: 14px; transition: 0.3s;
+        /* ===== 0. デザイン変数定義 ===== */
+        :root {
+            --main-bg: #050510;
+            --text-color: #ffffff;
+            --primary: #00f3ff;
+            --secondary: #bc13fe;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --border-color: rgba(0, 243, 255, 0.3);
+            --font-main: "Helvetica Neue", Arial, sans-serif;
         }
-        .btn-refresh:hover { background: #3498db; }
-        .btn-refresh:disabled { background: #555; cursor: not-allowed; }
 
-        .loading-text { color: #ffcc00; font-weight: bold; animation: blink 1s infinite; }
-        @keyframes blink { 0% { opacity:1; } 50% { opacity:0.5; } 100% { opacity:1; } }
+        /* ===== 1. 全体スタイル ===== */
+        * { box-sizing: border-box; }
+        body {
+            font-family: var(--font-main); background-color: var(--main-bg); color: var(--text-color);
+            margin: 0; overflow-x: hidden; line-height: 1.6;
+        }
+        #canvas-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.6; }
+        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s ease; }
+        .loader-circle { width: 50px; height: 50px; border: 3px solid transparent; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        .loader-circle:before { content: ""; position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; border-radius: 50%; border: 3px solid transparent; border-top-color: var(--secondary); animation: spin 2s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* サイドメニュー */
+        .side-menu {
+            height: 100%; width: 0; position: fixed; z-index: 1000; top: 0; left: 0;
+            background: rgba(5, 5, 16, 0.95); backdrop-filter: blur(10px);
+            border-right: 1px solid var(--primary); overflow-x: hidden; transition: 0.3s;
+            padding-top: 60px;
+        }
+        .side-menu a { padding: 15px 30px; text-decoration: none; font-size: 16px; color: #fff; display: block; transition: 0.3s; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .side-menu a:hover { background: var(--primary); color: #000; padding-left: 40px; }
+        .side-menu .close-btn { position: absolute; top: 10px; right: 25px; font-size: 36px; cursor: pointer; color: var(--primary); }
+        .menu-btn { font-size: 30px; cursor: pointer; position: fixed; top: 15px; left: 15px; z-index: 900; color: var(--primary); text-shadow: 0 0 10px var(--primary); }
+
+        /* コンテンツエリア */
+        .container { max-width: 1000px; margin: 0 auto; padding: 80px 20px 20px; position: relative; z-index: 1; }
+        header { border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 30px; }
+        h1 { font-size: 2rem; margin: 0; text-transform: uppercase; letter-spacing: 2px; color: #fff; text-shadow: 0 0 10px var(--primary); }
+
+        /* 入力エリア (ガラスカード) */
+        .upload-card {
+            background: var(--glass-bg); padding: 25px; border-radius: 15px;
+            border: 1px solid var(--border-color); backdrop-filter: blur(5px);
+            margin-bottom: 40px; transform-style: preserve-3d; transition: transform 0.1s;
+        }
+        .upload-card h2 { margin-top: 0; color: var(--secondary); text-transform: uppercase; letter-spacing: 1px; }
+
+        input[type="text"], textarea {
+            width: 100%; padding: 15px; margin-top: 15px;
+            background: rgba(0, 0, 0, 0.5); border: 1px solid var(--border-color);
+            color: var(--primary); border-radius: 5px; box-sizing: border-box;
+            font-family: monospace; transition: 0.3s;
+        }
+        input:focus, textarea:focus { outline: none; box-shadow: 0 0 15px var(--primary); border-color: var(--primary); }
+
+        /* 画像プレビュー */
+        .image-preview {
+            width: 100%; height: 200px; border: 2px dashed var(--border-color);
+            margin-top: 15px; display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.3); color: #888; overflow: hidden; border-radius: 10px;
+        }
+        .image-preview img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+        /* ボタン */
+        .btn-primary {
+            background: linear-gradient(45deg, var(--secondary), var(--primary)); color: white;
+            padding: 15px; border: none; border-radius: 50px; width: 100%; cursor: pointer;
+            font-weight: bold; margin-top: 20px; transition: 0.3s; font-size: 1.1rem;
+            text-transform: uppercase; letter-spacing: 2px;
+        }
+        .btn-primary:hover { transform: scale(1.02); box-shadow: 0 0 30px var(--secondary); }
+        .btn-primary:disabled { filter: grayscale(100%); cursor: not-allowed; }
+
+        .btn-refresh {
+            background: transparent; border: 1px solid var(--primary); color: var(--primary);
+            padding: 8px 20px; border-radius: 20px; cursor: pointer; transition: 0.3s; font-family: monospace;
+        }
+        .btn-refresh:hover { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); }
+        .refresh-area { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 20px; }
+        .sync-text { font-family: monospace; color: var(--primary); margin-right: 15px; font-size: 0.9rem; }
+
+        /* グリッドレイアウト */
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        
+        .post-item {
+            background: var(--glass-bg); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px; padding: 15px; overflow: hidden;
+            transition: 0.3s; position: relative;
+        }
+        .post-item:hover {
+            border-color: var(--primary); box-shadow: 0 0 20px rgba(0, 243, 255, 0.15);
+            transform: translateY(-5px);
+        }
+        .post-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 10px; }
+        .post-name { color: var(--primary); font-weight: bold; font-family: monospace; }
+        .post-text { color: #ddd; font-size: 0.95rem; margin-bottom: 10px; white-space: pre-wrap; }
+        .post-item img {
+            width: 100%; border-radius: 5px; border: 1px solid #333; transition: 0.3s;
+            display: block;
+        }
+        .post-item img:hover { border-color: var(--secondary); box-shadow: 0 0 15px var(--secondary); }
+        
+        /* 3D Tilt Effect Class */
+        .tilt-effect { transform-style: preserve-3d; }
     </style>
 </head>
 <body>
+    <canvas id="canvas-bg"></canvas>
+    <div id="loader"><div class="loader-circle"></div></div>
 
-<div class="menu-btn" onclick="toggleMenu()">☰</div>
-<div class="side-menu" id="side-menu">
-    <div class="close-btn" onclick="toggleMenu()">×</div>
-    <ul>
-        <li><a href="index.html">掲示板トップ</a></li>
-        <li><a href="threads.html">スレッド掲示板</a></li>
-        <li><a href="gallery.html">画像掲示板</a></li>
-        <li><a href="admin.html">管理者</a></li>
-    </ul>
-</div>
-
-<header>
-    <h1>画像掲示板</h1>
-</header>
-
-<section>
-    <div class="input-group admin-card" style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px;">
-        <h2>画像を投稿する</h2>
-        <input type="text" id="userName" placeholder="名前">
-        <textarea id="userMsg" placeholder="メッセージを入力"></textarea>
-        
-        <input type="file" id="imageInput" accept="image/*" onchange="previewImage(this)" style="margin-top:10px;">
-        <div class="image-preview" id="previewBox">画像プレビュー</div>
-        
-        <button id="postBtn" onclick="postImageMessage()">投稿する</button>
+    <div class="menu-btn" onclick="toggleMenu()">☰</div>
+    <div class="side-menu" id="side-menu">
+        <span class="close-btn" onclick="toggleMenu()">×</span>
+        <a href="index.html">トップ掲示板</a>
+        <a href="news.html">お知らせ</a>
+        <a href="threads.html">スレッド掲示板</a>
+        <a href="gallery.html" style="color: var(--primary); font-weight: bold; text-shadow: 0 0 5px var(--primary);">画像掲示板</a>
+        <a href="admin.html">管理者パネル</a>
     </div>
 
-    <hr style="border: 0; border-top: 1px solid #333; margin: 30px 0;">
+    <div class="container">
+        <header>
+            <h1>GALLERY ARCHIVE</h1>
+        </header>
 
-    <div class="refresh-area">
-        <span id="loadStatus" class="sync-text" style="margin-right: 10px;"></span>
-        <button id="refreshBtn" class="btn-refresh" onclick="loadGallery()">🔄 最新に更新</button>
-    </div>
+        <div class="upload-card tilt-effect">
+            <h2>UPLOAD NEW IMAGE</h2>
+            <input type="text" id="userName" placeholder="ACCESS NAME (名前)">
+            <textarea id="userMsg" placeholder="DATA INPUT (メッセージを入力)"></textarea>
+            
+            <input type="file" id="imageInput" accept="image/*" onchange="previewImage(this)" style="display:none;">
+            <button onclick="document.getElementById('imageInput').click()" style="width:100%; margin-top:10px; background:rgba(0,0,0,0.5); border:1px dashed var(--primary); color:var(--primary); padding:10px; cursor:pointer;">📂 SELECT IMAGE FILE</button>
+            
+            <div class="image-preview" id="previewBox">NO IMAGE DATA</div>
+            <button id="postBtn" class="btn-primary" onclick="postImageMessage()">TRANSMIT DATA</button>
+        </div>
 
-    <div id="messageList" class="gallery-grid">
-        <p>読み込み中...</p>
+        <div class="refresh-area">
+            <span id="loadStatus" class="sync-text"></span>
+            <button id="refreshBtn" class="btn-refresh" onclick="loadGallery()">🔄 SYSTEM RELOAD</button>
+        </div>
+
+        <div id="messageList" class="gallery-grid">
+            <p style="color:var(--primary);">INITIALIZING DATA STREAM...</p>
+        </div>
     </div>
-</section>
 
 <script>
+    // ==========================================
+    // Visual Effects (Particles & Tilt)
+    // ==========================================
+    window.addEventListener('load', () => {
+        const loader = document.getElementById('loader');
+        loader.style.opacity = '0'; setTimeout(() => { loader.style.display = 'none'; }, 500);
+    });
+    const canvas = document.getElementById('canvas-bg');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    let particlesArray; let mouse = { x: null, y: null, radius: (canvas.height/80)*(canvas.width/80) }
+    window.addEventListener('mousemove', (event) => { mouse.x = event.x; mouse.y = event.y; });
+    class Particle {
+        constructor(x,y,dx,dy,size,color){this.x=x;this.y=y;this.directionX=dx;this.directionY=dy;this.size=size;this.color=color;}
+        draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.size,0,Math.PI*2,false);ctx.fillStyle='#00f3ff';ctx.fill();}
+        update(){
+            if(this.x>canvas.width||this.x<0)this.directionX=-this.directionX;
+            if(this.y>canvas.height||this.y<0)this.directionY=-this.directionY;
+            let dx=mouse.x-this.x;let dy=mouse.y-this.y;let distance=Math.sqrt(dx*dx+dy*dy);
+            if(distance<mouse.radius+this.size){
+                if(mouse.x<this.x&&this.x<canvas.width-this.size*10)this.x+=10;
+                if(mouse.x>this.x&&this.x>this.size*10)this.x-=10;
+                if(mouse.y<this.y&&this.y<canvas.height-this.size*10)this.y+=10;
+                if(mouse.y>this.y&&this.y>this.size*10)this.y-=10;
+            }
+            this.x+=this.directionX;this.y+=this.directionY;this.draw();
+        }
+    }
+    function initParticles(){
+        particlesArray=[];let numberOfParticles=(canvas.height*canvas.width)/9000;
+        for(let i=0;i<numberOfParticles;i++){
+            let size=(Math.random()*2)+1;let x=(Math.random()*((innerWidth-size*2)-(size*2))+size*2);
+            let y=(Math.random()*((innerHeight-size*2)-(size*2))+size*2);let dx=(Math.random()*2)-1;let dy=(Math.random()*2)-1;
+            particlesArray.push(new Particle(x,y,dx,dy,size,'#00f3ff'));
+        }
+    }
+    function animateParticles(){requestAnimationFrame(animateParticles);ctx.clearRect(0,0,innerWidth,innerHeight);for(let i=0;i<particlesArray.length;i++){particlesArray[i].update();}connectParticles();}
+    function connectParticles(){
+        let opacityValue=1;for(let a=0;a<particlesArray.length;a++){for(let b=a;b<particlesArray.length;b++){
+            let distance=((particlesArray[a].x-particlesArray[b].x)*(particlesArray[a].x-particlesArray[b].x))+((particlesArray[a].y-particlesArray[b].y)*(particlesArray[a].y-particlesArray[b].y));
+            if(distance<(canvas.width/7)*(canvas.height/7)){opacityValue=1-(distance/20000);ctx.strokeStyle='rgba(188,19,254,'+opacityValue+')';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(particlesArray[a].x,particlesArray[a].y);ctx.lineTo(particlesArray[b].x,particlesArray[b].y);ctx.stroke();}
+        }}
+    }
+    window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;mouse.radius=(canvas.height/80)*(canvas.width/80);initParticles();});
+    initParticles();animateParticles();
+
+    // 3D Tilt Setup
+    document.querySelectorAll('.tilt-effect').forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+            const centerX = rect.width / 2; const centerY = rect.height / 2;
+            const rotateX = ((y - centerY) / centerY) * -5; const rotateY = ((x - centerX) / centerX) * 5;
+            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        });
+        card.addEventListener('mouseleave', () => { card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg)`; });
+    });
+
+    // ==========================================
+    // App Logic
+    // ==========================================
     const GAS_URL = "https://script.google.com/macros/s/AKfycbwg-qyb79tkZq6u8K5NyHXt_7vivvqKgk5vt8lpzkjTM5rpd3G3Tx9jOLFs12i2Wqqp/exec";
 
-    // 画像プレビュー表示
+    function toggleMenu() {
+        const menu = document.getElementById("side-menu");
+        menu.style.width = menu.style.width === "250px" ? "0" : "250px";
+    }
+
     function previewImage(input) {
         const box = document.getElementById('previewBox');
         if (input.files && input.files[0]) {
@@ -82,19 +233,18 @@
         }
     }
 
-    // 投稿処理
     async function postImageMessage() {
         const name = document.getElementById("userName").value;
         const msg = document.getElementById("userMsg").value;
         const fileInput = document.getElementById("imageInput");
         const btn = document.getElementById("postBtn");
 
-        if (!name || !msg) return alert("名前と本文を入力してください");
+        if (!name || !msg) return alert("INPUT MISSING");
 
         let base64Image = null;
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
-            if (file.size > 5 * 1024 * 1024) return alert("画像が大きすぎます(5MBまで)");
+            if (file.size > 5 * 1024 * 1024) return alert("FILE TOO LARGE (>5MB)");
             
             base64Image = await new Promise(resolve => {
                 const reader = new FileReader();
@@ -103,35 +253,31 @@
             });
         }
 
-        btn.disabled = true;
-        btn.innerText = "送信中...";
+        btn.disabled = true; btn.innerText = "TRANSMITTING...";
 
         try {
             await fetch(GAS_URL, {
                 method: "POST",
                 body: JSON.stringify({ name: name, message: msg, imageFile: base64Image })
             });
-            // 投稿後、リロードせずにリストだけ更新する
-            alert("投稿が完了しました");
+            alert("UPLOAD COMPLETE");
             document.getElementById("userMsg").value = "";
             document.getElementById("imageInput").value = "";
-            document.getElementById("previewBox").innerHTML = "画像プレビュー";
+            document.getElementById("previewBox").innerHTML = "NO IMAGE DATA";
             loadGallery(); 
         } catch (e) {
-            alert("送信に失敗しました");
+            alert("TRANSMISSION FAILED");
         } finally {
-            btn.disabled = false;
-            btn.innerText = "投稿する";
+            btn.disabled = false; btn.innerText = "TRANSMIT DATA";
         }
     }
 
-    // メッセージ取得・描画（再読み込み対応）
     async function loadGallery() {
         const list = document.getElementById("messageList");
         const status = document.getElementById("loadStatus");
         const refBtn = document.getElementById("refreshBtn");
 
-        status.innerHTML = '<span class="loading-text">更新中...</span>';
+        status.innerText = "SYNCING...";
         refBtn.disabled = true;
 
         try {
@@ -140,37 +286,31 @@
             list.innerHTML = "";
 
             if (!data || data.length === 0) {
-                list.innerHTML = "<p>まだ投稿がありません。</p>";
+                list.innerHTML = "<p>NO DATA FOUND.</p>";
             } else {
                 data.forEach(item => {
                     const div = document.createElement("div");
                     div.className = "post-item";
                     div.innerHTML = `
                         <div class="post-header">
-                            <span class="post-name">${item.name} さん</span>
+                            <span class="post-name">${item.name}</span>
+                            <span style="font-size:10px; color:#666;">ID: ${Math.floor(Math.random()*9999)}</span>
                         </div>
-                        <div class="post-text" style="margin: 10px 0;">${item.message}</div>
+                        <div class="post-text">${item.message}</div>
                         ${item.imageUrl ? `<a href="${item.imageUrl}" target="_blank"><img src="${item.imageUrl}" loading="lazy"></a>` : ""}
-                        <div class="post-date" style="font-size: 11px; color: #888; margin-top:10px;">${item.date}</div>
+                        <div style="font-size: 10px; color: var(--primary); opacity:0.6; margin-top:10px; text-align:right;">TIMESTAMP: ${item.date}</div>
                     `;
                     list.appendChild(div);
                 });
             }
-            status.innerText = "最新の状態です";
+            status.innerText = "ONLINE / LATEST";
         } catch (e) {
-            status.innerText = "読み込みエラー";
-            console.error(e);
+            status.innerText = "CONNECTION LOST";
         } finally {
             refBtn.disabled = false;
-            setTimeout(() => { if(status.innerText === "最新の状態です") status.innerText = ""; }, 3000);
         }
     }
-
     window.onload = loadGallery;
-    
-    function toggleMenu() {
-        document.getElementById("side-menu").classList.toggle("open");
-    }
 </script>
 </body>
 </html>
