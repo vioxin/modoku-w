@@ -3,177 +3,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>スレッド掲示板 - modoku-w</title>
-    <link rel="stylesheet" href="style.css">
+    <title>CYBER THREADS - modoku-w</title>
     <style>
-        /* --- ダークテーマベーススタイル --- */
-        body { 
-            font-family: 'Segoe UI', sans-serif; 
-            background-color: #001200; 
-            color: #ffffff;
-            margin: 0; 
-            display: block; 
+        /* ===== 0. デザイン変数定義（サイバーパンク仕様） ===== */
+        :root {
+            --main-bg: #050510;           /* 深いダークブルー */
+            --text-color: #ffffff;        /* 白 */
+            --primary: #00f3ff;           /* シアン（ネオン） */
+            --secondary: #bc13fe;         /* パープル（ネオン） */
+            --accent-color: var(--secondary);
+            --glass-bg: rgba(255, 255, 255, 0.03); /* ガラス風背景 */
+            --border-color: rgba(0, 243, 255, 0.3);
+            --font-main: "Helvetica Neue", Arial, sans-serif;
         }
 
-        /* サイドメニュー（隠しメニュー） */
-        .side-menu {
-            height: 100%;
-            width: 0;
-            position: fixed;
-            z-index: 1000;
-            top: 0;
-            left: 0;
-            background-color: #001a00;
+        /* ===== 1. 全体のスタイル & アニメーション用 ===== */
+        * { box-sizing: border-box; }
+        body {
+            font-family: var(--font-main);
+            background-color: var(--main-bg);
+            color: var(--text-color);
+            margin: 0;
             overflow-x: hidden;
-            transition: 0.3s;
-            padding-top: 60px;
-            border-right: 1px solid #004d00;
-        }
-        .side-menu a {
-            padding: 15px 30px;
-            text-decoration: none;
-            font-size: 18px;
-            color: #ccc;
-            display: block;
-            transition: 0.2s;
-        }
-        .side-menu a:hover { color: #ffffff; background: #003300; }
-        .side-menu .close-btn {
-            position: absolute;
-            top: 10px;
-            right: 25px;
-            font-size: 36px;
-            cursor: pointer;
+            line-height: 1.6;
         }
 
+        /* 背景Canvas (パーティクル) */
+        #canvas-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; opacity: 0.6;
+        }
+        /* ローディング画面 */
+        #loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center;
+            transition: opacity 0.5s ease;
+        }
+        .loader-circle {
+            width: 50px; height: 50px; border: 3px solid transparent; border-top-color: var(--primary);
+            border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        .loader-circle:before { content: ""; position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; border-radius: 50%; border: 3px solid transparent; border-top-color: var(--secondary); animation: spin 2s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* サイドメニュー */
+        .side-menu {
+            height: 100%; width: 0; position: fixed; z-index: 1000; top: 0; left: 0;
+            background: rgba(5, 5, 16, 0.95); backdrop-filter: blur(10px);
+            border-right: 1px solid var(--primary); overflow-x: hidden; transition: 0.3s;
+            padding-top: 60px; overflow-y: auto; padding-bottom: 20px;
+        }
+        .side-menu.open { box-shadow: 0 0 50px rgba(0, 243, 255, 0.2); }
+        .side-menu a {
+            padding: 15px 30px; text-decoration: none; font-size: 16px; color: #fff; display: block;
+            transition: 0.3s; border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .side-menu a:hover { background: var(--primary); color: #000; padding-left: 40px; }
+        .side-menu .close-btn { position: absolute; top: 10px; right: 25px; font-size: 36px; cursor: pointer; color: var(--primary); }
         /* ハンバーガーボタン */
         .menu-btn {
-            font-size: 30px;
-            cursor: pointer;
-            position: fixed;
-            top: 15px;
-            left: 15px;
-            z-index: 900;
-            background: rgba(0, 40, 0, 0.8);
-            color: white;
-            padding: 5px 15px;
-            border-radius: 5px;
-            border: 1px solid #004d00;
+            font-size: 30px; cursor: pointer; position: fixed; top: 15px; left: 15px; z-index: 900;
+            color: var(--primary); text-shadow: 0 0 10px var(--primary);
         }
 
         /* メインコンテンツ */
-        .main-content { padding: 80px 20px 20px; max-width: 800px; margin: 0 auto; }
+        .main-content { padding: 80px 20px 20px; max-width: 900px; margin: 0 auto; position: relative; z-index: 1; }
         
-        header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            border-bottom: 2px solid #800000;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 30px;
+        }
+        h1#page-title {
+            font-size: 2rem; margin: 0; text-transform: uppercase; letter-spacing: 2px; color: #fff;
+            text-shadow: 0 0 10px var(--primary);
         }
 
-        /* カード・アイテム類 */
-        .card { 
-            background: rgba(255, 255, 255, 0.05); 
-            padding: 20px; 
-            border-radius: 8px; 
-            margin-bottom: 20px; 
-            border: 1px solid #333; 
+        /* カード・アイテム類 (3D Tilt & Glassmorphism) */
+        .card, .thread-item, .post-card {
+            background: var(--glass-bg); padding: 25px; border-radius: 15px;
+            margin-bottom: 25px; border: 1px solid var(--border-color);
+            backdrop-filter: blur(5px); transition: transform 0.1s, box-shadow 0.3s, background 0.3s;
+            transform-style: preserve-3d; position: relative;
         }
-        .thread-item { 
-            background: rgba(255, 255, 255, 0.03); 
-            padding: 15px; 
-            border-radius: 8px; 
-            margin-bottom: 10px; 
-            cursor: pointer; 
-            border: 1px solid #333; 
-            transition: 0.3s;
-        }
-        .thread-item:hover { border-color: #008000; background: rgba(0, 128, 0, 0.1); }
+        .tilt-effect:hover { box-shadow: 0 0 30px rgba(0, 243, 255, 0.2); border-color: var(--primary); }
         
+        .thread-item { cursor: pointer; }
+        .thread-item:hover { background: rgba(0, 243, 255, 0.1); }
+        .thread-item b { font-size: 1.2rem; color: var(--primary); }
+
+        .card h3 { color: var(--secondary); margin-top: 0; text-transform: uppercase; letter-spacing: 1px; }
+
         /* 投稿カード */
-        .post-card { 
-            background: rgba(255, 255, 255, 0.05); 
-            padding: 15px; 
-            border-radius: 8px; 
-            margin-bottom: 10px; 
-            border: 1px solid #222; 
-            scroll-margin-top: 100px;
-        }
-        
-        /* レス番号とアンカーリンク */
-        .res-num { color: #ffcc00; font-weight: bold; margin-right: 8px; }
-        .anchor { color: #4da6ff; text-decoration: underline; font-weight: bold; cursor: pointer; }
-        
-        /* アンカー強調アニメーション */
+        .res-num { color: var(--secondary); font-weight: bold; margin-right: 10px; font-family: monospace; }
+        .anchor { color: var(--secondary); text-decoration: none; border-bottom: 1px dashed var(--secondary); }
         .post-card:target { animation: highlight-post 2s ease-out; }
         @keyframes highlight-post {
-            0% { background-color: #4d4d00; }
-            100% { background-color: rgba(255, 255, 255, 0.05); }
+            0% { background-color: rgba(188, 19, 254, 0.3); box-shadow: 0 0 30px var(--secondary); }
+            100% { background-color: var(--glass-bg); }
         }
 
         /* フォーム・ボタン */
-        input, textarea { 
-            width: 100%; padding: 10px; margin-top: 8px; 
-            background: #1a1a1a; border: 1px solid #444; color: white; border-radius: 6px; box-sizing: border-box; 
+        input, textarea {
+            width: 100%; padding: 15px; margin-top: 15px;
+            background: rgba(0, 0, 0, 0.5); border: 1px solid var(--border-color);
+            color: var(--primary); border-radius: 5px; box-sizing: border-box;
+            font-family: monospace; transition: 0.3s;
         }
-        .btn-primary { 
-            background: #006400; color: white; padding: 12px; border: none; border-radius: 6px; 
-            width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.3s;
+        input:focus, textarea:focus { outline: none; box-shadow: 0 0 15px var(--primary); border-color: var(--primary); }
+
+        .btn-primary {
+            background: linear-gradient(45deg, var(--secondary), var(--primary)); color: white;
+            padding: 15px; border: none; border-radius: 50px; width: 100%; cursor: pointer;
+            font-weight: bold; margin-top: 20px; transition: 0.3s; font-size: 1.1rem;
+            text-transform: uppercase; letter-spacing: 2px;
         }
-        .btn-primary:hover { background: #008000; }
-        .btn-refresh { background: #333; color: white; border: 1px solid #555; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+        .btn-primary:hover { transform: scale(1.02); box-shadow: 0 0 30px var(--secondary); }
+
+        .btn-refresh, .back-btn {
+            background: transparent; border: 1px solid var(--primary); color: var(--primary);
+            padding: 8px 20px; border-radius: 20px; cursor: pointer; transition: 0.3s; font-family: monospace;
+        }
+        .btn-refresh:hover, .back-btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); }
+        
         .hidden { display: none; }
-        .refresh-status { font-size: 0.8em; color: #aaa; margin-right: 10px; }
-        .back-btn { background: #444; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-bottom: 15px; }
+        .refresh-status { font-size: 0.9em; color: var(--primary); margin-right: 10px; font-family: monospace; }
     </style>
 </head>
 <body>
+    <canvas id="canvas-bg"></canvas>
+    <div id="loader"><div class="loader-circle"></div></div>
 
-<div class="menu-btn" onclick="toggleMenu()">☰</div>
+    <div class="menu-btn" onclick="toggleMenu()">☰</div>
 
-<div id="side-menu" class="side-menu">
-    <span class="close-btn" onclick="toggleMenu()">×</span>
-    <a href="index.html">トップ掲示板</a>
-    <a href="news.html">お知らせ</a>
-    <a href="threads.html" style="color: #ffcc00; font-weight: bold;">スレッド掲示板</a>
-    <a href="gallery.html">画像掲示板</a>
-    <a href="admin.html">管理者パネル</a>
-</div>
-
-<div class="main-content">
-    <header>
-        <h1 id="page-title">スレッド一覧</h1>
-        <div>
-            <span id="status-label" class="refresh-status"></span>
-            <button class="btn-refresh" onclick="refreshCurrentView()">🔄 更新</button>
-        </div>
-    </header>
-
-    <div id="thread-list-view">
-        <div class="card">
-            <h3>新規スレッド作成</h3>
-            <input type="text" id="newThreadName" placeholder="スレッドタイトル">
-            <input type="text" id="creatorName" placeholder="あなたの名前">
-            <button class="btn-primary" onclick="createThread()">スレッドを作成する</button>
-        </div>
-        <div id="list-container"></div>
+    <div id="side-menu" class="side-menu">
+        <span class="close-btn" onclick="toggleMenu()">×</span>
+        <a href="index.html">トップ掲示板</a>
+        <a href="news.html">お知らせ</a>
+        <a href="threads.html" style="color: var(--primary); font-weight: bold; text-shadow: 0 0 5px var(--primary);">スレッド掲示板</a>
+        <a href="gallery.html">画像掲示板</a>
+        <a href="admin.html">管理者パネル</a>
     </div>
 
-    <div id="thread-detail-view" class="hidden">
-        <button class="back-btn" onclick="showThreadList()">← 戻る</button>
-        <div class="card">
-            <h3 id="current-thread-label"></h3>
-            <input type="text" id="userName" placeholder="名前">
-            <textarea id="postMessage" placeholder="メッセージを入力（>>番号 でアンカー可能）"></textarea>
-            <button class="btn-primary" onclick="postToThread()">書き込む</button>
+    <div class="main-content">
+        <header>
+            <h1 id="page-title">スレッド一覧</h1>
+            <div>
+                <span id="status-label" class="refresh-status"></span>
+                <button class="btn-refresh" onclick="refreshCurrentView()">🔄 SYSTEM RELOAD</button>
+            </div>
+        </header>
+
+        <div id="thread-list-view">
+            <div class="card tilt-effect">
+                <h3>CREATE NEW THREAD (新規スレッド作成)</h3>
+                <input type="text" id="newThreadName" placeholder="THREAD TITLE (スレッドタイトル)">
+                <input type="text" id="creatorName" placeholder="CREATOR NAME (あなたの名前)">
+                <button class="btn-primary" onclick="createThread()">INITIALIZE THREAD</button>
+            </div>
+            <div id="list-container"></div>
         </div>
-        <div id="posts-container"></div>
+
+        <div id="thread-detail-view" class="hidden">
+            <button class="back-btn" onclick="showThreadList()" style="margin-bottom: 20px;">← RETURN TO LIST</button>
+            <div class="card tilt-effect">
+                <h3 id="current-thread-label"></h3>
+                <input type="text" id="userName" placeholder="ACCESS NAME (名前)">
+                <textarea id="postMessage" placeholder="DATA INPUT (メッセージを入力 >>番号 でアンカー可能)"></textarea>
+                <button class="btn-primary" onclick="postToThread()">TRANSMIT DATA</button>
+            </div>
+            <div id="posts-container"></div>
+        </div>
     </div>
-</div>
 
 <script>
+    // ==========================================
+    // 0. 追加：ビジュアルエフェクト用JS
+    // ==========================================
+    window.addEventListener('load', () => {
+        const loader = document.getElementById('loader');
+        loader.style.opacity = '0'; setTimeout(() => { loader.style.display = 'none'; }, 500);
+    });
+
+    const canvas = document.getElementById('canvas-bg');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    let particlesArray; let mouse = { x: null, y: null, radius: (canvas.height/80)*(canvas.width/80) }
+    window.addEventListener('mousemove', (event) => { mouse.x = event.x; mouse.y = event.y; });
+    class Particle {
+        constructor(x,y,dx,dy,size,color){this.x=x;this.y=y;this.directionX=dx;this.directionY=dy;this.size=size;this.color=color;}
+        draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.size,0,Math.PI*2,false);ctx.fillStyle='#00f3ff';ctx.fill();}
+        update(){
+            if(this.x>canvas.width||this.x<0)this.directionX=-this.directionX;
+            if(this.y>canvas.height||this.y<0)this.directionY=-this.directionY;
+            let dx=mouse.x-this.x;let dy=mouse.y-this.y;let distance=Math.sqrt(dx*dx+dy*dy);
+            if(distance<mouse.radius+this.size){
+                if(mouse.x<this.x&&this.x<canvas.width-this.size*10)this.x+=10;
+                if(mouse.x>this.x&&this.x>this.size*10)this.x-=10;
+                if(mouse.y<this.y&&this.y<canvas.height-this.size*10)this.y+=10;
+                if(mouse.y>this.y&&this.y>this.size*10)this.y-=10;
+            }
+            this.x+=this.directionX;this.y+=this.directionY;this.draw();
+        }
+    }
+    function initParticles(){
+        particlesArray=[];let numberOfParticles=(canvas.height*canvas.width)/9000;
+        for(let i=0;i<numberOfParticles;i++){
+            let size=(Math.random()*2)+1;let x=(Math.random()*((innerWidth-size*2)-(size*2))+size*2);
+            let y=(Math.random()*((innerHeight-size*2)-(size*2))+size*2);let dx=(Math.random()*2)-1;let dy=(Math.random()*2)-1;
+            particlesArray.push(new Particle(x,y,dx,dy,size,'#00f3ff'));
+        }
+    }
+    function animateParticles(){requestAnimationFrame(animateParticles);ctx.clearRect(0,0,innerWidth,innerHeight);for(let i=0;i<particlesArray.length;i++){particlesArray[i].update();}connectParticles();}
+    function connectParticles(){
+        let opacityValue=1;for(let a=0;a<particlesArray.length;a++){for(let b=a;b<particlesArray.length;b++){
+            let distance=((particlesArray[a].x-particlesArray[b].x)*(particlesArray[a].x-particlesArray[b].x))+((particlesArray[a].y-particlesArray[b].y)*(particlesArray[a].y-particlesArray[b].y));
+            if(distance<(canvas.width/7)*(canvas.height/7)){opacityValue=1-(distance/20000);ctx.strokeStyle='rgba(188,19,254,'+opacityValue+')';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(particlesArray[a].x,particlesArray[a].y);ctx.lineTo(particlesArray[b].x,particlesArray[b].y);ctx.stroke();}
+        }}
+    }
+    window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;mouse.radius=(canvas.height/80)*(canvas.width/80);initParticles();});
+    initParticles();animateParticles();
+
+    // 3Dチルトエフェクト適用関数
+    function applyTiltEffect() {
+        document.querySelectorAll('.tilt-effect').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+                const centerX = rect.width / 2; const centerY = rect.height / 2;
+                const rotateX = ((y - centerY) / centerY) * -5; const rotateY = ((x - centerX) / centerX) * 5;
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+            });
+            card.addEventListener('mouseleave', () => { card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg)`; });
+        });
+    }
+    // 初期表示のカードに適用
+    applyTiltEffect();
+
+    // ==========================================
+    // 元のロジック (変更なし)
+    // ==========================================
     const THREAD_GAS_URL = "https://script.google.com/macros/s/AKfycbzNRFg-clJykjin35_EbMBiTzcdN73mHkqEuDfIQFaj-1Bf9ZSbwGGxnn4kBV8l25OBmw/exec"; 
     let currentThreadId = "";
 
@@ -189,8 +257,7 @@
 
     function formatMessage(text) {
         if (!text) return "";
-        const escaped = text.toString()
-            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const escaped = text.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         return escaped.replace(/&gt;&gt;(\d+)/g, '<a href="#post-$1" class="anchor">>>$1</a>');
     }
 
@@ -207,15 +274,15 @@
             return;
         }
         const statusLabel = document.getElementById('status-label');
-        if(statusLabel) statusLabel.innerText = "同期中...";
+        if(statusLabel) statusLabel.innerText = "SYNCING...";
         try {
             const res = await fetch(THREAD_GAS_URL);
             const threads = await res.json();
             localStorage.setItem(cacheKey, JSON.stringify(threads));
             renderThreads(threads);
-            if(statusLabel) statusLabel.innerText = "最新の状態";
+            if(statusLabel) statusLabel.innerText = "ONLINE / LATEST";
         } catch (e) {
-            if(statusLabel) statusLabel.innerText = "接続エラー";
+            if(statusLabel) statusLabel.innerText = "CONNECTION ERROR";
         }
     }
 
@@ -225,11 +292,12 @@
         container.innerHTML = '';
         threads.forEach(t => {
             const div = document.createElement('div');
-            div.className = 'thread-item';
+            div.className = 'thread-item tilt-effect'; // tilt-effectクラスを追加
             div.onclick = () => showThreadDetail(t.threadName);
-            div.innerHTML = `<b>${t.threadName}</b><br><small style="color:#888;">${t.creator || '匿名'} | ${t.date || ''}</small>`;
+            div.innerHTML = `<b>${t.threadName}</b><br><small style="color:var(--primary); opacity:0.7;">CREATOR: ${t.creator || 'UNKNOWN'} | ${t.date || ''}</small>`;
             container.appendChild(div);
         });
+        applyTiltEffect(); // 動的に追加された要素にエフェクトを適用
     }
 
     function showThreadDetail(name) {
@@ -237,7 +305,7 @@
         document.getElementById('thread-list-view').classList.add('hidden');
         document.getElementById('thread-detail-view').classList.remove('hidden');
         document.getElementById('page-title').innerText = name;
-        document.getElementById('current-thread-label').innerText = name + " に書き込む";
+        document.getElementById('current-thread-label').innerText = "POST TO: " + name;
         loadPosts(true);
         loadPosts(false);
     }
@@ -263,17 +331,18 @@
         container.innerHTML = '';
         posts.forEach(p => {
             const div = document.createElement('div');
-            div.className = 'post-card';
+            div.className = 'post-card tilt-effect'; // tilt-effectクラスを追加
             div.id = `post-${p.id}`;
             div.innerHTML = `
-                <div style="font-size:0.9em; margin-bottom:5px;">
-                    <span class="res-num">${p.id}</span>
-                    <b>${p.name}</b> <span style="color:#888; margin-left:10px;">${p.date}</span>
+                <div style="font-size:0.9em; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:5px;">
+                    <span class="res-num">#${p.id}</span>
+                    <b style="color:var(--primary)">${p.name}</b> <span style="color:#888; margin-left:10px; font-family:monospace;">${p.date}</span>
                 </div>
                 <div style="white-space:pre-wrap; word-break: break-all; color:#ddd;">${formatMessage(p.message)}</div>
             `;
             container.appendChild(div);
         });
+        applyTiltEffect(); // 動的に追加された要素にエフェクトを適用
     }
 
     function showThreadList() {
@@ -288,14 +357,18 @@
     async function createThread() {
         const name = document.getElementById('newThreadName').value;
         const creator = document.getElementById('creatorName').value;
-        const ipRes = await fetch('https://api.ipify.org?format=json');
-        const ipData = await ipRes.json();
-        const currentIp = ipData.ip;
-        if (!userId) {
-            alert("ログインしてください");
-            return;
-        }
-        if(!name || !creator) return alert("タイトルと名前を入力してください");
+        
+        if (!userId) { alert("LOGIN REQUIRED"); return; }
+        if(!name || !creator) return alert("INPUT MISSING");
+        
+        // IP取得の非同期処理を修正
+        let currentIp = 'unknown';
+        try {
+             const ipRes = await fetch('https://api.ipify.org?format=json');
+             const ipData = await ipRes.json();
+             currentIp = ipData.ip;
+        } catch(e) { console.log("IP fetch failed"); }
+
         const res = await fetch(THREAD_GAS_URL, {
             method: "POST",
             body: JSON.stringify({ action: "create_thread", threadName: name, creator: creator, userip: currentIp, userid: userId })
@@ -304,30 +377,26 @@
         if(result.success) {
             document.getElementById('newThreadName').value = "";
             loadThreads(false);
-            alert("スレッドを作成しました！");
+            alert("THREAD CREATED");
         } else {
-            // GASからエラーが返ってきた場合
-            if (result.errorType === "EMOJI_RESTRICTED") {
-                alert("🚨 " + result.msg); // ここで「絵文字はproプラン専用です」が出る
-            } else {
-                alert("エラー: " + result.msg);
-            }
+            if (result.errorType === "EMOJI_RESTRICTED") { alert("🚨 " + result.msg); } else { alert("ERROR: " + result.msg); }
         }
-        msgEl.value = ""; 
-        await getMessages();
     }
 
     async function postToThread() {
         const name = document.getElementById('userName').value;
         const msg = document.getElementById('postMessage').value;
-        if(!name || !msg) return alert("名前とメッセージを入力してください");
-        const ipRes = await fetch('https://api.ipify.org?format=json');
-        const ipData = await ipRes.json();
-        const currentIp = ipData.ip;
-        if (!userId) {
-            alert("ログインしてください");
-            return;
-        }
+        if(!name || !msg) return alert("INPUT MISSING");
+        if (!userId) { alert("LOGIN REQUIRED"); return; }
+
+        // IP取得の非同期処理を修正
+        let currentIp = 'unknown';
+        try {
+             const ipRes = await fetch('https://api.ipify.org?format=json');
+             const ipData = await ipRes.json();
+             currentIp = ipData.ip;
+        } catch(e) { console.log("IP fetch failed"); }
+
         const res = await fetch(THREAD_GAS_URL, {
             method: "POST",
             body: JSON.stringify({ threadId: currentThreadId, name: name, message: msg, userip: currentIp, userid: userId })
@@ -336,17 +405,10 @@
         if(result.success) {
             document.getElementById('postMessage').value = "";
             loadPosts(false);
-            alert("投稿しました！");
+            alert("DATA TRANSMITTED");
         } else {
-            // GASからエラーが返ってきた場合
-            if (result.errorType === "EMOJI_RESTRICTED") {
-                alert("🚨 " + result.msg); // ここで「絵文字はproプラン専用です」が出る
-            } else {
-                alert("エラー: " + result.msg);
-            }
+            if (result.errorType === "EMOJI_RESTRICTED") { alert("🚨 " + result.msg); } else { alert("ERROR: " + result.msg); }
         }
-        msgEl.value = ""; 
-        await getMessages();
     }
 </script>
 </body>
