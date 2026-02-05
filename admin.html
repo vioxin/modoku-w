@@ -3,135 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>管理者パネル - modoku-w</title>
+    <title>CYBER ADMIN PANEL - modoku-w</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background-color: #121212; color: #e0e0e0; }
-        .container { max-width: 1000px; margin: auto; background: #1e1e1e; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.6); }
-        h1, h2 { color: #ffffff; border-bottom: 2px solid #333; padding-bottom: 10px; }
-        .admin-section { margin-top: 40px; padding: 15px; border: 1px solid #333; border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #252525; font-size: 0.9em; }
-        th, td { border: 1px solid #383838; padding: 10px; text-align: left; }
-        th { background: #333; color: #3498db; }
-        .del-btn { background: #c0392b; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
-        .refresh-btn { float: right; padding: 8px 15px; background: #2980b9; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        
-        /* フォーム用スタイル */
-        input, textarea, select { padding: 10px; background: #2c2c2c; border: 1px solid #444; color: white; border-radius: 4px; box-sizing: border-box; }
-        textarea { width: 100%; height: 80px; margin-top: 10px; }
-        .post-btn { background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; width: 100%; }
-        .post-btn:hover { background: #2ecc71; }
-        
-        #loginSection { text-align: center; margin-top: 100px; }
-        .thread-select { width: 100%; margin-top: 10px; }
+        /* ===== デザイン変数定義（サイバーパンク仕様） ===== */
+        :root {
+            --main-bg: #050510;
+            --text-color: #ffffff;
+            --primary: #00f3ff;
+            --secondary: #bc13fe;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --border-color: rgba(0, 243, 255, 0.3);
+            --font-main: "Helvetica Neue", Arial, sans-serif;
+        }
+        body { font-family: var(--font-main); padding: 20px; background-color: var(--main-bg); color: var(--text-color); margin: 0; overflow-x: hidden; }
 
-        /* セキュリティ・トークンセクション用 */
-        .flex-row { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px; }
-        .flex-item { flex: 1; min-width: 200px; background: #252525; padding: 15px; border-radius: 6px; }
-        .log-viewer { background: #000; color: #00ff00; padding: 10px; height: 150px; overflow-y: scroll; font-family: monospace; font-size: 12px; margin-top: 10px; border: 1px solid #333; }
-        .token-code { background: #000; padding: 2px 5px; color: #f1c40f; font-family: monospace; border-radius: 3px; }
+        /* 背景Canvas & ローディング */
+        #canvas-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.6; }
+        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s ease; }
+        .loader-circle { width: 50px; height: 50px; border: 3px solid transparent; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        .loader-circle:before { content: ""; position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; border-radius: 50%; border: 3px solid transparent; border-top-color: var(--secondary); animation: spin 2s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* コンテナとセクション */
+        .container { max-width: 1200px; margin: auto; position: relative; z-index: 1; }
+        h1, h2 { color: #fff; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px var(--primary); border-bottom: 1px solid var(--border-color); padding-bottom: 15px; }
+        
+        /* 管理セクションカード (3D Tilt & Glassmorphism) */
+        .admin-section, #loginSection {
+            margin-top: 40px; padding: 30px; border-radius: 15px;
+            background: var(--glass-bg); border: 1px solid var(--border-color);
+            backdrop-filter: blur(5px); transition: transform 0.1s, box-shadow 0.3s;
+            transform-style: preserve-3d;
+        }
+        .tilt-effect:hover { box-shadow: 0 0 30px rgba(0, 243, 255, 0.2); border-color: var(--primary); }
+
+        /* テーブルスタイル */
+        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 20px; font-size: 0.9em; border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        th { background: rgba(0, 243, 255, 0.1); color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
+        td { background: rgba(0,0,0,0.2); }
+
+        /* ボタンとフォーム */
+        input, textarea, select {
+            padding: 12px; background: rgba(0, 0, 0, 0.5); border: 1px solid var(--border-color);
+            color: var(--primary); border-radius: 5px; box-sizing: border-box; font-family: monospace; transition: 0.3s;
+        }
+        input:focus, textarea:focus, select:focus { outline: none; box-shadow: 0 0 15px var(--primary); border-color: var(--primary); }
+        textarea { width: 100%; height: 100px; margin-top: 10px; }
+
+        button { cursor: pointer; font-weight: bold; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; border-radius: 5px; border: none; padding: 10px 20px; }
+        .del-btn { background: rgba(255, 0, 85, 0.2); color: #ff0055; border: 1px solid #ff0055; }
+        .del-btn:hover { background: #ff0055; color: white; box-shadow: 0 0 15px #ff0055; }
+        .refresh-btn, .post-btn, .generate-btn { background: linear-gradient(45deg, var(--secondary), var(--primary)); color: white; }
+        .refresh-btn:hover, .post-btn:hover, .generate-btn:hover { transform: scale(1.05); box-shadow: 0 0 20px var(--secondary); }
+        .refresh-btn { float: right; }
+
+        #loginSection { text-align: center; margin-top: 15vh; max-width: 500px; margin-left: auto; margin-right: auto; }
+        #loginSection input { width: 80%; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto; }
+        .thread-select { width: 100%; margin-top: 15px; }
+
+        /* ログ・トークン表示 */
+        .flex-row { display: flex; gap: 25px; flex-wrap: wrap; margin-top: 20px; }
+        .flex-item { flex: 1; min-width: 250px; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); }
+        .log-viewer { background: rgba(0,0,0,0.8); color: var(--primary); padding: 15px; height: 200px; overflow-y: scroll; font-family: monospace; font-size: 12px; margin-top: 15px; border: 1px solid var(--border-color); border-radius: 5px; }
+        .token-code { background: rgba(188, 19, 254, 0.2); padding: 5px 10px; color: var(--primary); font-family: monospace; border-radius: 5px; border: 1px solid var(--secondary); display: inline-block; }
+        #newTokenDisplay { background: rgba(0, 243, 255, 0.1); padding: 20px; border-radius: 10px; border: 1px solid var(--primary); margin-bottom: 20px; }
     </style>
 </head>
 <body>
+<canvas id="canvas-bg"></canvas>
+<div id="loader"><div class="loader-circle"></div></div>
 
 <div class="container">
-    <div id="loginSection">
-        <h1>Admin Authentication</h1>
-        <input type="password" id="adminInput" placeholder="Password">
-        <button onclick="adminAuth()" style="padding: 10px 20px; cursor: pointer;">ログイン</button>
+    <div id="loginSection" class="tilt-effect">
+        <h1>ADMIN AUTHENTICATION</h1>
+        <input type="password" id="adminInput" placeholder="PASSWORD">
+        <button onclick="adminAuth()" class="post-btn" style="width: 80%;">LOGIN</button>
     </div>
 
     <div id="adminContent" style="display:none;">
-        <button class="refresh-btn" onclick="loadAllData()">全更新</button>
-        <h1>管理者ダッシュボード</h1>
+        <button class="refresh-btn" onclick="loadAllData()">🔄 RELOAD ALL DATA</button>
+        <h1>ADMIN DASHBOARD</h1>
 
-        <div class="admin-section">
+        <div class="admin-section tilt-effect">
             <h2>🎫 Proプラン トークン発行</h2>
-            <div style="margin-bottom: 15px;">
-                付与日数: <input type="number" id="tokenDays" value="30" style="width: 60px;"> 日
-                <button style="background:#8e44ad; color:white; border:none; padding:10px 15px; border-radius:4px; cursor:pointer;" onclick="generateToken()">トークンを生成</button>
+            <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                付与日数: <input type="number" id="tokenDays" value="30" style="width: 80px;"> 日
+                <button class="generate-btn" onclick="generateToken()">トークンを生成</button>
             </div>
-    
-            <div id="newTokenDisplay" style="display:none; background:#2c3e50; padding:10px; border-left:4px solid #8e44ad; margin-bottom:10px;">
-                <strong>発行完了：</strong> <span id="generatedToken" class="token-code" style="font-size:1.2em;"></span>
-                <br><small id="tokenInfo"></small>
+            <div id="newTokenDisplay" style="display:none;">
+                <strong style="color:var(--primary)">発行完了：</strong> <span id="generatedToken" class="token-code" style="font-size:1.2em;"></span>
+                <br><small id="tokenInfo" style="color:#aaa;"></small>
             </div>
-
-            <table>
-                <thead>
-                    <tr><th>トークン</th><th>日数</th><th>状態</th><th>作成日</th></tr>
-                </thead>
-                <tbody id="tokenList"></tbody>
-            </table>
+            <table><thead><tr><th>トークン</th><th>日数</th><th>状態</th><th>作成日</th></tr></thead><tbody id="tokenList"></tbody></table>
         </div>
 
-        <div class="admin-section">
+        <div class="admin-section tilt-effect">
             <h2>🛡️ 防衛設定 & ログ</h2>
             <div class="flex-row">
                 <div class="flex-item">
-                    <p style="color: #e67e22; font-weight: bold;">NGワード追加</p>
-                    <input type="text" id="ngInput" placeholder="禁止用語" style="width: 70%;">
-                    <button class="post-btn" style="width: 25%; margin:0;" onclick="updateSecurity('add_ng_word')">追加</button>
-                    <div id="ngList" style="margin-top:10px; font-size:0.8em; color:#888;"></div>
+                    <p style="color: var(--secondary); font-weight: bold;">NGワード追加</p>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="ngInput" placeholder="禁止用語" style="flex:1;">
+                        <button class="post-btn" style="margin:0;" onclick="updateSecurity('add_ng_word')">追加</button>
+                    </div>
+                    <div id="ngList" style="margin-top:15px; font-size:0.9em; color:var(--primary); font-family:monospace;"></div>
                 </div>
                 <div class="flex-item">
-                    <p style="color: #e67e22; font-weight: bold;">ユーザー禁止(BAN)</p>
-                    <input type="text" id="banInput" placeholder="名前" style="width: 70%;">
-                    <button class="del-btn" style="width: 25%; padding: 10px 0;" onclick="updateSecurity('add_banned_user')">禁止</button>
-                    <div id="banList" style="margin-top:10px; font-size:0.8em; color:#888;"></div>
+                    <p style="color: #ff0055; font-weight: bold;">ユーザー禁止(BAN)</p>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="banInput" placeholder="名前" style="flex:1;">
+                        <button class="del-btn" style="margin:0;" onclick="updateSecurity('add_banned_user')">禁止</button>
+                    </div>
+                    <div id="banList" style="margin-top:15px; font-size:0.9em; color:var(--primary); font-family:monospace;"></div>
                 </div>
             </div>
-            <p style="margin-top:15px; color:#3498db;">操作履歴（最新50件）</p>
-            <div id="logViewer" class="log-viewer">ログを読み込んでいます...</div>
+            <p style="margin-top:25px; color:var(--primary);">SYSTEM LOG (LATEST 50)</p>
+            <div id="logViewer" class="log-viewer">LOADING LOGS...</div>
         </div>
 
-        <div class="admin-section">
+        <div class="admin-section tilt-effect">
             <h2>📢 お知らせ管理</h2>
-            <div style="background: #252525; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-                <p style="margin: 0 0 10px 0; color: #3498db; font-weight: bold;">新規お知らせ投稿</p>
-                <input type="text" id="newsTitleInput" placeholder="タイトル" style="width: 100%;">
+            <div style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; margin-bottom: 25px;">
+                <p style="margin: 0 0 15px 0; color: var(--primary); font-weight: bold;">新規お知らせ投稿</p>
+                <input type="text" id="newsTitleInput" placeholder="タイトル" style="width: 100%; margin-bottom: 10px;">
                 <textarea id="newsContentInput" placeholder="お知らせの本文を入力してください"></textarea>
-                <button class="post-btn" onclick="postNews()">お知らせを公開する</button>
+                <button class="post-btn" onclick="postNews()" style="width: 100%; margin-top: 15px;">お知らせを公開する</button>
             </div>
             <p>投稿済みリスト</p>
             <table id="newsTable"><thead><tr><th>日付</th><th>タイトル</th><th>操作</th></tr></thead><tbody id="newsListBody"></tbody></table>
         </div>
 
-        <div class="admin-section">
+        <div class="admin-section tilt-effect">
             <h2>🧵 スレッド掲示板管理</h2>
             <p>スレッド一覧</p>
             <table id="threadTable"><thead><tr><th>スレッド名</th><th>作成者</th><th>操作</th></tr></thead><tbody id="threadListBody"></tbody></table>
-            
-            <p style="margin-top:20px;">スレッド内の投稿を管理</p>
+            <p style="margin-top:30px;">スレッド内の投稿を管理</p>
             <select id="threadSelector" class="thread-select" onchange="loadThreadPosts()"><option value="">スレッドを選択してください</option></select>
             <table id="threadPostTable"><thead><tr><th>名前</th><th>本文</th><th>操作</th></tr></thead><tbody id="threadPostListBody"></tbody></table>
         </div>
 
-        <div class="admin-section"><h2>💬 メイン掲示板管理</h2><table id="postTable"><thead><tr><th>日時</th><th>名前</th><th>本文</th><th>ipアドレス</th><th>id</th><th>操作</th></tr></thead><tbody id="postListBody"></tbody></table></div>
-        
-        <div class="admin-section"><h2>👤 ユーザー管理</h2><table id="userTable"><thead><tr><th>ID</th><th>名前</th><th>操作</th></tr></thead><tbody id="userListBody"></tbody></table></div>
-        
-        <div class="admin-section">
-            <h2>🖼️ 画像掲示板管理</h2>
-            <table id="galleryTable">
-                <thead><tr><th>名前</th><th>本文</th><th>画像</th><th>操作</th></tr></thead>
-                <tbody id="galleryListBody"></tbody>
-            </table>
-        </div>
+        <div class="admin-section tilt-effect"><h2>💬 メイン掲示板管理</h2><table id="postTable"><thead><tr><th>日時</th><th>名前</th><th>本文</th><th>IP</th><th>ID</th><th>操作</th></tr></thead><tbody id="postListBody"></tbody></table></div>
+        <div class="admin-section tilt-effect"><h2>👤 ユーザー管理</h2><table id="userTable"><thead><tr><th>ID</th><th>名前</th><th>操作</th></tr></thead><tbody id="userListBody"></tbody></table></div>
+        <div class="admin-section tilt-effect"><h2>🖼️ 画像掲示板管理</h2><table id="galleryTable"><thead><tr><th>名前</th><th>本文</th><th>画像</th><th>操作</th></tr></thead><tbody id="galleryListBody"></tbody></table></div>
     </div>
 </div>
 
 <script>
-    // --- URL設定 ---
+    // ==========================================
+    // 0. 追加：ビジュアルエフェクト用JS
+    // ==========================================
+    window.addEventListener('load', () => {
+        const loader = document.getElementById('loader');
+        loader.style.opacity = '0'; setTimeout(() => { loader.style.display = 'none'; }, 500);
+    });
+    const canvas = document.getElementById('canvas-bg');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    let particlesArray; let mouse = { x: null, y: null, radius: (canvas.height/80)*(canvas.width/80) }
+    window.addEventListener('mousemove', (event) => { mouse.x = event.x; mouse.y = event.y; });
+    class Particle {
+        constructor(x,y,dx,dy,size,color){this.x=x;this.y=y;this.directionX=dx;this.directionY=dy;this.size=size;this.color=color;}
+        draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.size,0,Math.PI*2,false);ctx.fillStyle='#00f3ff';ctx.fill();}
+        update(){
+            if(this.x>canvas.width||this.x<0)this.directionX=-this.directionX;
+            if(this.y>canvas.height||this.y<0)this.directionY=-this.directionY;
+            let dx=mouse.x-this.x;let dy=mouse.y-this.y;let distance=Math.sqrt(dx*dx+dy*dy);
+            if(distance<mouse.radius+this.size){
+                if(mouse.x<this.x&&this.x<canvas.width-this.size*10)this.x+=10;
+                if(mouse.x>this.x&&this.x>this.size*10)this.x-=10;
+                if(mouse.y<this.y&&this.y<canvas.height-this.size*10)this.y+=10;
+                if(mouse.y>this.y&&this.y>this.size*10)this.y-=10;
+            }
+            this.x+=this.directionX;this.y+=this.directionY;this.draw();
+        }
+    }
+    function initParticles(){
+        particlesArray=[];let numberOfParticles=(canvas.height*canvas.width)/9000;
+        for(let i=0;i<numberOfParticles;i++){
+            let size=(Math.random()*2)+1;let x=(Math.random()*((innerWidth-size*2)-(size*2))+size*2);
+            let y=(Math.random()*((innerHeight-size*2)-(size*2))+size*2);let dx=(Math.random()*2)-1;let dy=(Math.random()*2)-1;
+            particlesArray.push(new Particle(x,y,dx,dy,size,'#00f3ff'));
+        }
+    }
+    function animateParticles(){requestAnimationFrame(animateParticles);ctx.clearRect(0,0,innerWidth,innerHeight);for(let i=0;i<particlesArray.length;i++){particlesArray[i].update();}connectParticles();}
+    function connectParticles(){
+        let opacityValue=1;for(let a=0;a<particlesArray.length;a++){for(let b=a;b<particlesArray.length;b++){
+            let distance=((particlesArray[a].x-particlesArray[b].x)*(particlesArray[a].x-particlesArray[b].x))+((particlesArray[a].y-particlesArray[b].y)*(particlesArray[a].y-particlesArray[b].y));
+            if(distance<(canvas.width/7)*(canvas.height/7)){opacityValue=1-(distance/20000);ctx.strokeStyle='rgba(188,19,254,'+opacityValue+')';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(particlesArray[a].x,particlesArray[a].y);ctx.lineTo(particlesArray[b].x,particlesArray[b].y);ctx.stroke();}
+        }}
+    }
+    window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;mouse.radius=(canvas.height/80)*(canvas.width/80);initParticles();});
+    initParticles();animateParticles();
+    // 3Dチルトエフェクト適用
+    document.querySelectorAll('.tilt-effect').forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+            const centerX = rect.width / 2; const centerY = rect.height / 2;
+            const rotateX = ((y - centerY) / centerY) * -3; const rotateY = ((x - centerX) / centerX) * 3;
+            card.style.transform = `perspective(2000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        });
+        card.addEventListener('mouseleave', () => { card.style.transform = `perspective(2000px) rotateX(0deg) rotateY(0deg)`; });
+    });
+
+    // ==========================================
+    // 元のロジック (変更なし)
+    // ==========================================
     const AUTH_GAS_URL    = "https://script.google.com/macros/s/AKfycbzzdPk8BxStCsLa0iyhkHeLp3AGnbcvn5FtMrFjRSIvO2aNXQZMdvlsdC44Mrmn6MZ7/exec";
     const BBS_GAS_URL     = "https://script.google.com/macros/s/AKfycbzOpcoQtkoLBCUhmfd4RPCV6BhQs8ngf9fLiXYE8ALgDmJsr_ic4LnrSyFj5ChgwJoRhQ/exec";
     const NEWS_GAS_URL    = "https://script.google.com/macros/s/AKfycbzOm_RDGEyq_kPsbER9GT4vTwZD68X39dgrZ0-udH1CyTN9sQcjW3_MgRmAd29BwLjIsQ/exec";
     const THREAD_GAS_URL  = "https://script.google.com/macros/s/AKfycbzNRFg-clJykjin35_EbMBiTzcdN73mHkqEuDfIQFaj-1Bf9ZSbwGGxnn4kBV8l25OBmw/exec";
     const GALLERY_GAS_URL = "https://script.google.com/macros/s/AKfycbwg-qyb79tkZq6u8K5NyHXt_7vivvqKgk5vt8lpzkjTM5rpd3G3Tx9jOLFs12i2Wqqp/exec";
     const ADMIN_SEC_URL   = "https://script.google.com/macros/s/AKfycbx5RTv_Lf_Fzs5L7c5Jly9z9KhkeLvjBAGScOK6Algg3hwiDOEL41Xi-en_YR_MryXOyA/exec"; 
-    
-    // ★トークン専用GASのURLをここに貼り付けてください
     const TOKEN_GAS_URL   = "https://script.google.com/macros/s/AKfycbzGt1f97bwGpUhfmwKfxrrhryT9g76myvC0x4jwfxGYjJM3b2aGnTjs2aA5QxOOepo/exec"; 
-    
     let currentAdminPass = "";
 
     async function adminAuth() {
@@ -143,61 +228,41 @@
             document.getElementById("loginSection").style.display = "none";
             document.getElementById("adminContent").style.display = "block";
             loadAllData();
-        } else { alert("認証失敗"); }
+        } else { alert("AUTHENTICATION FAILED"); }
     }
 
-    // --- トークン生成機能 ---
     async function generateToken() {
         const days = document.getElementById("tokenDays").value;
-        if (!days || days <= 0) return alert("有効な日数を入力してください");
-        if (!confirm(`${days}日間有効なトークンを発行しますか？`)) return;
-
+        if (!days || days <= 0) return alert("INVALID DAYS");
+        if (!confirm(`GENERATE TOKEN FOR ${days} DAYS?`)) return;
         try {
-            const res = await fetch(TOKEN_GAS_URL, {
-                method: "POST",
-                body: JSON.stringify({
-                    action: "generate_token",
-                    days: days,
-                    adminPass: currentAdminPass
-                })
-            });
+            const res = await fetch(TOKEN_GAS_URL, { method: "POST", body: JSON.stringify({ action: "generate_token", days: days, adminPass: currentAdminPass }) });
             const result = await res.json();
             if (result.success) {
                 document.getElementById("newTokenDisplay").style.display = "block";
                 document.getElementById("generatedToken").innerText = result.token;
-                document.getElementById("tokenInfo").innerText = days + "日間有効なトークンを発行しました。";
+                document.getElementById("tokenInfo").innerText = `${days} DAYS VALID.`;
                 loadTokenList();
-            } else { alert("発行失敗: " + result.msg); }
-        } catch (e) { alert("トークンGAS接続エラー"); }
+            } else { alert("FAILED: " + result.msg); }
+        } catch (e) { alert("NETWORK ERROR"); }
     }
 
-    // --- トークン一覧読み込み ---
     async function loadTokenList() {
         const list = document.getElementById("tokenList");
         try {
             const res = await fetch(`${TOKEN_GAS_URL}?action=get_tokens`);
             const tokens = await res.json();
-            list.innerHTML = tokens.map(t => `
-                <tr>
-                    <td><span class="token-code">${t.code}</span></td>
-                    <td>${t.days}日</td>
-                    <td style="color:${t.used == 1 ? '#7f8c8d' : '#2ecc71'}">
-                        ${t.used == 1 ? "✅使用済" : "未使用"}
-                    </td>
-                    <td><small>${t.date}</small></td>
-                </tr>
-            `).join("");
-        } catch (e) { list.innerHTML = "<tr><td colspan='4'>取得失敗</td></tr>"; }
+            list.innerHTML = tokens.map(t => `<tr><td><span class="token-code">${t.code}</span></td><td>${t.days}</td><td style="color:${t.used == 1 ? '#888' : '#00f3ff'}">${t.used == 1 ? "USED" : "ACTIVE"}</td><td><small>${t.date}</small></td></tr>`).join("");
+        } catch (e) { list.innerHTML = "<tr><td colspan='4'>LOAD FAILED</td></tr>"; }
     }
 
-    // 防衛設定の読み込みと更新
     async function loadSecurityData() {
         try {
             const res = await fetch(`${ADMIN_SEC_URL}?action=get_security_data`);
             const data = await res.json();
-            document.getElementById("ngList").innerText = "現在: " + data.ngWords.join(", ");
-            document.getElementById("banList").innerText = "現在: " + data.bannedUsers.join(", ");
-            document.getElementById("logViewer").innerHTML = data.logs.map(l => `[${l[0]}] ${l[1]}: ${l[2]}`).join("<br>");
+            document.getElementById("ngList").innerText = "CURRENT: " + data.ngWords.join(", ");
+            document.getElementById("banList").innerText = "CURRENT: " + data.bannedUsers.join(", ");
+            document.getElementById("logViewer").innerHTML = data.logs.map(l => `<span style="color:#888">[${l[0]}]</span> <span style="color:var(--secondary)">${l[1]}</span>: ${l[2]}`).join("<br>");
         } catch(e) { console.log("Security data load failed"); }
     }
 
@@ -205,68 +270,39 @@
         let payload = { adminPass: currentAdminPass, action: action };
         if(action === 'add_ng_word') payload.word = document.getElementById("ngInput").value;
         else payload.userName = document.getElementById("banInput").value;
-
         const res = await fetch(ADMIN_SEC_URL, { method: "POST", body: JSON.stringify(payload) });
-        if((await res.json()).success) {
-            alert("更新しました");
-            loadSecurityData();
-        }
+        if((await res.json()).success) { alert("UPDATED"); loadSecurityData(); }
     }
 
     async function loadAllData() {
-        loadSecurityData();
-        loadTokenList(); // トークン一覧も更新
-        
-        fetch(AUTH_GAS_URL, { method: "POST", body: JSON.stringify({ action: "admin_get_users", adminPass: currentAdminPass }) }).then(r=>r.json()).then(d=>renderTable("userListBody", d.users, u=>`<td>${u.id}</td><td>${u.name}</td><td><button class="del-btn" onclick="deleteItem('${AUTH_GAS_URL}','admin_delete_user','targetId','${u.id}')">削除</button></td>`));
-        fetch(BBS_GAS_URL).then(r=>r.json()).then(d=>renderTable("postListBody", d, p=>`<td>${p.date}</td><td>${p.name}</td><td>${p.message}</td><td>${p.ip || '---'}</td><td>${p.uid || '---'}<td><button class="del-btn" onclick="deleteItem('${BBS_GAS_URL}','admin_delete_post','row',${p.row})">削除</button></td>`));
-        fetch(NEWS_GAS_URL).then(r=>r.json()).then(d=>renderTable("newsListBody", d, n=>`<td>${n.date}</td><td>${n.title}</td><td><button class="del-btn" onclick="deleteItem('${NEWS_GAS_URL}','admin_delete_news','row',${n.row})">削除</button></td>`));
-
-        const threadRes = await fetch(THREAD_GAS_URL);
-        const threads = await threadRes.json();
-        renderTable("threadListBody", threads, t => `<td>${t.threadName}</td><td>${t.creator}</td><td><button class="del-btn" onclick="deleteItem('${THREAD_GAS_URL}','admin_delete_thread','threadName','${t.threadName}')">スレ削除</button></td>`);
-        
-        const selector = document.getElementById("threadSelector");
-        selector.innerHTML = '<option value="">スレッドを選択してください</option>';
+        loadSecurityData(); loadTokenList();
+        fetch(AUTH_GAS_URL, { method: "POST", body: JSON.stringify({ action: "admin_get_users", adminPass: currentAdminPass }) }).then(r=>r.json()).then(d=>renderTable("userListBody", d.users, u=>`<td><span style="font-family:monospace">${u.id}</span></td><td>${u.name}</td><td><button class="del-btn" onclick="deleteItem('${AUTH_GAS_URL}','admin_delete_user','targetId','${u.id}')">DELETE</button></td>`));
+        fetch(BBS_GAS_URL).then(r=>r.json()).then(d=>renderTable("postListBody", d, p=>`<td><small>${p.date}</small></td><td>${p.name}</td><td>${p.message.substring(0,20)}...</td><td><small>${p.ip||'---'}</small></td><td><small>${p.uid||'---'}</small></td><td><button class="del-btn" onclick="deleteItem('${BBS_GAS_URL}','admin_delete_post','row',${p.row})">DEL</button></td>`));
+        fetch(NEWS_GAS_URL).then(r=>r.json()).then(d=>renderTable("newsListBody", d, n=>`<td>${n.date}</td><td>${n.title}</td><td><button class="del-btn" onclick="deleteItem('${NEWS_GAS_URL}','admin_delete_news','row',${n.row})">DEL</button></td>`));
+        const threadRes = await fetch(THREAD_GAS_URL); const threads = await threadRes.json();
+        renderTable("threadListBody", threads, t => `<td>${t.threadName}</td><td>${t.creator}</td><td><button class="del-btn" onclick="deleteItem('${THREAD_GAS_URL}','admin_delete_thread','threadName','${t.threadName}')">DELETE THREAD</button></td>`);
+        const selector = document.getElementById("threadSelector"); selector.innerHTML = '<option value="">SELECT THREAD</option>';
         threads.forEach(t => selector.innerHTML += `<option value="${t.threadName}">${t.threadName}</option>`);
-
-        fetch(GALLERY_GAS_URL).then(r=>r.json()).then(d=>renderTable("galleryListBody", d, g=>`
-            <td>${g.name}</td>
-            <td>${g.message.substring(0,15)}...</td>
-            <td>${g.imageUrl ? `<a href="${g.imageUrl}" target="_blank">画像</a>` : "なし"}</td>
-            <td><button class="del-btn" onclick="deleteItem('${GALLERY_GAS_URL}','admin_delete_post','row',${g.row})">削除</button></td>
-        `));
+        fetch(GALLERY_GAS_URL).then(r=>r.json()).then(d=>renderTable("galleryListBody", d, g=>`<td>${g.name}</td><td>${g.message.substring(0,15)}...</td><td>${g.imageUrl ? `<a href="${g.imageUrl}" target="_blank" style="color:var(--primary)">VIEW</a>` : "NONE"}</td><td><button class="del-btn" onclick="deleteItem('${GALLERY_GAS_URL}','admin_delete_post','row',${g.row})">DEL</button></td>`));
     }
 
     async function postNews() {
-        const title = document.getElementById("newsTitleInput").value;
-        const content = document.getElementById("newsContentInput").value;
-        if (!title || !content) return alert("タイトルと本文を入力してください");
-        const res = await fetch(NEWS_GAS_URL, {
-            method: "POST",
-            body: JSON.stringify({ action: "post_news", title: title, content: content, adminPass: currentAdminPass })
-        });
-        if ((await res.json()).success) {
-            alert("お知らせを投稿しました");
-            document.getElementById("newsTitleInput").value = "";
-            document.getElementById("newsContentInput").value = "";
-            loadAllData();
-        }
+        const title = document.getElementById("newsTitleInput").value; const content = document.getElementById("newsContentInput").value;
+        if (!title || !content) return alert("INPUT MISSING");
+        const res = await fetch(NEWS_GAS_URL, { method: "POST", body: JSON.stringify({ action: "post_news", title: title, content: content, adminPass: currentAdminPass }) });
+        if ((await res.json()).success) { alert("NEWS POSTED"); document.getElementById("newsTitleInput").value = ""; document.getElementById("newsContentInput").value = ""; loadAllData(); }
     }
 
     async function loadThreadPosts() {
-        const threadId = document.getElementById("threadSelector").value;
-        if(!threadId) return;
+        const threadId = document.getElementById("threadSelector").value; if(!threadId) return;
         const res = await fetch(`${THREAD_GAS_URL}?thread=${encodeURIComponent(threadId)}`);
         const posts = await res.json();
-        renderTable("threadPostListBody", posts, p => `<td>${p.name}</td><td>${p.message}</td><td><button class="del-btn" onclick="deleteThreadPost('${threadId}', ${p.row})">削除</button></td>`);
+        renderTable("threadPostListBody", posts, p => `<td>${p.name}</td><td>${p.message.substring(0,30)}...</td><td><button class="del-btn" onclick="deleteThreadPost('${threadId}', ${p.row})">DEL</button></td>`);
     }
 
     async function deleteThreadPost(threadId, row) {
-        if(!confirm("削除しますか？")) return;
-        const res = await fetch(THREAD_GAS_URL, {
-            method: "POST",
-            body: JSON.stringify({ action: "admin_delete_thread_post", threadId: threadId, row: row, adminPass: currentAdminPass })
-        });
+        if(!confirm("DELETE POST?")) return;
+        const res = await fetch(THREAD_GAS_URL, { method: "POST", body: JSON.stringify({ action: "admin_delete_thread_post", threadId: threadId, row: row, adminPass: currentAdminPass }) });
         if((await res.json()).success) loadThreadPosts();
     }
 
@@ -276,9 +312,8 @@
     }
 
     async function deleteItem(url, action, keyName, val) {
-        if(!confirm("削除しますか？")) return;
-        const body = { action: action, adminPass: currentAdminPass };
-        body[keyName] = val;
+        if(!confirm("DELETE ITEM?")) return;
+        const body = { action: action, adminPass: currentAdminPass }; body[keyName] = val;
         const res = await fetch(url, { method: "POST", body: JSON.stringify(body) });
         if((await res.json()).success) loadAllData();
     }
