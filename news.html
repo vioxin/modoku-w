@@ -3,132 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>お知らせ - modoku-w</title>
-    <link rel="stylesheet" href="style.css">
+    <title>SYSTEM NEWS - modoku-w</title>
     <style>
-        /* ベースカラーの設定（index.htmlと統一） */
+        /* ===== デザイン変数定義 ===== */
+        :root {
+            --main-bg: #050510;
+            --text-color: #ffffff;
+            --primary: #00f3ff;
+            --secondary: #bc13fe;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --border-color: rgba(0, 243, 255, 0.3);
+            --font-main: "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* ===== 全体スタイル ===== */
+        * { box-sizing: border-box; }
         body {
-            margin: 0;
-            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif;
-            background-color: #001200; /* ダークグリーン背景 */
-            color: #ffffff;
-            display: block; /* Flexを解除して標準レイアウトに */
+            font-family: var(--font-main); background-color: var(--main-bg); color: var(--text-color);
+            margin: 0; overflow-x: hidden; line-height: 1.6;
         }
+        #canvas-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.6; }
+        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s ease; }
+        .loader-circle { width: 50px; height: 50px; border: 3px solid transparent; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        .loader-circle:before { content: ""; position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; border-radius: 50%; border: 3px solid transparent; border-top-color: var(--secondary); animation: spin 2s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* サイドバー（隠しメニュー） */
+        /* サイドメニュー */
         .side-menu {
-            height: 100%;
-            width: 0;
-            position: fixed;
-            z-index: 1000;
-            top: 0;
-            left: 0;
-            background-color: #001a00;
-            overflow-x: hidden;
-            transition: 0.3s;
+            height: 100%; width: 0; position: fixed; z-index: 1000; top: 0; left: 0;
+            background: rgba(5, 5, 16, 0.95); backdrop-filter: blur(10px);
+            border-right: 1px solid var(--primary); overflow-x: hidden; transition: 0.3s;
             padding-top: 60px;
-            border-right: 1px solid #004d00;
         }
-        .side-menu a {
-            padding: 15px 30px;
-            text-decoration: none;
-            font-size: 18px;
-            color: #ccc;
-            display: block;
-            transition: 0.2s;
-        }
-        .side-menu a:hover { color: #ffffff; background: #003300; }
-        .side-menu .close-btn {
-            position: absolute;
-            top: 10px;
-            right: 25px;
-            font-size: 36px;
-            cursor: pointer;
-        }
+        .side-menu a { padding: 15px 30px; text-decoration: none; font-size: 16px; color: #fff; display: block; transition: 0.3s; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .side-menu a:hover { background: var(--primary); color: #000; padding-left: 40px; }
+        .side-menu .close-btn { position: absolute; top: 10px; right: 25px; font-size: 36px; cursor: pointer; color: var(--primary); }
+        .menu-btn { font-size: 30px; cursor: pointer; position: fixed; top: 15px; left: 15px; z-index: 900; color: var(--primary); text-shadow: 0 0 10px var(--primary); }
 
-        /* ハンバーガーボタン */
-        .menu-btn {
-            font-size: 30px;
-            cursor: pointer;
-            position: fixed;
-            top: 15px;
-            left: 15px;
-            z-index: 900;
-            background: rgba(0, 40, 0, 0.8);
-            color: white;
-            padding: 5px 15px;
-            border-radius: 5px;
-            border: 1px solid #004d00;
-        }
-
-        /* メインコンテンツ */
-        .main-content {
-            padding: 80px 20px 20px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        header h1 {
-            text-align: center;
-            border-bottom: 2px solid #800000; /* アクセントのエンジ色 */
-            padding-bottom: 10px;
-            font-size: 1.5em;
-        }
+        /* コンテンツエリア */
+        .main-content { max-width: 800px; margin: 0 auto; padding: 80px 20px 20px; position: relative; z-index: 1; }
+        
+        header { border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 40px; text-align: center; }
+        h1 { font-size: 2rem; margin: 0; text-transform: uppercase; letter-spacing: 2px; color: #fff; text-shadow: 0 0 15px var(--primary); }
+        h1::before { content: "SYSTEM LOGS // "; font-size: 0.8rem; color: var(--primary); opacity: 0.7; display: block; margin-bottom: 5px; letter-spacing: 1px; }
 
         /* お知らせカード */
         .news-card {
-            background-color: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid #333;
-            transition: 0.3s;
+            background: var(--glass-bg); padding: 25px; border-radius: 10px;
+            border: 1px solid var(--border-color); backdrop-filter: blur(5px);
+            margin-bottom: 25px; transform-style: preserve-3d; transition: 0.3s;
+            position: relative; overflow: hidden;
         }
         .news-card:hover {
-            border-color: #004d00;
-            background-color: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+            border-color: var(--primary);
+            transform: translateY(-5px);
         }
-
+        
         .news-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            border-bottom: 1px solid #333;
-            padding-bottom: 8px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px;
         }
         .news-title {
-            font-size: 1.1em;
-            font-weight: bold;
-            color: #ffcc00; /* タイトルを目立たせる */
+            font-size: 1.2rem; font-weight: bold; color: var(--secondary);
+            text-shadow: 0 0 5px var(--secondary); font-family: monospace;
+            text-transform: uppercase; letter-spacing: 1px;
         }
         .news-date {
-            font-size: 0.8em;
-            color: #888;
+            font-size: 0.8rem; color: #aaa; font-family: monospace;
+            background: rgba(0,0,0,0.3); padding: 3px 8px; border-radius: 3px;
+            border: 1px solid #333;
         }
-        .news-body {
-            font-size: 0.95em;
-            line-height: 1.6;
-            color: #ddd;
-            white-space: pre-wrap;
-        }
+        .news-body { font-size: 0.95rem; line-height: 1.8; color: #ddd; white-space: pre-wrap; }
 
-        /* 読み込み中・エラーメッセージ */
-        .status-msg {
-            text-align: center;
-            color: #888;
-            margin-top: 50px;
-        }
+        .status-msg { text-align: center; color: var(--primary); font-family: monospace; margin-top: 50px; }
+        
+        /* 3D Tilt Class */
+        .tilt-effect { transform-style: preserve-3d; }
     </style>
 </head>
 <body>
+    <canvas id="canvas-bg"></canvas>
+    <div id="loader"><div class="loader-circle"></div></div>
 
     <div class="menu-btn" onclick="toggleMenu()">☰</div>
 
     <div id="side-menu" class="side-menu">
         <span class="close-btn" onclick="toggleMenu()">×</span>
-        <a href="index.html">ホーム (BBS)</a>
-        <a href="news.html" style="color: #ffcc00; font-weight: bold;">お知らせ</a>
+        <a href="index.html">トップ掲示板</a>
+        <a href="news.html" style="color: var(--primary); font-weight: bold; text-shadow: 0 0 5px var(--primary);">お知らせ</a>
         <a href="threads.html">スレッド掲示板</a>
         <a href="gallery.html">画像掲示板</a>
         <a href="admin.html">管理者パネル</a>
@@ -136,25 +99,69 @@
 
     <div class="main-content">
         <header>
-            <h1>📢 管理者からのお知らせ</h1>
+            <h1>ANNOUNCEMENTS</h1>
         </header>
 
         <div id="news-list">
-            <p class="status-msg">読み込み中...</p>
+            <p class="status-msg">CONNECTING TO NEWS SERVER...</p>
         </div>
     </div>
 
 <script>
+    // ==========================================
+    // Visual Effects (Particles & Tilt)
+    // ==========================================
+    window.addEventListener('load', () => {
+        const loader = document.getElementById('loader');
+        loader.style.opacity = '0'; setTimeout(() => { loader.style.display = 'none'; }, 500);
+    });
+    const canvas = document.getElementById('canvas-bg');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    let particlesArray; let mouse = { x: null, y: null, radius: (canvas.height/80)*(canvas.width/80) }
+    window.addEventListener('mousemove', (event) => { mouse.x = event.x; mouse.y = event.y; });
+    class Particle {
+        constructor(x,y,dx,dy,size,color){this.x=x;this.y=y;this.directionX=dx;this.directionY=dy;this.size=size;this.color=color;}
+        draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.size,0,Math.PI*2,false);ctx.fillStyle='#00f3ff';ctx.fill();}
+        update(){
+            if(this.x>canvas.width||this.x<0)this.directionX=-this.directionX;
+            if(this.y>canvas.height||this.y<0)this.directionY=-this.directionY;
+            let dx=mouse.x-this.x;let dy=mouse.y-this.y;let distance=Math.sqrt(dx*dx+dy*dy);
+            if(distance<mouse.radius+this.size){
+                if(mouse.x<this.x&&this.x<canvas.width-this.size*10)this.x+=10;
+                if(mouse.x>this.x&&this.x>this.size*10)this.x-=10;
+                if(mouse.y<this.y&&this.y<canvas.height-this.size*10)this.y+=10;
+                if(mouse.y>this.y&&this.y>this.size*10)this.y-=10;
+            }
+            this.x+=this.directionX;this.y+=this.directionY;this.draw();
+        }
+    }
+    function initParticles(){
+        particlesArray=[];let numberOfParticles=(canvas.height*canvas.width)/9000;
+        for(let i=0;i<numberOfParticles;i++){
+            let size=(Math.random()*2)+1;let x=(Math.random()*((innerWidth-size*2)-(size*2))+size*2);
+            let y=(Math.random()*((innerHeight-size*2)-(size*2))+size*2);let dx=(Math.random()*2)-1;let dy=(Math.random()*2)-1;
+            particlesArray.push(new Particle(x,y,dx,dy,size,'#00f3ff'));
+        }
+    }
+    function animateParticles(){requestAnimationFrame(animateParticles);ctx.clearRect(0,0,innerWidth,innerHeight);for(let i=0;i<particlesArray.length;i++){particlesArray[i].update();}connectParticles();}
+    function connectParticles(){
+        let opacityValue=1;for(let a=0;a<particlesArray.length;a++){for(let b=a;b<particlesArray.length;b++){
+            let distance=((particlesArray[a].x-particlesArray[b].x)*(particlesArray[a].x-particlesArray[b].x))+((particlesArray[a].y-particlesArray[b].y)*(particlesArray[a].y-particlesArray[b].y));
+            if(distance<(canvas.width/7)*(canvas.height/7)){opacityValue=1-(distance/20000);ctx.strokeStyle='rgba(188,19,254,'+opacityValue+')';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(particlesArray[a].x,particlesArray[a].y);ctx.lineTo(particlesArray[b].x,particlesArray[b].y);ctx.stroke();}
+        }}
+    }
+    window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;mouse.radius=(canvas.height/80)*(canvas.width/80);initParticles();});
+    initParticles();animateParticles();
+
+    // ==========================================
+    // App Logic
+    // ==========================================
     const NEWS_GAS_URL = "https://script.google.com/macros/s/AKfycbzOm_RDGEyq_kPsbER9GT4vTwZD68X39dgrZ0-udH1CyTN9sQcjW3_MgRmAd29BwLjIsQ/exec";
 
-    // サイドメニューの開閉
     function toggleMenu() {
         const menu = document.getElementById("side-menu");
-        if (menu.style.width === "250px") {
-            menu.style.width = "0";
-        } else {
-            menu.style.width = "250px";
-        }
+        menu.style.width = menu.style.width === "250px" ? "0" : "250px";
     }
 
     async function loadNews() {
@@ -165,34 +172,45 @@
             list.innerHTML = '';
 
             if (!data || data.length === 0) {
-                list.innerHTML = '<p class="status-msg">お知らせはまだありません。</p>';
+                list.innerHTML = '<p class="status-msg">NO ANNOUNCEMENTS FOUND.</p>';
                 return;
             }
 
             data.forEach(item => {
                 const card = document.createElement('div');
-                card.className = 'news-card';
+                card.className = 'news-card tilt-effect';
                 
-                // タイトルと本文のキー名を柔軟に取得
-                const titleText = item.title || item.tittle || "無題のお知らせ";
+                const titleText = item.title || item.tittle || "UNTITLED LOG";
                 const infoText = item.content || item.inform || item.message || "";
 
                 card.innerHTML = `
                     <div class="news-header">
                         <span class="news-title">${titleText}</span>
-                        <span class="news-date">${item.date || ''}</span>
+                        <span class="news-date">${item.date || 'UNKNOWN DATE'}</span>
                     </div>
                     <div class="news-body">${infoText}</div>
                 `;
                 list.appendChild(card);
             });
+            
+            // 3D Tilt Setup for newly added cards
+            document.querySelectorAll('.tilt-effect').forEach(card => {
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+                    const centerX = rect.width / 2; const centerY = rect.height / 2;
+                    const rotateX = ((y - centerY) / centerY) * -5; const rotateY = ((x - centerX) / centerX) * 5;
+                    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+                });
+                card.addEventListener('mouseleave', () => { card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg)`; });
+            });
+
         } catch (e) {
             console.error(e);
-            list.innerHTML = '<p class="status-msg">お知らせの読み込みに失敗しました。</p>';
+            list.innerHTML = '<p class="status-msg">ERROR: FAILED TO FETCH NEWS LOGS.</p>';
         }
     }
 
-    // 初回読み込み
     loadNews();
 </script>
 </body>
