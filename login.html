@@ -19,12 +19,20 @@
         /* ===== 全体スタイル ===== */
         * { box-sizing: border-box; }
         body {
-            font-family: var(--font-main); background-color: var(--main-bg); color: var(--text-color);
-            margin: 0; overflow: hidden; /* スクロールなし */
+            font-family: var(--font-main);
+            /* background-color: var(--main-bg); ← これを削除（ここにあるとCanvasが隠れる） */
+            background-color: transparent; /* 透明にする */
+            color: var(--text-color);
+            margin: 0; overflow: hidden;
             height: 100vh; display: flex; justify-content: center; align-items: center;
         }
 
-        #canvas-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.6; }
+        #canvas-bg { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            z-index: -1; 
+            opacity: 1; /* 背景色を持たせるので透過させない */
+            background-color: var(--main-bg); /* ← Canvas自体に背景色を指定 */
+        }
 
         /* カードデザイン */
         .login-container {
@@ -164,7 +172,7 @@
                 // ログイン成功：ユーザー名を保存して移動
                 localStorage.setItem("userId", result.id);
                 localStorage.setItem("userName", result.name);
-                location.href = "index.html"; // index.html (メイン掲示板) へ飛ばすよう調整
+                location.href = "index.html"; // index.html (メイン掲示板) へ飛ばす
             } else {
                 errorMsg.innerText = "ACCESS DENIED: INVALID ID OR PASS";
                 btn.innerText = originalText;
