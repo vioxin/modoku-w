@@ -2,31 +2,158 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ログイン - modoku-w</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOGIN - modoku-w</title>
+    <style>
+        /* ===== デザイン変数定義 ===== */
+        :root {
+            --main-bg: #050510;
+            --text-color: #ffffff;
+            --primary: #00f3ff;
+            --secondary: #bc13fe;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --border-color: rgba(0, 243, 255, 0.3);
+            --font-main: "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* ===== 全体スタイル ===== */
+        * { box-sizing: border-box; }
+        body {
+            font-family: var(--font-main); background-color: var(--main-bg); color: var(--text-color);
+            margin: 0; overflow: hidden; /* スクロールなし */
+            height: 100vh; display: flex; justify-content: center; align-items: center;
+        }
+
+        #canvas-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.6; }
+
+        /* カードデザイン */
+        .login-container {
+            width: 100%; max-width: 400px; padding: 40px;
+            background: var(--glass-bg); border-radius: 15px;
+            border: 1px solid var(--border-color); backdrop-filter: blur(10px);
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            transform-style: preserve-3d; transition: transform 0.1s;
+            text-align: center; position: relative; z-index: 10;
+        }
+
+        h1 {
+            color: #fff; font-size: 2rem; margin-bottom: 30px;
+            text-transform: uppercase; letter-spacing: 3px;
+            text-shadow: 0 0 10px var(--secondary);
+        }
+
+        /* 入力フォーム */
+        input {
+            width: 100%; padding: 15px; margin-bottom: 20px;
+            background: rgba(0, 0, 0, 0.6); border: 1px solid var(--border-color);
+            color: var(--primary); border-radius: 50px; text-align: center;
+            font-family: monospace; font-size: 1rem; transition: 0.3s;
+        }
+        input:focus { outline: none; box-shadow: 0 0 15px var(--secondary); border-color: var(--secondary); }
+        input::placeholder { color: rgba(255,255,255,0.3); }
+
+        /* ボタン */
+        button {
+            background: linear-gradient(90deg, var(--secondary), var(--primary));
+            color: white; width: 100%; padding: 15px; border: none; border-radius: 50px;
+            font-weight: bold; font-size: 1.1rem; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 2px; transition: 0.3s;
+            margin-top: 10px;
+        }
+        button:hover { transform: scale(1.05); box-shadow: 0 0 30px var(--primary); }
+
+        /* リンク・メッセージ */
+        a { color: var(--primary); text-decoration: none; font-size: 0.9rem; transition: 0.3s; }
+        a:hover { text-shadow: 0 0 5px var(--primary); text-decoration: underline; }
+        
+        #errorMsg { margin-top: 15px; font-size: 0.9rem; min-height: 20px; color: #ff0055; font-weight: bold; }
+    </style>
 </head>
-<body class="login-page">
-    <div class="login-container">
+<body>
+    <canvas id="canvas-bg"></canvas>
+
+    <div class="login-container tilt-effect">
         <h1>Member Login</h1>
         <div class="input-group">
-            <input type="text" id="loginId" placeholder="ユーザーID">
-            <input type="password" id="loginPass" placeholder="パスワード">
-            <button onclick="login()">ログイン</button>
+            <input type="text" id="loginId" placeholder="USER ID">
+            <input type="password" id="loginPass" placeholder="PASSWORD">
+            <button onclick="login()">ACCESS SYSTEM</button>
         </div>
-        <p id="errorMsg" style="color: red;"></p>
+        <p id="errorMsg"></p>
+        <div style="margin-top: 20px;">
+            <a href="signup.html">>> CREATE NEW ACCOUNT <<</a>
+        </div>
     </div>
 
     <script>
+        // --- ビジュアルエフェクト (Canvas & Tilt) ---
+        const canvas = document.getElementById('canvas-bg');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        let particlesArray; let mouse = { x: null, y: null, radius: (canvas.height/80)*(canvas.width/80) }
+        window.addEventListener('mousemove', (event) => { mouse.x = event.x; mouse.y = event.y; });
+        class Particle {
+            constructor(x,y,dx,dy,size,color){this.x=x;this.y=y;this.directionX=dx;this.directionY=dy;this.size=size;this.color=color;}
+            draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.size,0,Math.PI*2,false);ctx.fillStyle='#00f3ff';ctx.fill();}
+            update(){
+                if(this.x>canvas.width||this.x<0)this.directionX=-this.directionX;
+                if(this.y>canvas.height||this.y<0)this.directionY=-this.directionY;
+                let dx=mouse.x-this.x;let dy=mouse.y-this.y;let distance=Math.sqrt(dx*dx+dy*dy);
+                if(distance<mouse.radius+this.size){
+                    if(mouse.x<this.x&&this.x<canvas.width-this.size*10)this.x+=10;
+                    if(mouse.x>this.x&&this.x>this.size*10)this.x-=10;
+                    if(mouse.y<this.y&&this.y<canvas.height-this.size*10)this.y+=10;
+                    if(mouse.y>this.y&&this.y>this.size*10)this.y-=10;
+                }
+                this.x+=this.directionX;this.y+=this.directionY;this.draw();
+            }
+        }
+        function initParticles(){
+            particlesArray=[];let numberOfParticles=(canvas.height*canvas.width)/9000;
+            for(let i=0;i<numberOfParticles;i++){
+                let size=(Math.random()*2)+1;let x=(Math.random()*((innerWidth-size*2)-(size*2))+size*2);
+                let y=(Math.random()*((innerHeight-size*2)-(size*2))+size*2);let dx=(Math.random()*2)-1;let dy=(Math.random()*2)-1;
+                particlesArray.push(new Particle(x,y,dx,dy,size,'#00f3ff'));
+            }
+        }
+        function animateParticles(){requestAnimationFrame(animateParticles);ctx.clearRect(0,0,innerWidth,innerHeight);for(let i=0;i<particlesArray.length;i++){particlesArray[i].update();}connectParticles();}
+        function connectParticles(){
+            let opacityValue=1;for(let a=0;a<particlesArray.length;a++){for(let b=a;b<particlesArray.length;b++){
+                let distance=((particlesArray[a].x-particlesArray[b].x)*(particlesArray[a].x-particlesArray[b].x))+((particlesArray[a].y-particlesArray[b].y)*(particlesArray[a].y-particlesArray[b].y));
+                if(distance<(canvas.width/7)*(canvas.height/7)){opacityValue=1-(distance/20000);ctx.strokeStyle='rgba(188,19,254,'+opacityValue+')';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(particlesArray[a].x,particlesArray[a].y);ctx.lineTo(particlesArray[b].x,particlesArray[b].y);ctx.stroke();}
+            }}
+        }
+        window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;mouse.radius=(canvas.height/80)*(canvas.width/80);initParticles();});
+        initParticles();animateParticles();
+
+        const card = document.querySelector('.tilt-effect');
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+            const centerX = rect.width / 2; const centerY = rect.height / 2;
+            const rotateX = ((y - centerY) / centerY) * -10; const rotateY = ((x - centerX) / centerX) * 10;
+            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        });
+        card.addEventListener('mouseleave', () => { card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg)`; });
+
+        // --- 元のロジック ---
         const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbzzdPk8BxStCsLa0iyhkHeLp3AGnbcvn5FtMrFjRSIvO2aNXQZMdvlsdC44Mrmn6MZ7/exec";
 
         async function login() {
             const id = document.getElementById("loginId").value;
             const pass = document.getElementById("loginPass").value;
             const errorMsg = document.getElementById("errorMsg");
+            const btn = document.querySelector('button');
+
             if (!id || !pass) {
-                errorMsg.innerText = "IDとパスワードを入力してください";
+                errorMsg.innerText = "INPUT ID AND PASSWORD";
                 return;
             }
+
+            const originalText = btn.innerText;
+            btn.innerText = "VERIFYING...";
+            btn.disabled = true;
+
             const response = await fetch(LOGIN_API_URL, {
                 method: "POST",
                 body: JSON.stringify({ action: "login", id: id, password: pass })
@@ -37,9 +164,11 @@
                 // ログイン成功：ユーザー名を保存して移動
                 localStorage.setItem("userId", result.id);
                 localStorage.setItem("userName", result.name);
-                location.href = "main.html"; // 飛ぶ先のページ
+                location.href = "index.html"; // index.html (メイン掲示板) へ飛ばすよう調整
             } else {
-                errorMsg.innerText = "IDまたはパスワードが違います";
+                errorMsg.innerText = "ACCESS DENIED: INVALID ID OR PASS";
+                btn.innerText = originalText;
+                btn.disabled = false;
             }
         }
     </script>
