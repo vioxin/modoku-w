@@ -223,6 +223,8 @@
       position: fixed; top: 0; left: -250px; width: 250px; height: 100%; 
       background: rgba(5, 5, 16, 0.95); border-right: 1px solid var(--primary); 
       transition: 0.3s; z-index: 200; padding-top: 60px; backdrop-filter: blur(10px);
+      overflow-y: auto; /* 中身が多い場合にスクロールできるようにする */
+      padding-bottom: 20px;
     }
     .side-menu.open { left: 0; box-shadow: 0 0 50px rgba(0, 243, 255, 0.2); }
     .side-menu ul { list-style: none; padding: 0; }
