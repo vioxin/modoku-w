@@ -3,10 +3,257 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>もうどくウェブ</title>
-  <link rel="stylesheet" href="style.css">
+  <title>CYBER MODOKU-W</title>
+  <style>
+    /* ===== 0. デザイン変数の定義（サイバーパンク仕様に変更） ===== */
+    :root {
+      --main-bg: #050510;           /* 深いダークブルー */
+      --text-color: #ffffff;        /* 白 */
+      --primary: #00f3ff;           /* シアン（ネオン） */
+      --secondary: #bc13fe;         /* パープル（ネオン） */
+      --accent-color: var(--secondary);
+      --post-bg: rgba(255, 255, 255, 0.03); /* ガラス風背景 */
+      --name-color: var(--primary); /* 名前はシアン */
+      --input-bg: rgba(0, 0, 0, 0.5);
+      --input-text: #00f3ff;
+      --anchor-color: #ff00ff;      /* アンカーはマゼンタ */
+      --border-color: rgba(0, 243, 255, 0.3);
+      --post-border: rgba(255, 255, 255, 0.1);
+      --date-color: #888;
+      --font-main: "Helvetica Neue", Arial, sans-serif;
+    }
+
+    /* ===== 1. 全体のスタイル & アニメーション用 ===== */
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-main);
+      background-color: var(--main-bg);
+      color: var(--text-color);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* 背景Canvas (パーティクル) */
+    #canvas-bg {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      z-index: -1;
+      opacity: 0.6;
+    }
+
+    /* ローディング画面 */
+    #loader {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: #000; z-index: 9999;
+      display: flex; justify-content: center; align-items: center;
+      transition: opacity 0.5s ease;
+    }
+    .loader-circle {
+      width: 50px; height: 50px;
+      border: 3px solid transparent; border-top-color: var(--primary);
+      border-radius: 50%; animation: spin 1s linear infinite;
+    }
+    .loader-circle:before {
+      content: ""; position: absolute;
+      top: 5px; left: 5px; right: 5px; bottom: 5px;
+      border-radius: 50%; border: 3px solid transparent;
+      border-top-color: var(--secondary); animation: spin 2s linear infinite;
+    }
+
+    /* ヘッダー */
+    header {
+      background: rgba(5, 5, 16, 0.8);
+      backdrop-filter: blur(10px);
+      padding: 100px 20px 60px;
+      text-align: center;
+      position: relative;
+      border-bottom: 1px solid var(--border-color);
+      overflow: hidden;
+    }
+
+    /* グリッチエフェクト付きタイトル */
+    .glitch-wrapper { position: relative; display: inline-block; }
+    h1 {
+      font-size: 4rem; margin: 0;
+      text-transform: uppercase; letter-spacing: 5px;
+      position: relative; color: #fff;
+    }
+    h1::before, h1::after {
+      content: "modoku-w"; /* テキスト内容はJSで動的に変えることも可能だがCSS固定で簡易化 */
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: var(--main-bg);
+    }
+    h1::before {
+      left: 2px; text-shadow: -2px 0 var(--secondary);
+      clip: rect(44px, 450px, 56px, 0);
+      animation: glitch-anim 5s infinite linear alternate-reverse;
+    }
+    h1::after {
+      left: -2px; text-shadow: -2px 0 var(--primary);
+      clip: rect(44px, 450px, 56px, 0);
+      animation: glitch-anim2 5s infinite linear alternate-reverse;
+    }
+
+    /* ===== フォーム部分 ===== */
+    section {
+      padding: 40px 20px;
+      max-width: 900px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    h2 {
+      color: var(--primary);
+      border-left: none;
+      border-bottom: 2px solid var(--secondary);
+      padding-bottom: 10px;
+      margin-bottom: 30px;
+      font-size: 1.8rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+    }
+
+    .input-group {
+      display: flex; flex-direction: column; gap: 20px;
+      background: rgba(255, 255, 255, 0.02);
+      padding: 30px;
+      border-radius: 15px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    }
+
+    input, textarea {
+      padding: 15px;
+      border-radius: 5px;
+      border: 1px solid var(--border-color);
+      background-color: var(--input-bg);
+      font-size: 16px;
+      color: var(--input-text);
+      transition: 0.3s;
+      font-family: monospace;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      box-shadow: 0 0 15px var(--primary);
+      border-color: var(--primary);
+    }
+
+    #postBtn {
+      background: linear-gradient(45deg, var(--secondary), var(--primary));
+      color: white; padding: 15px; border: none; border-radius: 50px;
+      cursor: pointer; font-weight: bold; font-size: 1.1rem;
+      transition: transform 0.3s, box-shadow 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    #postBtn:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 30px var(--secondary);
+    }
+    #postBtn:disabled { background: #333; transform: none; box-shadow: none; }
+
+    /* ===== 投稿一覧部分 ===== */
+    .list-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 20px; margin-bottom: 20px;
+    }
+
+    .sync-text {
+      font-size: 12px; color: var(--primary); font-family: monospace;
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .is-loading { opacity: 1; }
+
+    .reload-btn {
+      background: transparent; border: 1px solid var(--primary);
+      color: var(--primary); padding: 8px 20px; border-radius: 20px;
+      cursor: pointer; transition: 0.3s; font-family: monospace;
+    }
+    .reload-btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); }
+
+    /* 投稿カード (3D Tilt & Glassmorphism) */
+    .post-item {
+      background: var(--post-bg);
+      padding: 25px;
+      margin-bottom: 25px;
+      border-radius: 15px;
+      border: 1px solid var(--post-border);
+      backdrop-filter: blur(5px);
+      transition: transform 0.1s, box-shadow 0.3s; /* Tilt用 */
+      transform-style: preserve-3d;
+      position: relative;
+    }
+    .post-item:hover {
+      box-shadow: 0 0 20px rgba(188, 19, 254, 0.2);
+      border-color: var(--secondary);
+    }
+
+    .res-num { color: var(--secondary); font-weight: bold; margin-right: 10px; font-family: monospace; text-shadow: 0 0 5px var(--secondary); }
+    .post-name { font-weight: bold; color: var(--primary); text-shadow: 0 0 5px var(--primary); }
+    .post-date { font-size: 12px; color: var(--date-color); font-family: monospace; }
+    .anchor { color: var(--anchor-color); text-decoration: none; border-bottom: 1px dashed var(--anchor-color); }
+    
+    .post-header { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 15px; }
+
+    /* スクロールアニメーション用 */
+    .reveal { opacity: 0; transform: translateY(30px); transition: all 0.6s ease-out; }
+    .reveal.active { opacity: 1; transform: translateY(0); }
+
+    /* ===== ナビ、メニュー、フッター ===== */
+    footer {
+      text-align: center; padding: 40px;
+      background-color: #020205; border-top: 1px solid var(--border-color);
+      font-size: 14px; color: #666; font-family: monospace;
+    }
+
+    .nav-container { position: absolute; top: 20px; right: 20px; z-index: 100; }
+    .nav-btn {
+      background: rgba(0,0,0,0.5); border: 1px solid var(--primary); color: var(--primary);
+      padding: 8px 20px; border-radius: 20px; cursor: pointer; transition: 0.3s;
+    }
+    .nav-btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); }
+
+    .menu-btn { position: absolute; top: 20px; left: 20px; font-size: 30px; color: var(--primary); cursor: pointer; z-index: 101; text-shadow: 0 0 10px var(--primary); }
+
+    .side-menu { 
+      position: fixed; top: 0; left: -250px; width: 250px; height: 100%; 
+      background: rgba(5, 5, 16, 0.95); border-right: 1px solid var(--primary); 
+      transition: 0.3s; z-index: 200; padding-top: 60px; backdrop-filter: blur(10px);
+    }
+    .side-menu.open { left: 0; box-shadow: 0 0 50px rgba(0, 243, 255, 0.2); }
+    .side-menu ul { list-style: none; padding: 0; }
+    .side-menu ul li a { 
+      display: block; padding: 15px 25px; color: #fff; text-decoration: none; 
+      border-bottom: 1px solid rgba(255,255,255,0.1); transition: 0.3s;
+    }
+    .side-menu ul li a:hover { background: var(--primary); color: #000; padding-left: 35px; }
+    .close-btn { position: absolute; top: 10px; right: 20px; font-size: 30px; color: var(--primary); cursor: pointer; }
+
+    /* Keyframes */
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes glitch-anim {
+      0% { clip: rect(24px, 9999px, 91px, 0); } 20% { clip: rect(65px, 9999px, 19px, 0); }
+      40% { clip: rect(12px, 9999px, 3px, 0); } 60% { clip: rect(87px, 9999px, 62px, 0); }
+      80% { clip: rect(3px, 9999px, 36px, 0); } 100% { clip: rect(48px, 9999px, 14px, 0); }
+    }
+    @keyframes glitch-anim2 {
+      0% { clip: rect(65px, 9999px, 100px, 0); } 20% { clip: rect(3px, 9999px, 3px, 0); }
+      40% { clip: rect(90px, 9999px, 12px, 0); } 60% { clip: rect(10px, 9999px, 55px, 0); }
+      80% { clip: rect(54px, 9999px, 21px, 0); } 100% { clip: rect(2px, 9999px, 90px, 0); }
+    }
+  </style>
 </head>
 <body>
+
+<canvas id="canvas-bg"></canvas>
+
+<div id="loader">
+  <div class="loader-circle"></div>
+</div>
 
 <header>
   <div class="menu-btn" onclick="toggleMenu()">☰</div>
@@ -25,24 +272,26 @@
   </nav>
 
   <div id="nav-area" class="nav-container"></div>
-  
-  <h1>modoku-w</h1>
+   
+  <div class="glitch-wrapper">
+    <h1 class="glitch">modoku-w</h1>
+  </div>
 </header>
 
-<section class="post-section">
+<section class="post-section reveal active">
   <h2>掲示板に書き込む</h2>
   <div class="input-group">
-    <input type="text" id="userName" placeholder="お名前">
-    <textarea id="userMsg" placeholder="メッセージを入力してください" rows="3"></textarea>
-    <button onclick="postMessage()" id="postBtn">投稿する</button>
+    <input type="text" id="userName" placeholder="ACCESS NAME (お名前)">
+    <textarea id="userMsg" placeholder="DATA INPUT (メッセージを入力してください)" rows="3"></textarea>
+    <button onclick="postMessage()" id="postBtn">TRANSMIT DATA</button>
   </div>
 </section>
 
 <section class="ph">
   <div class="photo">
-    <div class="list-header">
+    <div class="list-header reveal active">
       <h2>投稿一覧 <span id="syncStatus" class="sync-text"></span></h2>
-      <button onclick="getMessages()" class="reload-btn">最新に更新</button>
+      <button onclick="getMessages()" class="reload-btn">SYSTEM RELOAD</button>
     </div>
     <div id="messageList">
       </div>
@@ -50,9 +299,386 @@
 </section>
 
 <footer>
-  <p>&copy; 2026 modoku-vioxin</p>
+  <p>&copy; 2026 modoku-vioxin // System All Green</p>
 </footer>
 
-<script src="script.js"></script>
+<script>
+// ==========================================
+// 0. 追加：ビジュアルエフェクト用JS
+// ==========================================
+
+// ローディング解除
+window.addEventListener('load', () => {
+    const loader = document.getElementById('loader');
+    loader.style.opacity = '0';
+    setTimeout(() => { loader.style.display = 'none'; }, 500);
+});
+
+// Canvas パーティクルシステム
+const canvas = document.getElementById('canvas-bg');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+let particlesArray;
+let mouse = { x: null, y: null, radius: (canvas.height/80) * (canvas.width/80) }
+
+window.addEventListener('mousemove', (event) => {
+    mouse.x = event.x; mouse.y = event.y;
+});
+
+class Particle {
+    constructor(x, y, directionX, directionY, size, color) {
+        this.x = x; this.y = y;
+        this.directionX = directionX; this.directionY = directionY;
+        this.size = size; this.color = color;
+    }
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+        ctx.fillStyle = '#00f3ff';
+        ctx.fill();
+    }
+    update() {
+        if (this.x > canvas.width || this.x < 0) this.directionX = -this.directionX;
+        if (this.y > canvas.height || this.y < 0) this.directionY = -this.directionY;
+        
+        let dx = mouse.x - this.x; let dy = mouse.y - this.y;
+        let distance = Math.sqrt(dx*dx + dy*dy);
+        if (distance < mouse.radius + this.size){
+            if (mouse.x < this.x && this.x < canvas.width - this.size * 10) this.x += 10;
+            if (mouse.x > this.x && this.x > this.size * 10) this.x -= 10;
+            if (mouse.y < this.y && this.y < canvas.height - this.size * 10) this.y += 10;
+            if (mouse.y > this.y && this.y > this.size * 10) this.y -= 10;
+        }
+        this.x += this.directionX; this.y += this.directionY;
+        this.draw();
+    }
+}
+
+function initParticles() {
+    particlesArray = [];
+    let numberOfParticles = (canvas.height * canvas.width) / 9000;
+    for (let i = 0; i < numberOfParticles; i++) {
+        let size = (Math.random() * 2) + 1;
+        let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
+        let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
+        let directionX = (Math.random() * 2) - 1;
+        let directionY = (Math.random() * 2) - 1;
+        particlesArray.push(new Particle(x, y, directionX, directionY, size, '#00f3ff'));
+    }
+}
+
+function animateParticles() {
+    requestAnimationFrame(animateParticles);
+    ctx.clearRect(0,0,innerWidth, innerHeight);
+    for (let i = 0; i < particlesArray.length; i++) { particlesArray[i].update(); }
+    connectParticles();
+}
+
+function connectParticles() {
+    let opacityValue = 1;
+    for (let a = 0; a < particlesArray.length; a++) {
+        for (let b = a; b < particlesArray.length; b++) {
+            let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x)) + ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
+            if (distance < (canvas.width/7) * (canvas.height/7)) {
+                opacityValue = 1 - (distance/20000);
+                ctx.strokeStyle = 'rgba(188, 19, 254,' + opacityValue + ')';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+                ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+                ctx.stroke();
+            }
+        }
+    }
+}
+window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    mouse.radius = (canvas.height/80) * (canvas.width/80);
+    initParticles();
+});
+initParticles();
+animateParticles();
+
+// 3Dチルトエフェクトの適用関数
+function applyTiltEffect() {
+    document.querySelectorAll('.post-item').forEach(card => {
+        // 既にイベントリスナーがついているか確認する術はないため、重複を避けるなら本来は工夫が必要ですが、
+        // renderMessagesでinnerHTMLを書き換えるため、その都度適用でOKです。
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const rotateX = ((y - centerY) / centerY) * -5; 
+            const rotateY = ((x - centerX) / centerX) * 5;
+            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        });
+        card.addEventListener('mouseleave', () => {
+            card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg)`;
+        });
+        
+        // スクロールアニメーション用の監視登録
+        observer.observe(card);
+    });
+}
+
+// Intersection Observer (スクロール出現)
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('active');
+        }
+    });
+}, { threshold: 0.1 });
+
+
+// ==========================================
+// 1. 設定：あなたのGASのURL
+// ==========================================
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzOpcoQtkoLBCUhmfd4RPCV6BhQs8ngf9fLiXYE8ALgDmJsr_ic4LnrSyFj5ChgwJoRhQ/exec";
+const userId = localStorage.getItem("userId");
+const userName = localStorage.getItem("userName");
+
+// ==========================================
+// 2. ページ読み込み時の初期化処理
+// ==========================================
+window.addEventListener('load', () => {
+    updateNavigation();
+    getMessages();
+});
+
+function formatAnchor(text) {
+    if (!text) return "";
+    const escaped = text.toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    return escaped.replace(/&gt;&gt;(\d+)/g, '<a href="#post-$1" class="anchor">>>$1</a>');
+}
+
+// ==========================================
+// 3. サイドメニューの開閉機能
+// ==========================================
+function toggleMenu() {
+    const menu = document.getElementById("side-menu");
+    if (menu) menu.classList.toggle("open");
+}
+
+// ==========================================
+// 4. ナビゲーションの切り替え
+// ==========================================
+function updateNavigation() {
+    const navArea = document.getElementById("nav-area");
+    const userName = localStorage.getItem("userName");
+
+    if (!navArea) return;
+
+    if (userName) {
+        navArea.innerHTML = `
+            <div class="user-info">
+                <span style="color:var(--primary); text-shadow:0 0 5px var(--primary);">User: ${userName}</span>
+                <button onclick="location.href='main.html'" class="nav-btn">MY PAGE</button>
+            </div>
+        `;
+        const nameInput = document.getElementById("userName");
+        if (nameInput) nameInput.value = userName;
+    } else {
+        navArea.innerHTML = `
+            <div class="guest-nav">
+                <button onclick="location.href='signup.html'" class="nav-btn signup-style">SIGN UP</button>
+                <button onclick="location.href='login.html'" class="nav-btn">LOGIN</button>
+            </div>
+        `;
+    }
+}
+
+// ==========================================
+// 5. 掲示板：メッセージ取得機能
+// ==========================================
+async function getMessages() {
+    const listElement = document.getElementById("messageList");
+    const statusElement = document.getElementById("syncStatus");
+
+    if (!listElement) return;
+
+    const cachedData = localStorage.getItem("bbs_cache");
+    if (cachedData) {
+        renderMessages(JSON.parse(cachedData));
+        if (statusElement) {
+            statusElement.innerText = "SYNCING...";
+            statusElement.classList.add("is-loading");
+        }
+    } else {
+        listElement.innerHTML = "<p style='text-align:center;'>CONNECTING TO SERVER...</p>";
+    }
+
+    try {
+        const response = await fetch(GAS_URL);
+        const data = await response.json();
+        
+        localStorage.setItem("bbs_cache", JSON.stringify(data));
+        renderMessages(data);
+        
+        if (statusElement) {
+            statusElement.innerText = "ONLINE / LATEST";
+            setTimeout(() => statusElement.classList.remove("is-loading"), 2000);
+        }
+    } catch (error) {
+        console.error("通信エラー:", error);
+        if (statusElement) statusElement.innerText = "OFFLINE MODE";
+    }
+}
+
+// ==========================================
+// 6. 掲示板：メッセージ描画ヘルパー
+// ==========================================
+function renderMessages(data) {
+    const listElement = document.getElementById("messageList");
+    if (!listElement) return;
+
+    listElement.innerHTML = "";
+
+    if (!data || data.length === 0) {
+        listElement.innerHTML = "<p style='text-align:center;'>NO DATA FOUND.</p>";
+        return;
+    }
+
+    data.forEach(item => {
+        const myId = localStorage.getItem("userId");
+        const div = document.createElement("div");
+        div.className = "post-item reveal"; // アニメーション用クラスを追加
+        div.id = `post-${item.id}`;
+    
+        div.innerHTML = `
+            <div class="post-header">
+                <div>
+                    <span class="res-num">#${item.id}</span>
+                    <span class="post-name">${item.name}</span>
+                </div>
+                <span class="post-date">${item.date || ""}</span>
+            </div>
+            <div class="post-text" style="white-space: pre-wrap; word-break: break-all;">
+                ${formatAnchor(item.message)}
+            </div>
+        `;
+
+        if (item.uId === myId || item.uid === myId) {
+            const deleteBtn = document.createElement("button");
+            deleteBtn.innerText = "DELETE LOG";
+            deleteBtn.style.marginTop = "15px";
+            deleteBtn.style.color = "#ff0055";
+            deleteBtn.style.background = "rgba(0,0,0,0.3)";
+            deleteBtn.style.border = "1px solid #ff0055";
+            deleteBtn.style.borderRadius = "4px";
+            deleteBtn.style.cursor = "pointer";
+            deleteBtn.style.fontSize = "11px";
+            deleteBtn.style.padding = "4px 8px";
+            deleteBtn.style.transition = "0.3s";
+
+            deleteBtn.onmouseover = () => { deleteBtn.style.background = "#ff0055"; deleteBtn.style.color = "white"; };
+            deleteBtn.onmouseout = () => { deleteBtn.style.background = "rgba(0,0,0,0.3)"; deleteBtn.style.color = "#ff0055"; };
+            deleteBtn.onclick = () => deleteMyPost(item.row);
+            div.appendChild(deleteBtn);
+        }
+
+        listElement.appendChild(div);
+    });
+
+    // 描画後にエフェクトを適用
+    applyTiltEffect();
+}
+
+// ==========================================
+// 7. 掲示板：投稿送信機能
+// ==========================================
+async function postMessage() {
+    const nameEl = document.getElementById("userName");
+    const msgEl = document.getElementById("userMsg");
+    const btn = document.getElementById("postBtn");
+    
+    // IP取得（元のロジック維持）
+    let currentIp = "unknown";
+    try {
+        const ipRes = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipRes.json();
+        currentIp = ipData.ip;
+    } catch(e) { console.log("IP fetch failed"); }
+
+    if (!userId) { alert("LOGIN REQUIRED"); return; }
+    if (!nameEl.value || !msgEl.value) { alert("INPUT MISSING"); return; }
+
+    btn.disabled = true;
+    const originalText = btn.innerText;
+    btn.innerText = "SENDING...";
+
+    try {
+        const res = await fetch(GAS_URL, {
+            method: "POST",
+            body: JSON.stringify({ 
+                name: nameEl.value, 
+                message: msgEl.value,
+                userid: userId,
+                username: userName,
+                userip: currentIp
+            })
+        });
+        const result = await res.json();
+
+        if (result.success) {
+            alert("TRANSMISSION COMPLETE");
+            location.reload();
+        } else {
+            if (result.errorType === "EMOJI_RESTRICTED") {
+                alert("🚨 " + result.msg);
+            } else {
+                alert("ERROR: " + result.msg);
+            }
+        }
+        msgEl.value = ""; 
+        await getMessages(); 
+    } catch (e) {
+        console.error(e);
+        alert("TRANSMISSION FAILED");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = originalText;
+    }
+}
+
+async function deleteMyPost(rowNumber) {
+    if (!confirm("CONFIRM DELETION?")) return;
+
+    try {
+        const response = await fetch(GAS_URL, {
+            method: "POST",
+            body: JSON.stringify({
+                action: "user_delete_post",
+                row: rowNumber,
+                userId: localStorage.getItem("userId")
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert("DELETED");
+            location.reload();
+        } else {
+            alert("DELETE FAILED: " + result.msg);
+        }
+    } catch (error) {
+        alert("NETWORK ERROR");
+    }
+}
+
+// テーマ切り替え機能（一応残していますが、CSS変数で強制上書きしているため、今回はcyberテーマ固定のような見た目になります）
+const themes = {
+  default: { /* サイバー化のため省略（CSS側の:rootが優先されます） */ },
+  light: { /* ライトモードも必要であればここに定義 */ },
+  cyber: { /* ... */ }
+};
+</script>
 </body>
 </html>
