@@ -2,147 +2,394 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Moudoku Memes</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOUDOKU ARCHIVE</title>
     <style>
-        body { background: #000; color: #39ff14; font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
-        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #39ff14; padding-bottom: 10px; margin-bottom: 30px; }
-        
-        .header-btns { display: flex; gap: 10px; }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Share+Tech+Mono&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap');
 
-        /* リスト表示 */
-        .meme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
-        .meme-card { 
-            background: #0a0a0a; 
-            border: 1px solid #39ff14; 
-            padding: 20px; 
-            border-radius: 5px; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center;
-            min-height: 100px;
-            box-shadow: 4px 4px 0px #1b8a0a;
-        }
-        .meme-card:hover { background: #111; transform: translate(-2px, -2px); box-shadow: 6px 6px 0px #39ff14; }
-        .meme-text { font-size: 1.2rem; font-weight: bold; word-break: break-all; margin-bottom: 10px; }
-        .meme-meta { font-size: 0.8rem; color: #888; text-align: right; }
-
-        /* ボタンデザイン */
-        .btn { 
-            background: #39ff14; color: #000; border: none; padding: 12px 25px; 
-            cursor: pointer; font-weight: bold; border-radius: 5px; font-size: 1rem;
-            transition: 0.2s;
-        }
-        .btn:hover { opacity: 0.8; }
-        
-        /* 読み込み中（灰色）の状態 */
-        .btn:disabled { 
-            background: #555 !important; 
-            color: #888 !important; 
-            cursor: not-allowed; 
-            box-shadow: none !important;
+        :root {
+            --color-bg: #050505;
+            --color-primary: #00ff41; /* Hacker Green */
+            --color-secondary: #008f11;
+            --color-accent: #f0f;
+            --glass-bg: rgba(20, 30, 20, 0.7);
+            --border-glow: 0 0 10px rgba(0, 255, 65, 0.4);
         }
 
-        .btn-reload { background: #1b8a0a; color: #fff; }
-
-        /* 投稿画面 */
-        #post-view { display: none; text-align: center; max-width: 400px; margin: 50px auto; }
-        input { 
-            width: 100%; padding: 12px; margin: 10px 0; 
-            background: #111; border: 1px solid #39ff14; color: #39ff14; 
-            font-size: 1rem; border-radius: 5px; box-sizing: border-box;
+        /* === Base Style === */
+        body {
+            background-color: var(--color-bg);
+            color: var(--color-primary);
+            font-family: 'Share Tech Mono', 'Zen Kaku Gothic New', monospace;
+            margin: 0; padding: 0;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                linear-gradient(rgba(0, 255, 65, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 65, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
         }
-        .btn-sub { background: #555; color: #fff; margin-top: 10px; }
+
+        /* CRT Screen Effect */
+        body::after {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 9999;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        /* === Layout === */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* === Header === */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--color-secondary);
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            position: relative;
+            text-shadow: 0 0 10px var(--color-primary);
+        }
+
+        /* Glitch Effect */
+        h1::before, h1::after {
+            content: attr(data-text);
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--color-bg);
+        }
+        h1::before { left: 2px; text-shadow: -1px 0 #f0f; clip: rect(24px, 550px, 90px, 0); animation: glitch-anim-2 3s infinite linear alternate-reverse; }
+        h1::after { left: -2px; text-shadow: -1px 0 #0ff; clip: rect(85px, 550px, 140px, 0); animation: glitch-anim 2.5s infinite linear alternate-reverse; }
+
+        @keyframes glitch-anim { 0% { clip: rect(14px, 9999px, 122px, 0); } 100% { clip: rect(48px, 9999px, 98px, 0); } }
+        @keyframes glitch-anim-2 { 0% { clip: rect(65px, 9999px, 109px, 0); } 100% { clip: rect(4px, 9999px, 83px, 0); } }
+
+        /* === Buttons === */
+        .btn {
+            background: transparent;
+            color: var(--color-primary);
+            border: 1px solid var(--color-primary);
+            padding: 10px 25px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+
+        .btn:hover {
+            background: var(--color-primary);
+            color: #000;
+            box-shadow: 0 0 20px var(--color-primary);
+        }
+
+        .btn:disabled {
+            border-color: #555;
+            color: #555;
+            cursor: not-allowed;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        .btn-reload { margin-right: 10px; }
+
+        /* === Meme Grid === */
+        .meme-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .meme-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--color-secondary);
+            padding: 25px;
+            position: relative;
+            transition: transform 0.3s, box-shadow 0.3s;
+            backdrop-filter: blur(5px);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 120px;
+        }
+
+        .meme-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 2px;
+            background: var(--color-primary); transform: scaleX(0); transform-origin: left; transition: transform 0.3s;
+        }
+
+        .meme-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 255, 65, 0.15);
+            border-color: var(--color-primary);
+        }
+        .meme-card:hover::before { transform: scaleX(1); }
+
+        .meme-text {
+            font-size: 1.4rem;
+            font-weight: 700;
+            line-height: 1.4;
+            margin-bottom: 20px;
+            word-break: break-all;
+            text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+        }
+
+        .meme-meta {
+            font-size: 0.8rem;
+            color: rgba(0, 255, 65, 0.6);
+            text-align: right;
+            border-top: 1px dashed var(--color-secondary);
+            padding-top: 10px;
+            font-family: 'Share Tech Mono';
+        }
+
+        /* === Post Form === */
+        #post-view {
+            display: none;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 40px;
+            background: rgba(10, 10, 10, 0.9);
+            border: 1px solid var(--color-primary);
+            box-shadow: 0 0 50px rgba(0, 255, 65, 0.1);
+        }
+
+        .form-group { margin-bottom: 25px; position: relative; }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid var(--color-secondary);
+            color: #fff;
+            font-size: 1.1rem;
+            font-family: 'Zen Kaku Gothic New', sans-serif;
+            outline: none;
+            transition: 0.3s;
+            box-sizing: border-box;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--color-primary);
+            background: rgba(0, 255, 65, 0.05);
+        }
+
+        input::placeholder { color: #444; }
+
+        .form-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block; width: 20px; height: 20px;
+            border: 2px solid var(--color-primary);
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
     </style>
 </head>
 <body>
 
-<div id="list-view">
-    <header>
-        <h1>MEME ARCHIVE</h1>
-        <div class="header-btns">
-            <button id="reloadBtn" class="btn btn-reload" onclick="fetchMemes()">RELOAD</button>
-            <button class="btn" onclick="toggleView(true)">+ POST NEW</button>
-        </div>
-    </header>
-    <div id="meme-container" class="meme-grid">
-        <p>Loading archives...</p>
-    </div>
-</div>
+<div class="container">
+    
+    <div id="list-view">
+        <header>
+            <h1 data-text="MOUDOKU_MEMES">MOUDOKU_MEMES</h1>
+            <div class="header-btns">
+                <button id="reloadBtn" class="btn btn-reload" onclick="fetchMemes()">SYSTEM_RELOAD</button>
+                <button class="btn" onclick="toggleView(true)">// NEW_ENTRY</button>
+            </div>
+        </header>
 
-<div id="post-view">
-    <h1>RECORD MEME</h1>
-    <input type="text" id="memeName" placeholder="ミームの内容（短い一言）">
-    <input type="text" id="poster" placeholder="あなたの名前">
-    <button class="btn" onclick="submitMeme()">投稿を確定する</button>
-    <br>
-    <button class="btn btn-sub" onclick="toggleView(false)">キャンセル</button>
+        <div id="meme-container" class="meme-grid">
+            <p style="text-align:center; grid-column: 1/-1;">INITIALIZING DATA STREAM...</p>
+        </div>
+    </div>
+
+    <div id="post-view">
+        <h2 style="font-family:'Orbitron'; margin-bottom:30px; border-bottom:1px solid var(--color-primary); padding-bottom:10px;">RECORD_DATA</h2>
+        
+        <div class="form-group">
+            <input type="text" id="memeName" placeholder="MEME_CONTENT (本文)" autocomplete="off">
+        </div>
+        <div class="form-group">
+            <input type="text" id="poster" placeholder="CODENAME (名前)" autocomplete="off">
+        </div>
+
+        <div class="form-actions">
+            <button class="btn" style="border-color:#555; color:#aaa;" onclick="toggleView(false)">CANCEL</button>
+            <button class="btn" id="submitBtn" onclick="submitMeme()">UPLOAD_DATA</button>
+        </div>
+    </div>
+
 </div>
 
 <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbw-I_Wafhcq8YwYXGhgFGOVgSqS0FRsPWTrr8fFxACbSvNP-K_TH3z3iKas1vYCmYsqPQ/exec";
 
     function toggleView(isPost) {
-        document.getElementById('list-view').style.display = isPost ? 'none' : 'block';
-        document.getElementById('post-view').style.display = isPost ? 'block' : 'none';
+        const listView = document.getElementById('list-view');
+        const postView = document.getElementById('post-view');
+
+        if(isPost) {
+            listView.style.opacity = '0';
+            setTimeout(() => {
+                listView.style.display = 'none';
+                postView.style.display = 'block';
+                setTimeout(() => postView.style.opacity = '1', 50);
+            }, 300);
+        } else {
+            postView.style.opacity = '0';
+            setTimeout(() => {
+                postView.style.display = 'none';
+                listView.style.display = 'block';
+                setTimeout(() => listView.style.opacity = '1', 50);
+            }, 300);
+        }
     }
 
-    // --- 改良版：データ読み込み関数 ---
+    // View Transitions Setup
+    document.getElementById('list-view').style.transition = 'opacity 0.3s ease';
+    document.getElementById('post-view').style.transition = 'opacity 0.3s ease';
+
+
     async function fetchMemes() {
         const btn = document.getElementById('reloadBtn');
         const container = document.getElementById('meme-container');
 
-        // 1. 読み込み中状態にする（ボタンを灰色にして無効化）
+        // Loading State
         if (btn) {
             btn.disabled = true;
-            btn.innerText = "読み込み中...";
+            btn.innerHTML = '<span class="spinner"></span>SYNCING...';
         }
-        container.style.opacity = "0.5"; // 一覧を少し薄くする演出
+        
+        // Grid Fade Out Effect
+        container.style.opacity = '0.5';
 
         try {
             const res = await fetch(`${GAS_URL}?action=getMemes`);
             const memes = await res.json();
             
-            container.innerHTML = memes.length ? '' : '<p>ミームがまだありません。</p>';
+            // Grid Fade In
+            container.style.opacity = '0';
+            setTimeout(() => {
+                container.innerHTML = memes.length ? '' : '<p style="text-align:center; width:100%;">NO DATA FOUND IN ARCHIVE.</p>';
+                
+                memes.forEach((m, index) => {
+                    // Animation delay for cascading effect
+                    const delay = index * 0.1; 
+                    container.innerHTML += `
+                        <div class="meme-card" style="animation: fadeInUp 0.5s ease forwards ${delay}s; opacity:0; transform:translateY(20px);">
+                            <div class="meme-text">${escapeHtml(m.memeName)}</div>
+                            <div class="meme-meta">LOG_BY: ${escapeHtml(m.poster)}</div>
+                        </div>
+                    `;
+                });
+                
+                // Reset Opacity for animation visibility
+                container.style.opacity = '1';
+                
+            }, 300);
 
-            memes.forEach(m => {
-                container.innerHTML += `
-                    <div class="meme-card">
-                        <div class="meme-text">"${m.memeName}"</div>
-                        <div class="meme-meta">by ${m.poster}</div>
-                    </div>
-                `;
-            });
         } catch (e) {
-            container.innerHTML = '<p>エラー：データの取得に失敗したぜ。</p>';
+            container.innerHTML = '<p style="color:#f0f; text-align:center; width:100%;">CRITICAL ERROR: CONNECTION LOST.</p>';
+            container.style.opacity = '1';
         } finally {
-            // 2. 終わったら元に戻す
             if (btn) {
                 btn.disabled = false;
-                btn.innerText = "RELOAD";
+                btn.innerText = "SYSTEM_RELOAD";
             }
-            container.style.opacity = "1";
         }
     }
 
     async function submitMeme() {
-        const name = document.getElementById('memeName').value;
-        const poster = document.getElementById('poster').value;
+        const nameInput = document.getElementById('memeName');
+        const posterInput = document.getElementById('poster');
+        const name = nameInput.value;
+        const poster = posterInput.value;
+        const btn = document.getElementById('submitBtn');
 
-        if (!name || !poster) return alert("空欄を埋めろよ");
+        if (!name || !poster) {
+            alert("ERROR: NULL_VALUE_DETECTED. Please fill all fields.");
+            return;
+        }
 
-        const btn = event.target;
         btn.disabled = true;
-        btn.innerText = "記録中...";
+        btn.innerHTML = '<span class="spinner"></span>UPLOADING...';
 
-        await fetch(`${GAS_URL}?action=postMeme&name=${encodeURIComponent(name)}&poster=${encodeURIComponent(poster)}`);
-        
-        document.getElementById('memeName').value = "";
-        btn.disabled = false;
-        btn.innerText = "投稿を確定する";
-        
-        toggleView(false);
-        fetchMemes();
+        try {
+            await fetch(`${GAS_URL}?action=postMeme&name=${encodeURIComponent(name)}&poster=${encodeURIComponent(poster)}`);
+            
+            nameInput.value = "";
+            // posterInput.value = ""; // 名前は連続投稿しやすいように残すのもあり
+            
+            toggleView(false);
+            fetchMemes(); // Refresh list
+
+        } catch(e) {
+            alert("UPLOAD FAILED.");
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "UPLOAD_DATA";
+        }
     }
+
+    // XSS対策（簡易）
+    function escapeHtml(str) {
+        if(!str) return '';
+        return str.replace(/[&<>"']/g, function(match) {
+            const escape = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            };
+            return escape[match];
+        });
+    }
+
+    // Add CSS Animation Keyframes for cards
+    const styleSheet = document.createElement("style");
+    styleSheet.innerText = `
+        @keyframes fadeInUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+    `;
+    document.head.appendChild(styleSheet);
 
     window.onload = fetchMemes;
 </script>
