@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NEON DOOM FPS</title>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+    body {
+        margin: 0; padding: 0;
+        background-color: #000;
+        color: #0ff;
+        font-family: 'Share Tech Mono', monospace;
+        overflow: hidden;
+        user-select: none;
+    }
+
+    #game-container {
+        position: relative;
+        width: 100vw; height: 100vh;
+        background: #000;
+    }
+
+    canvas {
+        display: block;
+        width: 100%; height: 100%;
+        image-rendering: pixelated; /* レトロなドット感を出す */
+    }
+
+    /* UIレイヤー */
+    #ui-layer {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        pointer-events: none;
+        display: flex; flex-direction: column; justify-content: space-between;
+    }
+
+    /* HUD */
+    .hud-top { padding: 20px; display: flex; justify-content: space-between; font-size: 1.5rem; text-shadow: 0 0 5px #0ff; }
+    .hud-center {
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        color: #ff0055; font-size: 20px;
+    }
+    
+    /* クロスヘア */
+    .crosshair {
+        width: 20px; height: 20px;
+        border: 2px solid rgba(0, 255, 255, 0.5);
+        border-radius: 50%;
+        position: absolute; top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex; justify-content: center; align-items: center;
+    }
+    .crosshair::after { content: ''; width: 4px; height: 4px; background: #ff0055; }
+
+    /* ダメージエフェクト */
+    #damage-overlay {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: radial-gradient(circle, transparent 50%, rgba(255,0,0,0.5) 100%);
+        opacity: 0; transition: opacity 0.1s; pointer-events: none;
+    }
+
+    /* スタート画面 */
+    #start-screen {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.8);
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        pointer-events: auto; z-index: 100;
+        backdrop-filter: blur(5px);
+    }
+    h1 { font-size: 3rem; color: #ff0055; text-shadow: 2px 2px 0 #fff; margin-bottom: 10px; }
+    .btn {
+        padding: 15px 40px; font-size: 1.5rem; background: #0ff; color: #000; border: none;
+        cursor: pointer; font-family: inherit; font-weight: bold; margin-top: 20px;
+        box-shadow: 0 0 15px #0ff;
+    }
+    .btn:hover { background: #fff; }
+
+    /* スマホ用簡易コントローラー */
+    #mobile-controls {
+        position: absolute; bottom: 20px; left: 0; width: 100%; height: 120px;
+        display: none; pointer-events: auto;
+        justify-content: space-between; padding: 0 20px;
+    }
+    .pad { width: 120px; height: 120px; background: rgba(255,255,255,0.1); border-radius: 50%; position: relative; }
+    .fire-btn { 
+        width: 80px; height: 80px; background: rgba(255, 0, 85, 0.3); border-radius: 50%; 
+        border: 2px solid #ff0055; display: flex; justify-content: center; align-items: center;
+        font-size: 0.8rem;
+    }
+    
+    @media (max-width: 768px) {
+        #mobile-controls { display: flex; }
+        .instructions { font-size: 0.8rem; }
+    }
+
+</style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="screen"></canvas>
+    
+    <div id="damage-overlay"></div>
+
+    <div id="ui-layer">
+        <div class="hud-top">
+            <div>SCORE: <span id="score">0</span></div>
+            <div style="color:#ff0055">HEALTH: <span id="health">100</span>%</div>
+        </div>
+        <div class="crosshair"></div>
+    </div>
+
+    <div id="start-screen">
+        <h1>NEON DOOM</h1>
+        <p class="instructions">
+            [PC] WASD: Move / Mouse: Aim / Click: Shoot<br>
+            [Mobile] Left Pad: Move / Right Btn: Shoot
+        </p>
+        <button class="btn" onclick="initGame()">GAME START</button>
+    </div>
+
+    <div id="mobile-controls">
+        <div class="pad" id="movePad"></div>
+        <div class="fire-btn" id="fireBtn">FIRE</div>
+    </div>
+</div>
+
+<script>
+    // === 設定 ===
+    const canvas = document.getElementById('screen');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const healthEl = document.getElementById('health');
+    const damageOverlay = document.getElementById('damage-overlay');
+
+    // 画面解像度（描画負荷を下げるため実際のピクセル数より小さく計算する）
+    let screenWidth = 320;
+    let screenHeight = 200;
+    
+    // レイキャスティング用定数
+    const FOV = 60 * (Math.PI / 180);
+    const BLOCK_SIZE = 64;
+    const MAP_SIZE = 16;
+    
+    // ゲーム状態
+    let isRunning = false;
+    let lastTime = 0;
+    let score = 0;
+
+    // プレイヤー
+    const player = {
+        x: 3.5, y: 3.5,
+        dir: 0, // ラジアン
+        planeX: 0, planeY: 0.66, // カメラ平面（視野角用）
+        speed: 3.0,
+        rotSpeed: 2.0,
+        health: 100
+    };
+
+    // マップ (1=壁, 0=床)
+    // 外周は壁にする
+    const map = [
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1],
+        [1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1],
+        [1,0,0,1,1,0,1,0,0,1,0,0,0,0,0,1],
+        [1,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1],
+        [1,0,0,1,0,0,0,0,0,1,1,1,1,0,0,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,0,1,1,0,0,0,1,0,0,0,0,0,0,0,1],
+        [1,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1],
+        [1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1],
+        [1,0,1,0,0,1,0,0,0,0,0,0,0,0,0,1],
+        [1,0,1,0,0,1,0,0,0,1,0,0,0,0,0,1],
+        [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    ];
+
+    // 敵 (スプライトの代わり)
+    let enemies = [];
+
+    // 操作入力
+    const keys = { w:false, a:false, s:false, d:false, left:false, right:false };
+    let mouseX = 0;
+
+    // 武器アニメーション
+    let weaponOffset = 0;
+    let isFiring = false;
+    let fireFrame = 0;
+
+    // === 初期化 ===
+    function initGame() {
+        document.getElementById('start-screen').style.display = 'none';
+        
+        // Canvasサイズ調整
+        resize();
+        window.addEventListener('resize', resize);
+
+        // PC用: ポインタロック（FPS操作）
+        canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
+        canvas.onclick = () => canvas.requestPointerLock();
+        
+        document.addEventListener('pointerlockchange', () => {
+            // ポインタロック状態の変化監視
+        });
+
+        // 敵の生成
+        spawnEnemies();
+
+        isRunning = true;
+        requestAnimationFrame(gameLoop);
+    }
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        // 内部解像度は固定（レトロ感 + パフォーマンス）
+        screenWidth = 320;
+        screenHeight = 200;
+    }
+
+    function spawnEnemies() {
+        enemies = [];
+        for(let i=0; i<8; i++) {
+            let ex, ey;
+            do {
+                ex = Math.floor(Math.random() * MAP_SIZE);
+                ey = Math.floor(Math.random() * MAP_SIZE);
+            } while(map[ex][ey] !== 0 || (Math.abs(ex - player.x) < 3 && Math.abs(ey - player.y) < 3));
+            
+            enemies.push({
+                x: ex + 0.5, y: ey + 0.5,
+                alive: true,
+                speed: 1.0 // プレイヤーより遅い
+            });
+        }
+    }
+
+    // === 入力ハンドラ ===
+    window.addEventListener('keydown', e => {
+        if(e.key === 'w') keys.w = true;
+        if(e.key === 's') keys.s = true;
+        if(e.key === 'a') keys.a = true;
+        if(e.key === 'd') keys.d = true;
+        if(e.key === 'ArrowLeft') keys.left = true;
+        if(e.key === 'ArrowRight') keys.right = true;
+    });
+    window.addEventListener('keyup', e => {
+        if(e.key === 'w') keys.w = false;
+        if(e.key === 's') keys.s = false;
+        if(e.key === 'a') keys.a = false;
+        if(e.key === 'd') keys.d = false;
+        if(e.key === 'ArrowLeft') keys.left = false;
+        if(e.key === 'ArrowRight') keys.right = false;
+    });
+    window.addEventListener('mousemove', e => {
+        if(document.pointerLockElement === canvas) {
+            player.dir += e.movementX * 0.003;
+        }
+    });
+    window.addEventListener('mousedown', () => fireWeapon());
+
+    // モバイル操作
+    const movePad = document.getElementById('movePad');
+    movePad.addEventListener('touchmove', e => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const rect = movePad.getBoundingClientRect();
+        const centerX = rect.left + rect.width/2;
+        const centerY = rect.top + rect.height/2;
+        const dx = (touch.clientX - centerX) / (rect.width/2);
+        const dy = (touch.clientY - centerY) / (rect.height/2);
+        
+        // 簡易ジョイスティック
+        keys.w = dy < -0.3;
+        keys.s = dy > 0.3;
+        keys.left = dx < -0.3; // 旋回
+        keys.right = dx > 0.3;
+    }, {passive:false});
+    
+    movePad.addEventListener('touchend', () => {
+        keys.w = keys.s = keys.left = keys.right = false;
+    });
+
+    document.getElementById('fireBtn').addEventListener('touchstart', (e) => {
+        e.preventDefault(); fireWeapon();
+    });
+
+
+    // === ゲームループ ===
+    function gameLoop(timestamp) {
+        if(!isRunning) return;
+        const dt = (timestamp - lastTime) / 1000;
+        lastTime = timestamp;
+
+        update(dt);
+        draw();
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    // === 更新処理 ===
+    function update(dt) {
+        // 回転
+        if (keys.left) player.dir -= player.rotSpeed * dt;
+        if (keys.right) player.dir += player.rotSpeed * dt;
+
+        // 移動
+        let moveStep = player.speed * dt;
+        let newX = player.x;
+        let newY = player.y;
+
+        if (keys.w) {
+            newX += Math.cos(player.dir) * moveStep;
+            newY += Math.sin(player.dir) * moveStep;
+        }
+        if (keys.s) {
+            newX -= Math.cos(player.dir) * moveStep;
+            newY -= Math.sin(player.dir) * moveStep;
+        }
+        // カニ歩き
+        if (keys.d) {
+            newX += Math.cos(player.dir + Math.PI/2) * moveStep;
+            newY += Math.sin(player.dir + Math.PI/2) * moveStep;
+        }
+        if (keys.a) {
+            newX += Math.cos(player.dir - Math.PI/2) * moveStep;
+            newY += Math.sin(player.dir - Math.PI/2) * moveStep;
+        }
+
+        // 簡易当たり判定（壁なら進めない）
+        if (map[Math.floor(newX)][Math.floor(player.y)] === 0) player.x = newX;
+        if (map[Math.floor(player.x)][Math.floor(newY)] === 0) player.y = newY;
+
+        // 敵のAI（プレイヤーに向かってくる）
+        enemies.forEach(e => {
+            if(!e.alive) return;
+            
+            const dx = player.x - e.x;
+            const dy = player.y - e.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            if(dist > 0.5) {
+                // 壁すり抜け防止なしの簡易移動
+                e.x += (dx / dist) * e.speed * dt * 0.5;
+                e.y += (dy / dist) * e.speed * dt * 0.5;
+            } else {
+                // プレイヤーに接触＝ダメージ
+                takeDamage();
+            }
+        });
+
+        // 発砲エフェクト
+        if(isFiring) {
+            fireFrame++;
+            if(fireFrame > 5) {
+                isFiring = false;
+                fireFrame = 0;
+            }
+        }
+    }
+
+    function takeDamage() {
+        if(Math.random() > 0.1) return; // ダメージ頻度を下げる
+        player.health -= 5;
+        healthEl.innerText = player.health;
+        damageOverlay.style.opacity = 0.8;
+        setTimeout(() => damageOverlay.style.opacity = 0, 200);
+
+        if(player.health <= 0) {
+            alert("GAME OVER - Score: " + score);
+            location.reload();
+        }
+    }
+
+    function fireWeapon() {
+        if(isFiring) return;
+        isFiring = true;
+        
+        // 射撃判定（簡易レイキャスト）
+        // 視野の中心にいる一番近い敵を倒す
+        let hitEnemy = null;
+        let minDist = 100;
+
+        enemies.forEach(e => {
+            if(!e.alive) return;
+            
+            // 敵へのベクトル
+            const dx = e.x - player.x;
+            const dy = e.y - player.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            // プレイヤーの向きとの角度差
+            const angleToEnemy = Math.atan2(dy, dx);
+            let angleDiff = angleToEnemy - player.dir;
+            
+            // 角度の正規化 (-PI ~ PI)
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+
+            // ほぼ正面（視野角の狭い範囲）にいて、かつ一番近い
+            if(Math.abs(angleDiff) < 0.15 && dist < minDist) {
+                // 壁に遮られていないかチェック（簡易版なので省略）
+                minDist = dist;
+                hitEnemy = e;
+            }
+        });
+
+        if(hitEnemy) {
+            hitEnemy.alive = false;
+            score += 100;
+            scoreEl.innerText = score;
+            // リスポーン
+            setTimeout(() => {
+                hitEnemy.x = Math.floor(Math.random() * MAP_SIZE) + 0.5;
+                hitEnemy.y = Math.floor(Math.random() * MAP_SIZE) + 0.5;
+                hitEnemy.alive = true;
+            }, 3000);
+        }
+    }
+
+
+    // === 描画 (レイキャスティング) ===
+    function draw() {
+        // バッファをクリア（天井と床を描画）
+        // 天井
+        ctx.fillStyle = '#050011'; // 暗い宇宙のような色
+        ctx.fillRect(0, 0, canvas.width, canvas.height / 2);
+        // 床
+        ctx.fillStyle = '#111';
+        ctx.fillRect(0, canvas.height / 2, canvas.width, canvas.height / 2);
+
+        // Zバッファ（敵の描画順序用）
+        const zBuffer = new Array(screenWidth).fill(0);
+
+        // --- 壁の描画 ---
+        // 実際のCanvas幅に合わせて拡大描画
+        const scale = canvas.width / screenWidth;
+
+        for (let x = 0; x < screenWidth; x++) {
+            // レイの方向を計算
+            const cameraX = 2 * x / screenWidth - 1;
+            const rayDirX = Math.cos(player.dir) + player.planeX * cameraX;
+            const rayDirY = Math.sin(player.dir) + player.planeY * cameraX; // ここ修正：単純な回転行列ではなく平面ベクトルを使用すべきだが、簡易実装
+
+            // 正しいレイキャスティング計算（Wolf3D方式）
+            // プレイヤーの視線ベクトルとカメラ平面ベクトルが必要
+            // 簡易化のため、dirから計算しなおす
+            const rayAngle = (player.dir - FOV / 2.0) + (x / screenWidth) * FOV;
+            const rayX = Math.cos(rayAngle);
+            const rayY = Math.sin(rayAngle);
+            
+            let mapX = Math.floor(player.x);
+            let mapY = Math.floor(player.y);
+            
+            let sideDistX, sideDistY;
+            
+            const deltaDistX = Math.abs(1 / rayX);
+            const deltaDistY = Math.abs(1 / rayY);
+            let perpWallDist;
+            
+            let stepX, stepY;
+            let hit = 0;
+            let side; // 0:NS, 1:EW
+
+            if (rayX < 0) { stepX = -1; sideDistX = (player.x - mapX) * deltaDistX; }
+            else { stepX = 1; sideDistX = (mapX + 1.0 - player.x) * deltaDistX; }
+            
+            if (rayY < 0) { stepY = -1; sideDistY = (player.y - mapY) * deltaDistY; }
+            else { stepY = 1; sideDistY = (mapY + 1.0 - player.y) * deltaDistY; }
+
+            // DDAアルゴリズム
+            while (hit === 0) {
+                if (sideDistX < sideDistY) {
+                    sideDistX += deltaDistX;
+                    mapX += stepX;
+                    side = 0;
+                } else {
+                    sideDistY += deltaDistY;
+                    mapY += stepY;
+                    side = 1;
+                }
+                if (map[mapX][mapY] > 0) hit = 1;
+            }
+
+            // 距離計算（魚眼補正）
+            if (side === 0) perpWallDist = (mapX - player.x + (1 - stepX) / 2) / rayX;
+            else           perpWallDist = (mapY - player.y + (1 - stepY) / 2) / rayY;
+            
+            // 補正：cosを使う簡易補正
+            perpWallDist = perpWallDist * Math.cos(rayAngle - player.dir);
+            
+            zBuffer[x] = perpWallDist; // 敵描画用に距離を保存
+
+            // 壁の高さ
+            const lineHeight = Math.floor(screenHeight / perpWallDist);
+            const drawStart = -lineHeight / 2 + screenHeight / 2;
+            
+            // 色の決定（ネオンカラー）
+            let color;
+            if(side === 1) color = '#00aaff'; // 明るい青
+            else color = '#0077cc'; // 暗い青 (陰影)
+
+            ctx.fillStyle = color;
+            ctx.fillRect(x * scale, drawStart * (canvas.height/screenHeight), scale, lineHeight * (canvas.height/screenHeight));
+        }
+
+        // --- 敵の描画 (ビルボード) ---
+        // 遠い順にソート
+        const spriteList = enemies.map(e => {
+            const dx = e.x - player.x;
+            const dy = e.y - player.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            return { ...e, dist: dist, dx: dx, dy: dy };
+        }).sort((a, b) => b.dist - a.dist);
+
+        spriteList.forEach(sprite => {
+            if(!sprite.alive) return;
+
+            // 敵のスクリーン座標計算
+            const spriteDir = Math.atan2(sprite.dy, sprite.dx) - player.dir;
+            let dirDiff = spriteDir;
+            while (dirDiff < -Math.PI) dirDiff += Math.PI * 2;
+            while (dirDiff > Math.PI) dirDiff -= Math.PI * 2;
+
+            // 視野内か？
+            if(Math.abs(dirDiff) < FOV / 1.5) {
+                const dist = sprite.dist;
+                const spriteHeight = Math.abs(screenHeight / dist);
+                const spriteTop = (screenHeight - spriteHeight) / 2;
+                
+                // 画面上のX位置 (-1 to 1 => screen pixels)
+                // 簡易計算: 角度差に基づいて配置
+                const screenX = (0.5 * (dirDiff / (FOV / 2)) + 0.5) * screenWidth;
+
+                // 描画サイズ
+                const size = spriteHeight * 0.8; 
+                
+                // 壁の後ろなら描画しない (簡易Zチェック: 中心点だけ確認)
+                const checkIdx = Math.floor(screenX);
+                if(checkIdx >= 0 && checkIdx < screenWidth && zBuffer[checkIdx] < dist) {
+                   return; // 壁の向こう側
+                }
+
+                // 描画
+                const renderX = (screenX - size/2) * scale;
+                const renderY = spriteTop * (canvas.height/screenHeight);
+                const renderSize = size * scale;
+
+                ctx.fillStyle = '#ff0055'; // 敵の色
+                ctx.fillRect(renderX, renderY, renderSize, renderSize);
+                
+                // 敵の目（かわいげ）
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(renderX + renderSize*0.2, renderY + renderSize*0.2, renderSize*0.2, renderSize*0.2);
+                ctx.fillRect(renderX + renderSize*0.6, renderY + renderSize*0.2, renderSize*0.2, renderSize*0.2);
+            }
+        });
+
+        // --- 武器の描画 ---
+        drawWeapon();
+    }
+
+    function drawWeapon() {
+        const weaponW = canvas.width * 0.4;
+        const weaponH = canvas.height * 0.4;
+        const x = canvas.width/2 - weaponW/2;
+        const y = canvas.height - weaponH + (Math.sin(Date.now()/100)*10); // 揺れ
+
+        // 銃身
+        ctx.fillStyle = '#333';
+        ctx.fillRect(x + weaponW*0.4, y, weaponW*0.2, weaponH);
+        
+        // ハイライト
+        ctx.fillStyle = '#0ff';
+        ctx.fillRect(x + weaponW*0.45, y, weaponW*0.1, weaponH);
+
+        // マズルフラッシュ
+        if(isFiring) {
+            ctx.beginPath();
+            ctx.arc(canvas.width/2, y, weaponW/2, 0, Math.PI*2);
+            ctx.fillStyle = `rgba(255, 255, 0, ${Math.random()})`;
+            ctx.fill();
+        }
+    }
+
+</script>
+</body>
+</html>
