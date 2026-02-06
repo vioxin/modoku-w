@@ -3,330 +3,341 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>NEON NIGHT DRIVE</title>
+<title>NEON GENESIS - ULTIMATE</title>
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Audiowide&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Zen+Kaku+Gothic+New:wght@700&display=swap');
 
     :root {
-        --neon-purple: #d303fc;
-        --neon-blue: #03e3fc;
-        --grid-color: rgba(211, 3, 252, 0.4);
-        --bg-color: #050011;
+        --neon-cyan: #00f3ff;
+        --neon-pink: #ff0055;
+        --neon-green: #0aff0a;
+        --bg-dark: #050510;
     }
 
     * { box-sizing: border-box; }
 
     body {
-        margin: 0;
-        padding: 0;
-        background-color: var(--bg-color);
+        margin: 0; padding: 0;
+        background-color: var(--bg-dark);
         color: #fff;
-        font-family: 'Zen Kaku Gothic New', sans-serif;
+        font-family: 'Share Tech Mono', monospace;
         overflow-x: hidden;
+        cursor: crosshair; /* カーソルを照準器に変更 */
     }
 
-    /* === 絶対に動かない背景レイヤー (CSSアニメーションのみで動作) === */
-    #background-layer {
+    /* === 全体エフェクト: CRTモニター風走査線 === */
+    body::after {
+        content: " ";
+        display: block;
         position: fixed;
-        top: 0; left: 0;
-        width: 100vw; height: 100vh;
-        z-index: -1;
-        background: linear-gradient(to bottom, #000000 0%, #1a0029 100%);
-        overflow: hidden;
+        top: 0; left: 0; bottom: 0; right: 0;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+        z-index: 9999;
+        background-size: 100% 2px, 3px 100%;
+        pointer-events: none;
     }
 
-    /* 上空の星 */
-    .stars {
-        position: absolute;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background-image: 
-            radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)),
-            radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)),
-            radial-gradient(2px 2px at 50px 160px, #ddd, rgba(0,0,0,0)),
-            radial-gradient(2px 2px at 90px 40px, #fff, rgba(0,0,0,0)),
-            radial-gradient(2px 2px at 130px 80px, #fff, rgba(0,0,0,0));
-        background-repeat: repeat;
-        background-size: 200px 200px;
-        animation: starMove 100s linear infinite;
-        opacity: 0.8;
-    }
-    @keyframes starMove { from { transform: translateY(0); } to { transform: translateY(1000px); } }
-
-    /* 地面の3Dグリッド（レトロウェーブ風） */
-    .floor {
-        position: absolute;
-        bottom: 0;
-        left: -50%;
-        width: 200%;
-        height: 50vh;
-        background-image: 
-            linear-gradient(var(--grid-color) 1px, transparent 1px),
-            linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+    /* === 背景: 電脳グリッド === */
+    .cyber-grid {
+        position: fixed;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        background: 
+            linear-gradient(transparent 95%, var(--neon-cyan) 95%),
+            linear-gradient(90deg, transparent 95%, var(--neon-cyan) 95%);
         background-size: 40px 40px;
-        transform: perspective(300px) rotateX(60deg);
-        animation: gridScroll 1s linear infinite;
-        mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40%);
-        -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40%);
+        opacity: 0.15;
+        transform: perspective(500px) rotateX(60deg);
+        transform-origin: center bottom;
+        animation: gridMove 2s linear infinite;
+        z-index: -1;
     }
-    @keyframes gridScroll { 
-        0% { background-position: 0 0; } 
-        100% { background-position: 0 40px; } 
-    }
+    @keyframes gridMove { from { background-position: 0 0; } to { background-position: 0 40px; } }
 
-    /* 遠くの山（装飾） */
-    .sun {
-        position: absolute;
-        bottom: 30vh;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 150px;
-        height: 150px;
-        border-radius: 50%;
-        background: linear-gradient(to bottom, #ffeb3b, #ff0055);
-        box-shadow: 0 0 40px #ff0055;
-    }
-
-    /* === 手前のコンテンツ === */
-    #content-container {
-        position: relative;
-        z-index: 10;
-        width: 100%;
-    }
-
+    /* === UI共通設定 === */
     section {
-        min-height: 90vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
+        min-height: 100vh;
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        position: relative;
         padding: 20px;
-        /* 文字が見やすいように各セクションに少し背景を入れる */
     }
-
-    h1, h2 {
-        font-family: 'Audiowide', cursive;
-        text-transform: uppercase;
-        text-align: center;
-        letter-spacing: 2px;
-        text-shadow: 0 0 10px currentColor;
-        margin: 0;
-    }
-    h1 { font-size: 3.5rem; color: var(--neon-blue); margin-bottom: 20px; }
-    h2 { font-size: 2.5rem; color: var(--neon-purple); margin-bottom: 30px; }
+    h2 { font-size: 2rem; color: var(--neon-cyan); text-shadow: 0 0 10px var(--neon-cyan); margin-bottom: 10px; }
+    p { color: #aaa; text-align: center; max-width: 600px; margin-bottom: 30px; }
     
-    p {
-        font-size: 1.1rem;
-        line-height: 1.8;
-        background: rgba(0,0,0,0.6);
-        padding: 20px;
-        border-radius: 8px;
-        border: 1px solid rgba(255,255,255,0.2);
-        max-width: 600px;
-        text-align: center;
-        backdrop-filter: blur(4px);
-    }
-
-    /* === GIMMICK: 3D Cards === */
-    .card-wrap {
-        perspective: 800px;
-        width: 280px; height: 380px;
-    }
-    .card {
-        width: 100%; height: 100%;
-        background: rgba(255, 255, 255, 0.05);
-        border: 2px solid var(--neon-purple);
-        border-radius: 15px;
-        position: relative;
-        transform-style: preserve-3d;
-        transition: transform 0.1s;
-        box-shadow: 0 0 20px rgba(211, 3, 252, 0.3);
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-    }
-    .card span { font-size: 4rem; transform: translateZ(50px); }
-    .card h3 { font-size: 1.5rem; transform: translateZ(30px); margin-top: 20px; color: #fff; }
-
-    /* === GIMMICK: Slide Button === */
-    .slide-zone {
-        width: 300px; height: 60px;
-        background: rgba(255,255,255,0.1);
-        border-radius: 30px;
-        border: 1px solid var(--neon-blue);
-        position: relative;
-        margin-top: 40px;
-        overflow: hidden;
-    }
-    .slide-knob {
-        width: 60px; height: 60px;
-        background: var(--neon-blue);
-        border-radius: 50%;
-        position: absolute;
-        top: 0; left: 0;
-        display: flex; align-items: center; justify-content: center;
-        font-weight: bold; color: #000;
+    button {
+        background: transparent;
+        border: 2px solid var(--neon-cyan);
+        color: var(--neon-cyan);
+        padding: 15px 40px;
+        font-family: 'Share Tech Mono';
+        font-size: 1.2rem;
         cursor: pointer;
-        box-shadow: 0 0 15px var(--neon-blue);
-        transition: left 0.1s; /* JSで制御 */
+        transition: 0.3s;
+        box-shadow: 0 0 10px var(--neon-cyan);
     }
-    .slide-text {
-        width: 100%; text-align: center; line-height: 60px;
-        pointer-events: none; opacity: 0.5; letter-spacing: 2px;
+    button:hover { background: var(--neon-cyan); color: #000; }
+    button:active { transform: scale(0.95); }
+
+    /* === GIMMICK 1: EXPLOSION TEXT (Gravity) === */
+    .word-container { display: flex; gap: 5px; perspective: 1000px; }
+    .char {
+        display: inline-block;
+        font-size: 4rem;
+        font-weight: bold;
+        transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        user-select: none;
+    }
+    .exploded { opacity: 0; pointer-events: none; } /* JSでtransformを直接指定 */
+
+    /* === GIMMICK 2: SEARCH LIGHT (X-Ray) === */
+    .dark-room {
+        width: 100%; height: 60vh;
+        position: relative;
+        background: #000;
+        overflow: hidden;
+        border: 1px solid #333;
+    }
+    .hidden-content {
+        width: 100%; height: 100%;
+        display: flex; justify-content: center; align-items: center; flex-direction: column;
+        background: 
+            radial-gradient(circle at center, #111, #000);
+        /* 普段は見えない */
+    }
+    .secret-text {
+        font-size: 3rem; color: var(--neon-green);
+        text-shadow: 0 0 20px var(--neon-green);
+        opacity: 0.1; /* 通常時はほぼ見えない */
+        transition: opacity 0.2s;
+    }
+    /* 光が当たったときのエフェクト用レイヤー */
+    .spotlight {
+        position: absolute; top: 0; left: 0;
+        width: 100%; height: 100%;
+        pointer-events: none;
+        background: radial-gradient(circle 150px at var(--x, 50%) var(--y, 50%), transparent 0%, rgba(0,0,0,0.98) 100%);
     }
 
-    /* Navigation Hint */
-    .scroll-down {
-        position: absolute; bottom: 30px; left: 50%;
-        transform: translateX(-50%);
-        animation: bounce 2s infinite;
-        opacity: 0.8;
+    /* === GIMMICK 3: SINGULARITY (Black Hole) === */
+    .bh-container { position: relative; width: 300px; height: 300px; display: flex; justify-content: center; align-items: center; }
+    .singularity {
+        width: 60px; height: 60px;
+        background: #000;
+        border-radius: 50%;
+        box-shadow: 0 0 20px #fff, 0 0 50px var(--neon-pink), inset 0 0 20px var(--neon-pink);
+        z-index: 10;
+        cursor: pointer;
+        transition: transform 0.2s;
     }
-    @keyframes bounce { 0%,100%{transform:translate(-50%,0);} 50%{transform:translate(-50%,10px);} }
+    .singularity:active { transform: scale(0.9); }
+    
+    .debris {
+        position: absolute;
+        font-size: 1.5rem;
+        color: #fff;
+        transition: all 0.8s ease-in;
+    }
+
+    /* ローディング演出 */
+    #boot-screen {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: #000; color: var(--neon-green);
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        z-index: 10000;
+        font-size: 1.5rem;
+    }
+    .progress-bar {
+        width: 200px; height: 4px; background: #333; margin-top: 20px;
+        position: relative; overflow: hidden;
+    }
+    .progress-fill {
+        position: absolute; top: 0; left: 0; height: 100%; width: 0%;
+        background: var(--neon-green);
+        animation: loading 2s ease-in-out forwards;
+    }
+    @keyframes loading { to { width: 100%; } }
 
 </style>
 </head>
 <body>
 
-    <div id="background-layer">
-        <div class="stars"></div>
-        <div class="sun"></div>
-        <div class="floor"></div>
+    <div id="boot-screen">
+        <div>SYSTEM BOOTING...</div>
+        <div class="progress-bar"><div class="progress-fill"></div></div>
     </div>
 
-    <div id="content-container">
+    <div class="cyber-grid"></div>
 
-        <section>
-            <h1>NEON DRIVE</h1>
-            <p>
-                システム、オールグリーン。<br>
-                CSS 3Dグリッドエンジン始動。<br>
-                スクロールしても背景は途切れません。
-            </p>
-            <div class="scroll-down">▼ SCROLL ▼</div>
-        </section>
+    <section>
+        <h2 style="color:var(--neon-pink)">01. CHAOS TEXT</h2>
+        <p>テキストをタップすると、物理法則を無視して爆発します。<br>ボタンで復元できます。</p>
+        
+        <div class="word-container" id="chaosWord">
+            <div class="char">C</div>
+            <div class="char">H</div>
+            <div class="char">A</div>
+            <div class="char">O</div>
+            <div class="char">S</div>
+        </div>
 
-        <section>
-            <h2>HOLO-CARD</h2>
-            <p>画面を指でなぞるか、傾けてみてください。<br>（PCならマウスを動かしてください）</p>
-            <div class="card-wrap" style="margin-top:30px;">
-                <div class="card" id="tiltCard">
-                    <span>💎</span>
-                    <h3>CRYSTAL</h3>
-                </div>
+        <button onclick="resetChaos()" style="margin-top:50px; border-color:var(--neon-pink); color:var(--neon-pink);">RESET SYSTEM</button>
+    </section>
+
+    <section>
+        <h2>02. DARK SEARCH</h2>
+        <p>暗闇をカーソル（指）で照らしてください。<br>隠された機密コードが見えます。</p>
+        
+        <div class="dark-room" id="darkRoom">
+            <div class="hidden-content">
+                <div class="secret-text" style="position:absolute; top:20%; left:10%;">UNKNOWN</div>
+                <div class="secret-text" style="position:absolute; top:70%; left:70%;">ERROR</div>
+                <div class="secret-text" style="position:absolute; top:40%; left:50%; font-size:5rem;">CODE: 777</div>
+                <div class="secret-text" style="position:absolute; top:80%; left:20%;">GHOST</div>
             </div>
-        </section>
+            <div class="spotlight"></div>
+        </div>
+    </section>
 
-        <section>
-            <h2>UNLOCK</h2>
-            <p>青いノブを右にスライドしてください。</p>
-            
-            <div class="slide-zone" id="slideZone">
-                <div class="slide-text">SLIDE >></div>
-                <div class="slide-knob" id="slideKnob">➜</div>
-            </div>
-            
-            <p id="unlockMsg" style="display:none; color:var(--neon-blue); margin-top:20px; font-weight:bold;">ACCESS GRANTED!</p>
-        </section>
-
-        <section>
-            <h1>COMPLETE</h1>
-            <p>ドライブ終了。<br>お疲れ様でした。</p>
-            <button onclick="window.scrollTo({top:0, behavior:'smooth'})" style="margin-top:20px; padding:15px 40px; background:transparent; border:2px solid #fff; color:#fff; font-family:'Audiowide'; cursor:pointer; border-radius:30px;">REPLAY</button>
-        </section>
-
-    </div>
+    <section>
+        <h2 style="color:var(--neon-pink)">03. EVENT HORIZON</h2>
+        <p>中心のコアをタップして、周囲のデータを吸い込んでください。</p>
+        
+        <div class="bh-container">
+            <div class="singularity" onclick="activateHole()"></div>
+            <div class="debris" style="top:0; left:50px;">DATA</div>
+            <div class="debris" style="bottom:20px; right:50px;">FILE</div>
+            <div class="debris" style="top:50%; left:-50px;">VIRUS</div>
+            <div class="debris" style="top:-50px; left:50%;">MAIL</div>
+            <div class="debris" style="bottom:-30px; left:20%;">LOG</div>
+        </div>
+    </section>
 
 <script>
-    // === ギミック1: 3Dカードの傾き処理 ===
-    // 万が一エラーが出てもコンテンツに影響しないようにする
-    try {
-        const card = document.getElementById('tiltCard');
-        const cardWrap = document.querySelector('.card-wrap');
+    // === 1. システム起動演出 ===
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            const screen = document.getElementById('boot-screen');
+            screen.style.transition = 'opacity 0.5s';
+            screen.style.opacity = '0';
+            setTimeout(() => screen.style.display = 'none', 500);
+        }, 2200); // 2.2秒後に消える
+    });
 
-        const handleMove = (x, y, width, height) => {
-            // 中心を0とした座標 (-1 ~ 1)
-            const xP = (x / width - 0.5) * 2;
-            const yP = (y / height - 0.5) * 2;
+    // === 2. CHAOS TEXT (爆発) ===
+    const chars = document.querySelectorAll('.char');
+    
+    // 文字ごとにクリックイベントを設定
+    chars.forEach(char => {
+        char.addEventListener('click', () => {
+            // ランダムな方向に吹き飛ばす
+            const rX = (Math.random() - 0.5) * 500;
+            const rY = (Math.random() - 0.5) * 500;
+            const rRot = (Math.random() - 0.5) * 360;
             
-            // X軸回転はY座標により、Y軸回転はX座標による
-            card.style.transform = `perspective(800px) rotateX(${-yP * 20}deg) rotateY(${xP * 20}deg)`;
-        };
+            char.style.transform = `translate(${rX}px, ${rY}px) rotate(${rRot}deg) scale(0)`;
+            char.style.opacity = '0';
+        });
+    });
 
-        // PC Mouse
-        cardWrap.addEventListener('mousemove', (e) => {
-            const rect = cardWrap.getBoundingClientRect();
-            handleMove(e.clientX - rect.left, e.clientY - rect.top, rect.width, rect.height);
+    function resetChaos() {
+        chars.forEach(char => {
+            char.style.transform = 'none';
+            char.style.opacity = '1';
+        });
+    }
+
+    // === 3. X-RAY SEARCH (スポットライト) ===
+    const room = document.getElementById('darkRoom');
+    const spotlight = document.querySelector('.spotlight');
+    const secrets = document.querySelectorAll('.secret-text');
+
+    function updateLight(x, y) {
+        const rect = room.getBoundingClientRect();
+        // 部屋の中での相対座標
+        const relX = x - rect.left;
+        const relY = y - rect.top;
+
+        spotlight.style.setProperty('--x', relX + 'px');
+        spotlight.style.setProperty('--y', relY + 'px');
+
+        // ライトに近い文字だけハッキリ表示させる演出
+        secrets.forEach(text => {
+            const tRect = text.getBoundingClientRect();
+            const tX = tRect.left + tRect.width/2;
+            const tY = tRect.top + tRect.height/2;
+            const dist = Math.hypot(x - tX, y - tY);
+            
+            if(dist < 150) {
+                text.style.opacity = '1';
+                text.style.color = '#fff';
+                text.style.textShadow = '0 0 10px #fff';
+            } else {
+                text.style.opacity = '0.1';
+                text.style.color = 'var(--neon-green)';
+                text.style.textShadow = 'none';
+            }
+        });
+    }
+
+    room.addEventListener('mousemove', (e) => updateLight(e.clientX, e.clientY));
+    room.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        updateLight(e.touches[0].clientX, e.touches[0].clientY);
+    }, {passive: false});
+
+
+    // === 4. BLACK HOLE (吸い込み) ===
+    function activateHole() {
+        const debrisList = document.querySelectorAll('.debris');
+        const center = document.querySelector('.singularity');
+
+        // 画面揺れ
+        document.body.style.transform = "translate(5px, 5px)";
+        setTimeout(() => document.body.style.transform = "none", 100);
+
+        center.style.transform = "scale(1.5)";
+        
+        debrisList.forEach((d, i) => {
+            setTimeout(() => {
+                // 中心（ブラックホール）の座標へ移動しつつ縮小
+                // 親要素がrelative + flex centerなので、
+                // absoluteな要素を中央(top:50%, left:50%)に集めるには、
+                // 単純にtop/left指定を変える
+                d.style.top = "50%";
+                d.style.left = "50%";
+                d.style.transform = "translate(-50%, -50%) scale(0) rotate(720deg)";
+                d.style.opacity = "0";
+            }, i * 100);
         });
 
-        // Mobile Touch
-        cardWrap.addEventListener('touchmove', (e) => {
-            const rect = cardWrap.getBoundingClientRect();
-            // スクロールを邪魔しない程度に反応させる
-            const touch = e.touches[0];
-            handleMove(touch.clientX - rect.left, touch.clientY - rect.top, rect.width, rect.height);
-        }, {passive: true});
+        setTimeout(() => {
+            center.style.transform = "scale(1)";
+            // 2秒後にリセット（遊べるように）
+            setTimeout(resetHole, 2000);
+        }, 1000);
+    }
 
-        // Reset
-        const resetCard = () => { card.style.transform = 'perspective(800px) rotateX(0) rotateY(0)'; };
-        cardWrap.addEventListener('mouseleave', resetCard);
-        cardWrap.addEventListener('touchend', resetCard);
+    function resetHole() {
+        const debrisList = document.querySelectorAll('.debris');
+        const positions = [
+            {top:'0', left:'50px'},
+            {bottom:'20px', right:'50px'},
+            {top:'50%', left:'-50px'},
+            {top:'-50px', left:'50%'},
+            {bottom:'-30px', left:'20%'}
+        ];
 
-    } catch (e) { console.log("Card Effect Error"); }
-
-
-    // === ギミック2: スライドロック解除 ===
-    try {
-        const zone = document.getElementById('slideZone');
-        const knob = document.getElementById('slideKnob');
-        const msg = document.getElementById('unlockMsg');
-        let isDragging = false;
-        let startX = 0;
-
-        // Mouse Events
-        knob.addEventListener('mousedown', (e) => { isDragging = true; startX = e.clientX; });
-        window.addEventListener('mouseup', () => { if(isDragging) releaseKnob(); isDragging = false; });
-        window.addEventListener('mousemove', (e) => { if(isDragging) moveKnob(e.clientX); });
-
-        // Touch Events
-        knob.addEventListener('touchstart', (e) => { isDragging = true; startX = e.touches[0].clientX; }, {passive: false});
-        window.addEventListener('touchend', () => { if(isDragging) releaseKnob(); isDragging = false; });
-        window.addEventListener('touchmove', (e) => { if(isDragging) moveKnob(e.touches[0].clientX); }, {passive: false});
-
-        function moveKnob(clientX) {
-            const rect = zone.getBoundingClientRect();
-            let x = clientX - rect.left - (knob.offsetWidth / 2); // ノブの中心基準
-            
-            // 範囲制限
-            const max = rect.width - knob.offsetWidth;
-            if (x < 0) x = 0;
-            if (x > max) x = max;
-            
-            knob.style.left = x + 'px';
-            
-            // ロック解除判定 (90%以上スライド)
-            if (x > max * 0.9) {
-                unlock();
-                isDragging = false;
-            }
-        }
-
-        function releaseKnob() {
-            // 元に戻る
-            knob.style.transition = 'left 0.3s ease';
-            knob.style.left = '0px';
-            setTimeout(() => { knob.style.transition = 'none'; }, 300);
-        }
-
-        function unlock() {
-            knob.style.left = (zone.offsetWidth - knob.offsetWidth) + 'px';
-            knob.style.background = '#0aff0a'; // Green
-            knob.innerHTML = 'OK';
-            msg.style.display = 'block';
-            
-            // 演出：グリッドの色を変える
-            document.documentElement.style.setProperty('--grid-color', 'rgba(10, 255, 10, 0.4)');
-            document.documentElement.style.setProperty('--neon-purple', '#0aff0a');
-        }
-
-    } catch(e) { console.log("Slider Error"); }
+        debrisList.forEach((d, i) => {
+            // 元の位置に戻す（簡易的）
+            d.style.transform = "none";
+            d.style.opacity = "1";
+            // positionプロパティを初期値に戻すのはCSSクラス切り替えの方が楽だが
+            // ここではstyleを直接クリアする
+            d.style.top = positions[i].top || "auto";
+            d.style.bottom = positions[i].bottom || "auto";
+            d.style.left = positions[i].left || "auto";
+            d.style.right = positions[i].right || "auto";
+        });
+    }
 
 </script>
 </body>
