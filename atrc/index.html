@@ -1,490 +1,332 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEON CYBER RIDE</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap');
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NEON NIGHT DRIVE</title>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Audiowide&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap');
 
-        :root {
-            --neon-blue: #00f3ff;
-            --neon-pink: #bc13fe;
-            --neon-green: #0aff0a;
-            --bg-color: #050510;
-        }
+    :root {
+        --neon-purple: #d303fc;
+        --neon-blue: #03e3fc;
+        --grid-color: rgba(211, 3, 252, 0.4);
+        --bg-color: #050011;
+    }
 
-        * { box-sizing: border-box; }
-        
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-color);
-            color: #fff;
-            font-family: 'Zen Kaku Gothic New', sans-serif;
-            overflow-x: hidden;
-            overscroll-behavior: none;
-        }
+    * { box-sizing: border-box; }
 
-        /* === 背景キャンバス (Warp Drive) === */
-        #bgCanvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: -1;
-        }
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: var(--bg-color);
+        color: #fff;
+        font-family: 'Zen Kaku Gothic New', sans-serif;
+        overflow-x: hidden;
+    }
 
-        /* === スクロールセクション === */
-        section {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            position: relative;
-            opacity: 0;
-            transform: translateY(50px);
-            transition: all 1s cubic-bezier(0.22, 1, 0.36, 1);
-        }
+    /* === 絶対に動かない背景レイヤー (CSSアニメーションのみで動作) === */
+    #background-layer {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        z-index: -1;
+        background: linear-gradient(to bottom, #000000 0%, #1a0029 100%);
+        overflow: hidden;
+    }
 
-        section.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
+    /* 上空の星 */
+    .stars {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background-image: 
+            radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)),
+            radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)),
+            radial-gradient(2px 2px at 50px 160px, #ddd, rgba(0,0,0,0)),
+            radial-gradient(2px 2px at 90px 40px, #fff, rgba(0,0,0,0)),
+            radial-gradient(2px 2px at 130px 80px, #fff, rgba(0,0,0,0));
+        background-repeat: repeat;
+        background-size: 200px 200px;
+        animation: starMove 100s linear infinite;
+        opacity: 0.8;
+    }
+    @keyframes starMove { from { transform: translateY(0); } to { transform: translateY(1000px); } }
 
-        h1, h2 {
-            font-family: 'Orbitron', sans-serif;
-            text-transform: uppercase;
-            text-align: center;
-            text-shadow: 0 0 20px rgba(0, 243, 255, 0.5);
-        }
+    /* 地面の3Dグリッド（レトロウェーブ風） */
+    .floor {
+        position: absolute;
+        bottom: 0;
+        left: -50%;
+        width: 200%;
+        height: 50vh;
+        background-image: 
+            linear-gradient(var(--grid-color) 1px, transparent 1px),
+            linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+        background-size: 40px 40px;
+        transform: perspective(300px) rotateX(60deg);
+        animation: gridScroll 1s linear infinite;
+        mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40%);
+        -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40%);
+    }
+    @keyframes gridScroll { 
+        0% { background-position: 0 0; } 
+        100% { background-position: 0 40px; } 
+    }
 
-        h1 { font-size: 3rem; margin-bottom: 0.5rem; color: var(--neon-blue); }
-        h2 { font-size: 2rem; color: var(--neon-pink); }
-        p { font-size: 1.2rem; max-width: 600px; text-align: center; line-height: 1.8; text-shadow: 0 0 5px rgba(0,0,0,0.8); }
+    /* 遠くの山（装飾） */
+    .sun {
+        position: absolute;
+        bottom: 30vh;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: linear-gradient(to bottom, #ffeb3b, #ff0055);
+        box-shadow: 0 0 40px #ff0055;
+    }
 
-        /* === Gimmick 1: Hacker Text === */
-        .hacker-text {
-            font-family: monospace;
-            color: var(--neon-green);
-            background: rgba(0, 20, 0, 0.6);
-            padding: 10px 20px;
-            border: 1px solid var(--neon-green);
-            border-radius: 5px;
-        }
+    /* === 手前のコンテンツ === */
+    #content-container {
+        position: relative;
+        z-index: 10;
+        width: 100%;
+    }
 
-        /* === Gimmick 2: 3D Tilt Card === */
-        .card-container {
-            perspective: 1000px;
-            width: 300px;
-            height: 400px;
-            margin: 50px auto;
-        }
-        .card {
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 0 30px rgba(188, 19, 254, 0.2);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            transition: transform 0.1s;
-            transform-style: preserve-3d;
-            cursor: pointer;
-        }
-        .card h3 {
-            font-size: 4rem;
-            margin: 0;
-            transform: translateZ(50px);
-        }
-        .card p {
-            font-size: 1rem;
-            transform: translateZ(30px);
-        }
+    section {
+        min-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        /* 文字が見やすいように各セクションに少し背景を入れる */
+    }
 
-        /* === Gimmick 3: Energy Core === */
-        .core-wrapper {
-            position: relative;
-            width: 200px;
-            height: 200px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .core {
-            width: 100px;
-            height: 100px;
-            background: radial-gradient(circle, #fff, var(--neon-blue));
-            border-radius: 50%;
-            box-shadow: 0 0 20px var(--neon-blue);
-            cursor: pointer;
-            transition: transform 0.1s;
-            animation: pulse 2s infinite;
-        }
-        .core:active {
-            transform: scale(0.9);
-        }
-        .core-ring {
-            position: absolute;
-            border: 2px dashed var(--neon-blue);
-            border-radius: 50%;
-            width: 160px;
-            height: 160px;
-            animation: spin 10s linear infinite;
-        }
-        .core-ring:nth-child(2) {
-            width: 180px; height: 180px;
-            border-color: var(--neon-pink);
-            animation: spin 5s linear infinite reverse;
-        }
+    h1, h2 {
+        font-family: 'Audiowide', cursive;
+        text-transform: uppercase;
+        text-align: center;
+        letter-spacing: 2px;
+        text-shadow: 0 0 10px currentColor;
+        margin: 0;
+    }
+    h1 { font-size: 3.5rem; color: var(--neon-blue); margin-bottom: 20px; }
+    h2 { font-size: 2.5rem; color: var(--neon-purple); margin-bottom: 30px; }
+    
+    p {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        background: rgba(0,0,0,0.6);
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.2);
+        max-width: 600px;
+        text-align: center;
+        backdrop-filter: blur(4px);
+    }
 
-        /* Animations */
-        @keyframes pulse { 0% { box-shadow: 0 0 20px var(--neon-blue); } 50% { box-shadow: 0 0 60px var(--neon-blue), 0 0 100px var(--neon-blue); } 100% { box-shadow: 0 0 20px var(--neon-blue); } }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 30% { transform: translate(3px, 2px) rotate(0deg); } 40% { transform: translate(1px, -1px) rotate(1deg); } 50% { transform: translate(-1px, 2px) rotate(-1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 70% { transform: translate(3px, 1px) rotate(-1deg); } 80% { transform: translate(-1px, -1px) rotate(1deg); } 90% { transform: translate(1px, 2px) rotate(0deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }
+    /* === GIMMICK: 3D Cards === */
+    .card-wrap {
+        perspective: 800px;
+        width: 280px; height: 380px;
+    }
+    .card {
+        width: 100%; height: 100%;
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid var(--neon-purple);
+        border-radius: 15px;
+        position: relative;
+        transform-style: preserve-3d;
+        transition: transform 0.1s;
+        box-shadow: 0 0 20px rgba(211, 3, 252, 0.3);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .card span { font-size: 4rem; transform: translateZ(50px); }
+    .card h3 { font-size: 1.5rem; transform: translateZ(30px); margin-top: 20px; color: #fff; }
 
-        .shaking { animation: shake 0.5s; }
+    /* === GIMMICK: Slide Button === */
+    .slide-zone {
+        width: 300px; height: 60px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 30px;
+        border: 1px solid var(--neon-blue);
+        position: relative;
+        margin-top: 40px;
+        overflow: hidden;
+    }
+    .slide-knob {
+        width: 60px; height: 60px;
+        background: var(--neon-blue);
+        border-radius: 50%;
+        position: absolute;
+        top: 0; left: 0;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: bold; color: #000;
+        cursor: pointer;
+        box-shadow: 0 0 15px var(--neon-blue);
+        transition: left 0.1s; /* JSで制御 */
+    }
+    .slide-text {
+        width: 100%; text-align: center; line-height: 60px;
+        pointer-events: none; opacity: 0.5; letter-spacing: 2px;
+    }
 
-        /* Hint UI */
-        .scroll-hint {
-            position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            animation: bounce 2s infinite;
-            opacity: 0.7;
-        }
-        @keyframes bounce { 0%, 20%, 50%, 80%, 100% {transform: translateX(-50%) translateY(0);} 40% {transform: translateX(-50%) translateY(-20px);} 60% {transform: translateX(-50%) translateY(-10px);} }
+    /* Navigation Hint */
+    .scroll-down {
+        position: absolute; bottom: 30px; left: 50%;
+        transform: translateX(-50%);
+        animation: bounce 2s infinite;
+        opacity: 0.8;
+    }
+    @keyframes bounce { 0%,100%{transform:translate(-50%,0);} 50%{transform:translate(-50%,10px);} }
 
-    </style>
+</style>
 </head>
 <body>
 
-    <canvas id="bgCanvas"></canvas>
+    <div id="background-layer">
+        <div class="stars"></div>
+        <div class="sun"></div>
+        <div class="floor"></div>
+    </div>
 
-    <section id="s1">
-        <h1 class="hacker-text" data-value="CYBER DIVE">CYBER DIVE</h1>
-        <p>ようこそ、デジタル・フロンティアへ。<br>画面をスクロールして、深層部へダイブしてください。<br>画面のどこかをタップすると光が弾けます。</p>
-        <div class="scroll-hint">▼ SCROLL or SWIPE ▼</div>
-    </section>
+    <div id="content-container">
 
-    <section id="s2">
-        <h2>OBJECT_01: HOLO-CARD</h2>
-        <p>下のカードを触ってみてください。<br>デバイスの傾きや指の動きに追従します。</p>
-        <div class="card-container">
-            <div class="card" id="tiltCard">
-                <h3>3D</h3>
-                <p>INTERACTIVE</p>
-                <div style="font-size:3rem; margin-top:20px;">💠</div>
+        <section>
+            <h1>NEON DRIVE</h1>
+            <p>
+                システム、オールグリーン。<br>
+                CSS 3Dグリッドエンジン始動。<br>
+                スクロールしても背景は途切れません。
+            </p>
+            <div class="scroll-down">▼ SCROLL ▼</div>
+        </section>
+
+        <section>
+            <h2>HOLO-CARD</h2>
+            <p>画面を指でなぞるか、傾けてみてください。<br>（PCならマウスを動かしてください）</p>
+            <div class="card-wrap" style="margin-top:30px;">
+                <div class="card" id="tiltCard">
+                    <span>💎</span>
+                    <h3>CRYSTAL</h3>
+                </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <section id="s3">
-        <h2>SYSTEM DECRYPTION</h2>
-        <p>暗号化されたデータが見つかりました。<br>スクロールすることで解読されます。</p>
-        <div style="margin-top: 30px;">
-            <p class="hacker-text" data-value="ACCESS GRANTED" style="font-size: 2rem;">***************</p>
-            <p class="hacker-text" data-value="PROTOCOL: OMEGA" style="margin-top:10px;">***************</p>
-        </div>
-    </section>
+        <section>
+            <h2>UNLOCK</h2>
+            <p>青いノブを右にスライドしてください。</p>
+            
+            <div class="slide-zone" id="slideZone">
+                <div class="slide-text">SLIDE >></div>
+                <div class="slide-knob" id="slideKnob">➜</div>
+            </div>
+            
+            <p id="unlockMsg" style="display:none; color:var(--neon-blue); margin-top:20px; font-weight:bold;">ACCESS GRANTED!</p>
+        </section>
 
-    <section id="s4">
-        <h2>ENERGY CORE</h2>
-        <p>コアを長押し（タップ連打）して<br>エネルギーを充填してください。</p>
-        <div class="core-wrapper">
-            <div class="core-ring"></div>
-            <div class="core-ring"></div>
-            <div class="core" id="energyCore"></div>
-        </div>
-        <p id="coreStatus" style="margin-top:20px; color: var(--neon-blue);">ENERGY: 0%</p>
-    </section>
+        <section>
+            <h1>COMPLETE</h1>
+            <p>ドライブ終了。<br>お疲れ様でした。</p>
+            <button onclick="window.scrollTo({top:0, behavior:'smooth'})" style="margin-top:20px; padding:15px 40px; background:transparent; border:2px solid #fff; color:#fff; font-family:'Audiowide'; cursor:pointer; border-radius:30px;">REPLAY</button>
+        </section>
 
-    <section id="s5">
-        <h1>COMPLETE</h1>
-        <p>最深部に到達しました。<br>ここから先は無限の彼方です。</p>
-        <button onclick="window.scrollTo({top:0, behavior:'smooth'})" style="margin-top:30px; padding:15px 30px; background:transparent; border:2px solid var(--neon-pink); color:#fff; font-family:'Orbitron'; font-size:1.2rem; border-radius:30px; cursor:pointer;">REBOOT SYSTEM</button>
-    </section>
+    </div>
 
 <script>
-    /* ==========================================
-       1. STAR WARP BACKGROUND (Canvas)
-       ========================================== */
-    const canvas = document.getElementById('bgCanvas');
-    const ctx = canvas.getContext('2d');
-    let width, height;
-    let stars = [];
-    let speed = 2;
-    let baseSpeed = 2;
-    let targetSpeed = 2;
+    // === ギミック1: 3Dカードの傾き処理 ===
+    // 万が一エラーが出てもコンテンツに影響しないようにする
+    try {
+        const card = document.getElementById('tiltCard');
+        const cardWrap = document.querySelector('.card-wrap');
 
-    function resize() {
-        width = window.innerWidth;
-        height = window.innerHeight;
-        canvas.width = width;
-        canvas.height = height;
-        initStars();
-    }
-
-    function initStars() {
-        stars = [];
-        const starCount = Math.floor((width * height) / 2000); // 画面サイズに応じて星の数を調整
-        for (let i = 0; i < starCount; i++) {
-            stars.push({
-                x: Math.random() * width - width / 2,
-                y: Math.random() * height - height / 2,
-                z: Math.random() * width
-            });
-        }
-    }
-
-    function drawStars() {
-        // 背景を少し残して軌跡を描く
-        ctx.fillStyle = 'rgba(5, 5, 16, 0.4)';
-        ctx.fillRect(0, 0, width, height);
-
-        // スピードの慣性処理
-        speed += (targetSpeed - speed) * 0.1;
-
-        ctx.fillStyle = '#fff';
-        stars.forEach(star => {
-            star.z -= speed;
-            if (star.z <= 0) {
-                star.z = width;
-                star.x = Math.random() * width - width / 2;
-                star.y = Math.random() * height - height / 2;
-            }
-
-            const x = (star.x / star.z) * width + width / 2;
-            const y = (star.y / star.z) * height + height / 2;
-            const size = (1 - star.z / width) * 4;
-
-            if (x > 0 && x < width && y > 0 && y < height) {
-                const alpha = (1 - star.z / width);
-                ctx.fillStyle = `rgba(${200 + Math.random()*55}, 255, 255, ${alpha})`;
-                ctx.beginPath();
-                ctx.arc(x, y, size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        });
-
-        // パーティクルの更新と描画
-        updateParticles();
-
-        requestAnimationFrame(drawStars);
-    }
-
-    // スクロール速度に応じて星のスピードを変える
-    let lastScrollY = window.scrollY;
-    window.addEventListener('scroll', () => {
-        const currentScrollY = window.scrollY;
-        const delta = Math.abs(currentScrollY - lastScrollY);
-        targetSpeed = baseSpeed + delta * 0.5; // スクロール量で加速
-        
-        // 数秒後に減速
-        clearTimeout(window.scrollTimeout);
-        window.scrollTimeout = setTimeout(() => {
-            targetSpeed = baseSpeed;
-        }, 100);
-        
-        lastScrollY = currentScrollY;
-    });
-
-    window.addEventListener('resize', resize);
-    resize();
-    drawStars();
-
-
-    /* ==========================================
-       2. INTERACTIVE PARTICLES (Touch/Click)
-       ========================================== */
-    let particles = [];
-
-    class Particle {
-        constructor(x, y) {
-            this.x = x;
-            this.y = y;
-            this.vx = (Math.random() - 0.5) * 10;
-            this.vy = (Math.random() - 0.5) * 10;
-            this.life = 1.0;
-            this.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
-        }
-        update() {
-            this.x += this.vx;
-            this.y += this.vy;
-            this.life -= 0.02;
-        }
-        draw(ctx) {
-            ctx.globalAlpha = this.life;
-            ctx.fillStyle = this.color;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.globalAlpha = 1.0;
-        }
-    }
-
-    function createExplosion(x, y) {
-        for (let i = 0; i < 10; i++) {
-            particles.push(new Particle(x, y));
-        }
-    }
-
-    function updateParticles() {
-        for (let i = particles.length - 1; i >= 0; i--) {
-            particles[i].update();
-            particles[i].draw(ctx);
-            if (particles[i].life <= 0) particles.splice(i, 1);
-        }
-    }
-
-    // タッチ＆クリックイベント
-    ['mousedown', 'touchstart'].forEach(evt => {
-        window.addEventListener(evt, (e) => {
-            const x = e.touches ? e.touches[0].clientX : e.clientX;
-            const y = e.touches ? e.touches[0].clientY : e.clientY;
-            createExplosion(x, y);
+        const handleMove = (x, y, width, height) => {
+            // 中心を0とした座標 (-1 ~ 1)
+            const xP = (x / width - 0.5) * 2;
+            const yP = (y / height - 0.5) * 2;
             
-            // コア要素以外なら少し加速させる演出
-            if(e.target.id !== 'energyCore') {
-                targetSpeed = 20;
-                setTimeout(() => targetSpeed = baseSpeed, 300);
-            }
+            // X軸回転はY座標により、Y軸回転はX座標による
+            card.style.transform = `perspective(800px) rotateX(${-yP * 20}deg) rotateY(${xP * 20}deg)`;
+        };
+
+        // PC Mouse
+        cardWrap.addEventListener('mousemove', (e) => {
+            const rect = cardWrap.getBoundingClientRect();
+            handleMove(e.clientX - rect.left, e.clientY - rect.top, rect.width, rect.height);
         });
-    });
+
+        // Mobile Touch
+        cardWrap.addEventListener('touchmove', (e) => {
+            const rect = cardWrap.getBoundingClientRect();
+            // スクロールを邪魔しない程度に反応させる
+            const touch = e.touches[0];
+            handleMove(touch.clientX - rect.left, touch.clientY - rect.top, rect.width, rect.height);
+        }, {passive: true});
+
+        // Reset
+        const resetCard = () => { card.style.transform = 'perspective(800px) rotateX(0) rotateY(0)'; };
+        cardWrap.addEventListener('mouseleave', resetCard);
+        cardWrap.addEventListener('touchend', resetCard);
+
+    } catch (e) { console.log("Card Effect Error"); }
 
 
-    /* ==========================================
-       3. SCROLL ANIMATIONS (Intersection Observer)
-       ========================================== */
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-                
-                // ハッカーテキストのアニメーション発火
-                const hackers = entry.target.querySelectorAll('.hacker-text');
-                hackers.forEach(el => startHackerEffect(el));
-            }
-        });
-    }, { threshold: 0.3 });
+    // === ギミック2: スライドロック解除 ===
+    try {
+        const zone = document.getElementById('slideZone');
+        const knob = document.getElementById('slideKnob');
+        const msg = document.getElementById('unlockMsg');
+        let isDragging = false;
+        let startX = 0;
 
-    document.querySelectorAll('section').forEach(sec => observer.observe(sec));
+        // Mouse Events
+        knob.addEventListener('mousedown', (e) => { isDragging = true; startX = e.clientX; });
+        window.addEventListener('mouseup', () => { if(isDragging) releaseKnob(); isDragging = false; });
+        window.addEventListener('mousemove', (e) => { if(isDragging) moveKnob(e.clientX); });
 
+        // Touch Events
+        knob.addEventListener('touchstart', (e) => { isDragging = true; startX = e.touches[0].clientX; }, {passive: false});
+        window.addEventListener('touchend', () => { if(isDragging) releaseKnob(); isDragging = false; });
+        window.addEventListener('touchmove', (e) => { if(isDragging) moveKnob(e.touches[0].clientX); }, {passive: false});
 
-    /* ==========================================
-       4. GIMMICK: HACKER TEXT EFFECT
-       ========================================== */
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*";
-    
-    function startHackerEffect(element) {
-        let iterations = 0;
-        const originalText = element.dataset.value;
-        if(!originalText) return;
-
-        clearInterval(element.interval);
-        
-        element.interval = setInterval(() => {
-            element.innerText = originalText.split("")
-                .map((letter, index) => {
-                    if(index < iterations) {
-                        return originalText[index];
-                    }
-                    return chars[Math.floor(Math.random() * chars.length)];
-                })
-                .join("");
-
-            if(iterations >= originalText.length){ 
-                clearInterval(element.interval);
-            }
+        function moveKnob(clientX) {
+            const rect = zone.getBoundingClientRect();
+            let x = clientX - rect.left - (knob.offsetWidth / 2); // ノブの中心基準
             
-            iterations += 1/3; // スピード調整
-        }, 30);
-    }
-
-
-    /* ==========================================
-       5. GIMMICK: 3D TILT CARD
-       ========================================== */
-    const card = document.getElementById('tiltCard');
-    const container = document.querySelector('.card-container');
-
-    container.addEventListener('mousemove', (e) => {
-        const rect = container.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        rotateCard(x, y, rect.width, rect.height);
-    });
-
-    container.addEventListener('touchmove', (e) => {
-        e.preventDefault(); // スクロール防止（このエリアだけ）
-        const rect = container.getBoundingClientRect();
-        const x = e.touches[0].clientX - rect.left;
-        const y = e.touches[0].clientY - rect.top;
-        rotateCard(x, y, rect.width, rect.height);
-    }, { passive: false });
-
-    container.addEventListener('mouseleave', resetCard);
-    container.addEventListener('touchend', resetCard);
-
-    function rotateCard(x, y, w, h) {
-        const xPct = x / w;
-        const yPct = y / h;
-        const xRot = (0.5 - yPct) * 30; // X軸回転（上下）
-        const yRot = (xPct - 0.5) * 30; // Y軸回転（左右）
-        
-        card.style.transform = `rotateX(${xRot}deg) rotateY(${yRot}deg)`;
-    }
-
-    function resetCard() {
-        card.style.transform = `rotateX(0deg) rotateY(0deg)`;
-    }
-
-
-    /* ==========================================
-       6. GIMMICK: ENERGY CORE
-       ========================================== */
-    const core = document.getElementById('energyCore');
-    const statusText = document.getElementById('coreStatus');
-    let energy = 0;
-
-    function chargeCore() {
-        energy += 10;
-        if (energy > 100) energy = 100;
-        updateCoreVisuals();
-        createExplosion(
-            core.getBoundingClientRect().left + 50, 
-            core.getBoundingClientRect().top + 50
-        );
-        
-        // 画面揺れ
-        if(energy > 50) document.body.classList.add('shaking');
-        setTimeout(() => document.body.classList.remove('shaking'), 200);
-    }
-
-    function updateCoreVisuals() {
-        statusText.innerText = `ENERGY: ${energy}%`;
-        statusText.style.color = `hsl(${180 + energy}, 100%, 60%)`;
-        core.style.background = `radial-gradient(circle, #fff, hsl(${180 + energy}, 100%, 50%))`;
-        core.style.boxShadow = `0 0 ${20 + energy}px hsl(${180 + energy}, 100%, 50%)`;
-        
-        if (energy >= 100) {
-            statusText.innerText = "MAXIMUM POWER REACHED!!";
-            // マックス時の演出：背景加速
-            targetSpeed = 50;
-            setTimeout(() => { targetSpeed = baseSpeed; energy = 0; updateCoreVisuals(); }, 2000);
+            // 範囲制限
+            const max = rect.width - knob.offsetWidth;
+            if (x < 0) x = 0;
+            if (x > max) x = max;
+            
+            knob.style.left = x + 'px';
+            
+            // ロック解除判定 (90%以上スライド)
+            if (x > max * 0.9) {
+                unlock();
+                isDragging = false;
+            }
         }
-    }
 
-    core.addEventListener('mousedown', chargeCore);
-    core.addEventListener('touchstart', (e) => { e.preventDefault(); chargeCore(); });
+        function releaseKnob() {
+            // 元に戻る
+            knob.style.transition = 'left 0.3s ease';
+            knob.style.left = '0px';
+            setTimeout(() => { knob.style.transition = 'none'; }, 300);
+        }
+
+        function unlock() {
+            knob.style.left = (zone.offsetWidth - knob.offsetWidth) + 'px';
+            knob.style.background = '#0aff0a'; // Green
+            knob.innerHTML = 'OK';
+            msg.style.display = 'block';
+            
+            // 演出：グリッドの色を変える
+            document.documentElement.style.setProperty('--grid-color', 'rgba(10, 255, 10, 0.4)');
+            document.documentElement.style.setProperty('--neon-purple', '#0aff0a');
+        }
+
+    } catch(e) { console.log("Slider Error"); }
 
 </script>
 </body>
