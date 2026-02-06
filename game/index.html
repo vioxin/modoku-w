@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>UNDERTALE ENGINE REPLICA</title>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
+
+    body {
+        background-color: #000;
+        color: #fff;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: 'DotGothic16', sans-serif;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: none;
+    }
+
+    #game-container {
+        position: relative;
+        width: 640px;
+        height: 480px;
+        margin: 0 auto;
+        background: #000;
+        image-rendering: pixelated;
+    }
+
+    canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+
+    /* スマホ用仮想コントローラー */
+    #controls {
+        display: none; /* PCでは非表示、JSで判定 */
+        position: fixed;
+        bottom: 20px;
+        left: 0;
+        width: 100%;
+        height: 160px;
+        pointer-events: none;
+    }
+    
+    .btn {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        border-radius: 50%;
+        pointer-events: auto;
+        touch-action: manipulation;
+    }
+    .btn:active { background: rgba(255, 255, 255, 0.5); }
+
+    /* D-PAD */
+    #dpad {
+        bottom: 20px;
+        left: 20px;
+        width: 120px;
+        height: 120px;
+        position: absolute;
+        pointer-events: auto;
+    }
+    #d-up { top: 0; left: 40px; width: 40px; height: 40px; }
+    #d-down { bottom: 0; left: 40px; width: 40px; height: 40px; }
+    #d-left { top: 40px; left: 0; width: 40px; height: 40px; }
+    #d-right { top: 40px; right: 0; width: 40px; height: 40px; }
+
+    /* Action Buttons */
+    #btn-z { bottom: 40px; right: 20px; width: 60px; height: 60px; border-radius: 50%; line-height: 60px; text-align: center; font-size: 24px; color: yellow; }
+    #btn-x { bottom: 20px; right: 90px; width: 50px; height: 50px; border-radius: 50%; line-height: 50px; text-align: center; font-size: 20px; color: #aaa; }
+
+    /* レスポンシブ対応 */
+    @media (max-width: 640px) {
+        #game-container {
+            width: 100vw;
+            height: 75vw; /* 4:3比率維持 */
+        }
+    }
+</style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas" width="640" height="480"></canvas>
+</div>
+
+<div id="controls">
+    <div id="dpad">
+        <div class="btn" id="d-up"></div>
+        <div class="btn" id="d-down"></div>
+        <div class="btn" id="d-left"></div>
+        <div class="btn" id="d-right"></div>
+    </div>
+    <div class="btn" id="btn-x">X</div>
+    <div class="btn" id="btn-z">Z</div>
+</div>
+
+<script>
+/**
+ * UNDERTALE WEB ENGINE
+ * Core Logic
+ */
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// --- Input Handling ---
+const keys = {
+    ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false,
+    z: false, x: false, Enter: false
+};
+
+const inputState = {
+    up: false, down: false, left: false, right: false,
+    ok: false, cancel: false // Z=ok, X=cancel
+};
+
+window.addEventListener('keydown', (e) => {
+    if(keys.hasOwnProperty(e.key) || e.key === "Enter" || e.key === "z" || e.key === "x") {
+        keys[e.key] = true;
+        updateInputState();
+    }
+});
+
+window.addEventListener('keyup', (e) => {
+    if(keys.hasOwnProperty(e.key) || e.key === "Enter" || e.key === "z" || e.key === "x") {
+        keys[e.key] = false;
+        updateInputState();
+    }
+});
+
+function updateInputState() {
+    inputState.up = keys.ArrowUp;
+    inputState.down = keys.ArrowDown;
+    inputState.left = keys.ArrowLeft;
+    inputState.right = keys.ArrowRight;
+    inputState.ok = keys.z || keys.Enter;
+    inputState.cancel = keys.x;
+}
+
+// Touch Controls
+const isTouchDevice = 'ontouchstart' in document.documentElement;
+if (isTouchDevice) {
+    document.getElementById('controls').style.display = 'block';
+    
+    const bindTouch = (id, key) => {
+        const el = document.getElementById(id);
+        el.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; updateInputState(); });
+        el.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; updateInputState(); });
+    };
+
+    bindTouch('d-up', 'ArrowUp');
+    bindTouch('d-down', 'ArrowDown');
+    bindTouch('d-left', 'ArrowLeft');
+    bindTouch('d-right', 'ArrowRight');
+    bindTouch('btn-z', 'z');
+    bindTouch('btn-x', 'x');
+}
+
+// --- Game Constants & State ---
+const STATE = {
+    OVERWORLD: 0,
+    DIALOGUE: 1,
+    BATTLE: 2
+};
+
+let gameState = STATE.OVERWORLD;
+let frameCount = 0;
+
+// Player (Frisk/Soul)
+const player = {
+    x: 320, y: 240, w: 20, h: 20, speed: 3,
+    color: 'red',
+    dir: 'down',
+    moving: false
+};
+
+// --- Assets (Generated via code) ---
+function drawHeart(x, y, color) {
+    ctx.fillStyle = color;
+    // Simple pixel heart shape approximation
+    ctx.font = "20px sans-serif";
+    ctx.fillText("❤", x-8, y+8); 
+}
+
+function drawFrisk(x, y, dir, moving) {
+    // 簡易的なプレイヤー描画（棒人間ではなく四角形）
+    ctx.fillStyle = '#33ccff'; // Striped shirt color mimic
+    ctx.fillRect(x - 10, y - 10, 20, 30);
+    ctx.fillStyle = '#5c2d15'; // Hair
+    ctx.fillRect(x - 10, y - 10, 20, 8);
+    
+    // 顔の向き（目）
+    ctx.fillStyle = 'black';
+    if(dir === 'down') { ctx.fillRect(x-5, y-2, 2, 2); ctx.fillRect(x+3, y-2, 2, 2); }
+    if(dir === 'up') { /* 後ろ姿 */ }
+    if(dir === 'left') { ctx.fillRect(x-8, y-2, 2, 2); }
+    if(dir === 'right') { ctx.fillRect(x+6, y-2, 2, 2); }
+}
+
+// --- Dialogue System ---
+let dialogueQueue = [];
+let currentDialogue = "";
+let dialogueTimer = 0;
+let dialogueIndex = 0;
+let dialogueCallback = null;
+
+function startDialogue(textArray, callback) {
+    dialogueQueue = [...textArray];
+    currentDialogue = "";
+    dialogueIndex = 0;
+    dialogueTimer = 0;
+    dialogueCallback = callback;
+    gameState = STATE.DIALOGUE;
+}
+
+// --- Battle System ---
+const BATTLE_PHASE = {
+    MENU: 0,      // FIGHT/ACT/ITEM/MERCY selection
+    DIALOGUE: 1,  // Enemy talks
+    DODGE: 2,     // Bullet hell
+    RESULT: 3
+};
+
+let battleState = {
+    phase: BATTLE_PHASE.MENU,
+    enemyName: "Dummy Bot",
+    enemyHP: 100,
+    menuIndex: 0, // 0:FIGHT, 1:ACT, 2:ITEM, 3:MERCY
+    subMenuIndex: 0,
+    bullets: [],
+    timer: 0,
+    box: { x: 320, y: 320, w: 570, h: 130 }, // Default text box size
+    soul: { x: 320, y: 320, invulnerable: 0 }
+};
+
+// --- Game Logic ---
+
+function update() {
+    frameCount++;
+
+    if (gameState === STATE.OVERWORLD) {
+        updateOverworld();
+    } else if (gameState === STATE.DIALOGUE) {
+        updateDialogue();
+    } else if (gameState === STATE.BATTLE) {
+        updateBattle();
+    }
+}
+
+function updateOverworld() {
+    player.moving = false;
+    let dx = 0; let dy = 0;
+    if (inputState.up) { dy = -player.speed; player.dir = 'up'; player.moving = true; }
+    if (inputState.down) { dy = player.speed; player.dir = 'down'; player.moving = true; }
+    if (inputState.left) { dx = -player.speed; player.dir = 'left'; player.moving = true; }
+    if (inputState.right) { dx = player.speed; player.dir = 'right'; player.moving = true; }
+
+    // Map collision (Simple bounds)
+    if (player.x + dx > 20 && player.x + dx < 620) player.x += dx;
+    if (player.y + dy > 20 && player.y + dy < 460) player.y += dy;
+
+    // Check Event Interaction
+    // シンプルなイベント：マップ中央上にNPCがいるとする
+    const npcX = 320; const npcY = 150;
+    const dist = Math.hypot(player.x - npcX, player.y - npcY);
+    
+    // Zキーを押した瞬間
+    if (inputState.ok && !keys.z_locked && dist < 40) {
+        keys.z_locked = true;
+        startDialogue([
+            "* こんにちは。",
+            "* 私は　チュートリアル・ボット　です。",
+            "* これから　戦闘システムの　テストを　行います。",
+            "* 準備は　いいですか？"
+        ], () => {
+            startBattle();
+        });
+    }
+    if (!inputState.ok) keys.z_locked = false;
+}
+
+function updateDialogue() {
+    if (dialogueQueue.length === 0) {
+        if (dialogueCallback) dialogueCallback();
+        gameState = STATE.OVERWORLD;
+        return;
+    }
+
+    const targetText = dialogueQueue[0];
+    
+    // Text typing effect
+    if (dialogueIndex < targetText.length) {
+        dialogueTimer++;
+        if (dialogueTimer % 2 === 0) { // Speed
+            dialogueIndex++;
+            currentDialogue = targetText.substring(0, dialogueIndex);
+        }
+        // Skip
+        if (inputState.cancel) {
+            dialogueIndex = targetText.length;
+            currentDialogue = targetText;
+        }
+    } else {
+        // Wait for input to next line
+        if (inputState.ok && !keys.z_locked) {
+            keys.z_locked = true;
+            dialogueQueue.shift();
+            dialogueIndex = 0;
+            currentDialogue = "";
+        }
+        if (!inputState.ok) keys.z_locked = false;
+    }
+}
+
+// --- Battle Logic Implementation ---
+function startBattle() {
+    gameState = STATE.BATTLE;
+    battleState.phase = BATTLE_PHASE.DIALOGUE; // Start with enemy encounter text
+    battleState.bullets = [];
+    battleState.soul.x = 320;
+    battleState.soul.y = 320;
+    battleState.box = { x: 320, y: 320, w: 570, h: 130 }; // Big box for text
+    
+    // Initial text
+    currentDialogue = "* チュートリアル・ボットが　あらわれた！";
+    dialogueIndex = currentDialogue.length; 
+}
+
+function updateBattle() {
+    if (battleState.phase === BATTLE_PHASE.DIALOGUE) {
+        // Battle Text Handling (Enemy turn / Flavour text)
+        if (inputState.ok && !keys.z_locked) {
+            keys.z_locked = true;
+            // Go to Menu
+            battleState.phase = BATTLE_PHASE.MENU;
+            battleState.box = { x: 320, y: 430, w: 570, h: 130 }; // Reset box size? No, keep it big for menu
+        }
+        if (!inputState.ok) keys.z_locked = false;
+
+    } else if (battleState.phase === BATTLE_PHASE.MENU) {
+        // Select FIGHT/ACT/ITEM/MERCY
+        if (inputState.right && !keys.right_locked) { battleState.menuIndex = (battleState.menuIndex + 1) % 4; keys.right_locked = true; }
+        if (!inputState.right) keys.right_locked = false;
+        
+        if (inputState.left && !keys.left_locked) { battleState.menuIndex = (battleState.menuIndex + 3) % 4; keys.left_locked = true; }
+        if (!inputState.left) keys.left_locked = false;
+
+        if (inputState.ok && !keys.z_locked) {
+            keys.z_locked = true;
+            // For simplicity, any action leads to enemy turn
+            startEnemyTurn();
+        }
+        if (!inputState.ok) keys.z_locked = false;
+
+    } else if (battleState.phase === BATTLE_PHASE.DODGE) {
+        // Bullet Hell Phase
+        battleState.timer--;
+        
+        // Move Soul
+        let speed = inputState.cancel ? 2 : 4; // X for slow
+        if (inputState.up) battleState.soul.y -= speed;
+        if (inputState.down) battleState.soul.y += speed;
+        if (inputState.left) battleState.soul.x -= speed;
+        if (inputState.right) battleState.soul.x += speed;
+
+        // Clamp Soul in Box
+        let boxLeft = battleState.box.x - battleState.box.w/2 + 8;
+        let boxRight = battleState.box.x + battleState.box.w/2 - 8;
+        let boxTop = battleState.box.y - battleState.box.h/2 + 8;
+        let boxBottom = battleState.box.y + battleState.box.h/2 - 8;
+        
+        battleState.soul.x = Math.max(boxLeft, Math.min(boxRight, battleState.soul.x));
+        battleState.soul.y = Math.max(boxTop, Math.min(boxBottom, battleState.soul.y));
+
+        // Generate Bullets (Simple Pattern)
+        if (frameCount % 10 === 0) {
+            battleState.bullets.push({
+                x: Math.random() * 200 + 220,
+                y: boxTop - 20,
+                vx: (Math.random() - 0.5) * 2,
+                vy: 3 + Math.random(),
+                size: 6
+            });
+        }
+
+        // Update Bullets & Collision
+        for (let i = battleState.bullets.length - 1; i >= 0; i--) {
+            let b = battleState.bullets[i];
+            b.x += b.vx;
+            b.y += b.vy;
+            
+            // Collision with Soul (Circle to Point approx)
+            let dist = Math.hypot(b.x - battleState.soul.x, b.y - battleState.soul.y);
+            if (dist < 10) {
+                // Hit!
+                if(battleState.soul.invulnerable <= 0) {
+                    player.color = 'yellow'; // Flash
+                    battleState.soul.invulnerable = 30;
+                    // HP reduction logic here
+                }
+            }
+
+            // Remove out of bounds
+            if (b.y > boxBottom + 20) battleState.bullets.splice(i, 1);
+        }
+
+        if (battleState.soul.invulnerable > 0) battleState.soul.invulnerable--;
+
+        // End Turn
+        if (battleState.timer <= 0) {
+            battleState.phase = BATTLE_PHASE.DIALOGUE;
+            currentDialogue = "* 敵は　様子を　見ている。";
+            dialogueIndex = currentDialogue.length;
+            battleState.box = { x: 320, y: 320, w: 570, h: 130 }; // Big box
+        }
+    }
+}
+
+function startEnemyTurn() {
+    battleState.phase = BATTLE_PHASE.DODGE;
+    battleState.timer = 300; // 5 seconds survival
+    // Shrink box for battle
+    battleState.box = { x: 320, y: 320, w: 150, h: 150 };
+    battleState.soul.x = 320;
+    battleState.soul.y = 320;
+    battleState.bullets = [];
+}
+
+// --- Rendering ---
+
+function draw() {
+    // Clear Screen
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (gameState === STATE.OVERWORLD) {
+        drawOverworld();
+    } else if (gameState === STATE.DIALOGUE) {
+        drawOverworld(); // Draw BG behind dialogue
+        drawDialogueBox();
+    } else if (gameState === STATE.BATTLE) {
+        drawBattle();
+    }
+}
+
+function drawOverworld() {
+    // Draw dummy room
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 4;
+    ctx.strokeRect(20, 20, 600, 440);
+
+    // Draw NPC
+    ctx.fillStyle = "white";
+    ctx.fillRect(320 - 15, 150 - 20, 30, 40); // NPC body
+    
+    // Draw Player
+    drawFrisk(player.x, player.y, player.dir, player.moving);
+}
+
+function drawDialogueBox() {
+    // Standard Bottom Box
+    ctx.fillStyle = "black";
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 5;
+    const x = 30, y = 320, w = 580, h = 140;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeRect(x, y, w, h);
+
+    // Text
+    ctx.fillStyle = "white";
+    ctx.font = "24px 'DotGothic16'";
+    // Start of line
+    ctx.fillText("* " + currentDialogue.replace("* ", ""), x + 20, y + 40);
+}
+
+function drawBattle() {
+    // 1. Draw Enemy
+    ctx.fillStyle = "white";
+    ctx.drawImage(drawEnemySprite(), 270, 50);
+
+    // 2. Draw Box
+    ctx.fillStyle = "black";
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 5;
+    let b = battleState.box;
+    ctx.fillRect(b.x - b.w/2, b.y - b.h/2, b.w, b.h);
+    ctx.strokeRect(b.x - b.w/2, b.y - b.h/2, b.w, b.h);
+
+    // 3. Phase Specifics
+    if (battleState.phase === BATTLE_PHASE.MENU) {
+        drawBattleButtons();
+        // Flavour Text inside box
+        ctx.fillStyle = "white";
+        ctx.font = "24px 'DotGothic16'";
+        ctx.fillText("* チュートリアル・ボットが　立っている。", b.x - b.w/2 + 20, b.y - b.h/2 + 40);
+    
+    } else if (battleState.phase === BATTLE_PHASE.DIALOGUE) {
+        drawBattleButtons();
+        ctx.fillStyle = "white";
+        ctx.font = "24px 'DotGothic16'";
+        ctx.fillText(currentDialogue, b.x - b.w/2 + 20, b.y - b.h/2 + 40);
+
+    } else if (battleState.phase === BATTLE_PHASE.DODGE) {
+        // Draw Soul
+        let soulColor = battleState.soul.invulnerable > 0 && Math.floor(frameCount/4)%2==0 ? 'gray' : 'red';
+        drawHeart(battleState.soul.x, battleState.soul.y, soulColor);
+        
+        // Draw Bullets
+        ctx.fillStyle = "white";
+        battleState.bullets.forEach(bu => {
+            ctx.beginPath();
+            ctx.arc(bu.x, bu.y, bu.size, 0, Math.PI*2);
+            ctx.fill();
+        });
+        
+        // Draw Timer bar (optional)
+        // ctx.fillStyle = "yellow";
+        // ctx.fillRect(20, 20, battleState.timer, 10);
+    }
+    
+    // UI: HP Bar
+    ctx.fillStyle = "white";
+    ctx.font = "20px 'DotGothic16'";
+    ctx.fillText("NAME   LV 1", 30, 400);
+    ctx.fillText("HP", 250, 400);
+    ctx.fillStyle = "red";
+    ctx.fillRect(280, 385, 30, 20); // Max HP
+    ctx.fillStyle = "yellow";
+    ctx.fillRect(280, 385, 30, 20); // Current HP
+    ctx.fillStyle = "white";
+    ctx.fillText("20 / 20", 320, 400);
+}
+
+function drawBattleButtons() {
+    const labels = ["FIGHT", "ACT", "ITEM", "MERCY"];
+    const colors = ["#ffaa00", "#00aaff", "#00aa00", "#aaaaaa"]; // Unselected colors usually orange
+    const y = 430;
+    
+    for(let i=0; i<4; i++) {
+        let x = 30 + i * 150;
+        let selected = (battleState.menuIndex === i);
+        
+        // Button Image (Simulation)
+        ctx.strokeStyle = selected ? "yellow" : "#ff8800";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, 110, 40);
+        
+        if (selected) {
+            drawHeart(x + 15, y + 25, "red");
+        }
+        
+        ctx.fillStyle = selected ? "yellow" : "#ff8800";
+        ctx.font = "24px 'DotGothic16'";
+        ctx.fillText(labels[i], x + 40, y + 28);
+    }
+}
+
+// Helper to create a dummy enemy sprite
+let enemyCanvas = document.createElement('canvas');
+enemyCanvas.width = 100; enemyCanvas.height = 100;
+let eCtx = enemyCanvas.getContext('2d');
+eCtx.fillStyle = "white";
+eCtx.fillRect(20, 20, 60, 60); // Head
+eCtx.fillStyle = "black";
+eCtx.fillRect(35, 35, 10, 10); // Eye L
+eCtx.fillRect(55, 35, 10, 10); // Eye R
+eCtx.fillRect(40, 60, 20, 5);  // Mouth
+
+function drawEnemySprite() {
+    // Simple wobble animation
+    let ox = Math.sin(frameCount / 10) * 2;
+    return enemyCanvas;
+}
+
+// --- Main Loop ---
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+// Start
+loop();
+
+</script>
+</body>
+</html>
