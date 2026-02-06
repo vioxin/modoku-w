@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>CYBER SLOTS // SYSTEM OVERRIDE</title>
+    <style>
+        /* --- CORE VISUALS --- */
+        :root {
+            --neon-green: #39ff14;
+            --neon-pink: #ff00ff;
+            --dark-bg: #050505;
+            --scan-line: rgba(57, 255, 20, 0.1);
+        }
+        body {
+            background-color: var(--dark-bg);
+            color: var(--neon-green);
+            font-family: 'Courier New', monospace;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-transform: uppercase;
+        }
+
+        /* --- CRT EFFECT (走査線) --- */
+        .scanlines {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, var(--scan-line) 50%, rgba(0,0,0,0) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 10;
+            opacity: 0.6;
+        }
+        .vignette {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, rgba(0,0,0,0) 60%, rgba(0,0,0,0.8) 100%);
+            z-index: 11;
+            pointer-events: none;
+        }
+
+        /* --- SLOT MACHINE CONTAINER --- */
+        .cyber-frame {
+            border: 2px solid var(--neon-green);
+            padding: 40px;
+            width: 90%;
+            max-width: 600px;
+            background: rgba(0, 20, 0, 0.8);
+            box-shadow: 0 0 20px var(--neon-green), inset 0 0 20px var(--neon-green);
+            position: relative;
+            text-align: center;
+            clip-path: polygon(
+                0 0, 100% 0, 100% 85%, 95% 100%, 5% 100%, 0 85%
+            );
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin: 0 0 20px 0;
+            text-shadow: 2px 2px var(--neon-pink);
+            letter-spacing: 5px;
+        }
+
+        /* --- REELS (回転部分) --- */
+        .reels-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 30px 0;
+            background: #000;
+            padding: 20px;
+            border: 1px solid var(--neon-green);
+        }
+
+        .reel {
+            width: 80px;
+            height: 100px;
+            font-size: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0a0a0a;
+            border: 1px solid #333;
+            color: #fff;
+            text-shadow: 0 0 10px var(--neon-green);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ブラー効果（回転中） */
+        .reel.blur {
+            color: transparent;
+            text-shadow: 0 0 15px var(--neon-green);
+            animation: textFlicker 0.1s infinite;
+        }
+        .reel.blur::after {
+            content: "888"; /* 高速で回ってるように見せるダミー */
+            position: absolute;
+            color: var(--neon-green);
+            filter: blur(4px);
+            animation: scrollDown 0.2s linear infinite;
+        }
+
+        /* --- UI ELEMENTS --- */
+        .status-display {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: var(--neon-pink);
+            min-height: 1.5em;
+        }
+
+        .point-box {
+            border: 1px solid var(--neon-green);
+            display: inline-block;
+            padding: 10px 30px;
+            margin-bottom: 20px;
+            background: #001100;
+            font-weight: bold;
+            font-size: 1.5rem;
+            box-shadow: 0 0 10px var(--neon-green);
+        }
+
+        button {
+            background: #000;
+            color: var(--neon-green);
+            border: 2px solid var(--neon-green);
+            padding: 15px 50px;
+            font-size: 1.5rem;
+            font-family: inherit;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            transition: 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        button:hover {
+            background: var(--neon-green);
+            color: #000;
+            box-shadow: 0 0 30px var(--neon-green);
+        }
+        
+        button:disabled {
+            border-color: #555;
+            color: #555;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes scrollDown {
+            0% { transform: translateY(-50%); opacity: 0.5; }
+            100% { transform: translateY(50%); opacity: 1; }
+        }
+        
+        @keyframes textFlicker {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        /* 画面全体のグリッチ（当たり/ハズレ時） */
+        .glitch-active {
+            animation: glitch-anim 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
+        }
+
+        @keyframes glitch-anim {
+            0% { transform: translate(0) }
+            20% { transform: translate(-5px, 5px) }
+            40% { transform: translate(-5px, -5px) }
+            60% { transform: translate(5px, 5px) }
+            80% { transform: translate(5px, -5px) }
+            100% { transform: translate(0) }
+        }
+        
+        /* 当たりエフェクト */
+        .win-glow {
+            animation: win-pulse 0.5s infinite alternate;
+        }
+        @keyframes win-pulse {
+            from { box-shadow: 0 0 20px var(--neon-pink); border-color: var(--neon-pink); color: var(--neon-pink); }
+            to { box-shadow: 0 0 50px var(--neon-pink); border-color: #fff; color: #fff; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="scanlines"></div>
+<div class="vignette"></div>
+
+<div class="cyber-frame" id="mainFrame">
+    <h1>☣️ NEURAL SLOTS ☣️</h1>
+    
+    <div class="point-box">
+        PT: <span id="pt-val">LOADING...</span>
+    </div>
+
+    <div class="reels-container">
+        <div class="reel" id="r1">💀</div>
+        <div class="reel" id="r2">💀</div>
+        <div class="reel" id="r3">💀</div>
+    </div>
+
+    <div class="status-display" id="status-msg">READY TO HACK...</div>
+
+    <button id="spinBtn" onclick="engageSystem()">[ EXECUTE ]</button>
+</div>
+
+<script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyCNH7nojIIXwwDqmnRBf6YTMdVAohZG14KShr0Bnms-fYo5GukyJ5l2XuztOU7BZF7/exec";
+    const userId = localStorage.getItem("userId") || "GUEST"; // ログイン名
+
+    // 演出用シンボル（高速回転時にチラ見せする用）
+    const decoSymbols = ['X', '0', '1', '☠', '⚡', '⚠', '☢'];
+    
+    // 結果と絵文字の対応表
+    const visuals = {
+        '777': '7️⃣',
+        'diamond': '💎',
+        'poison': '☣️',
+        'skull': '💀',
+        'cherry': '🍒',
+        'capsule': '💊'
+    };
+
+    // 初期化
+    window.onload = async () => {
+        updateStatus("CONNECTING TO SERVER...");
+        try {
+            const res = await fetch(`${GAS_URL}?action=getPoint&name=${encodeURIComponent(userId)}`);
+            const data = await res.json();
+            animateValue("pt-val", 0, data.point, 1000);
+            updateStatus("SYSTEM READY.");
+        } catch(e) {
+            updateStatus("CONNECTION ERROR.");
+        }
+    };
+
+    async function engageSystem() {
+        const btn = document.getElementById('spinBtn');
+        const reels = [document.getElementById('r1'), document.getElementById('r2'), document.getElementById('r3')];
+        
+        // 1. UIロック & 演出開始
+        btn.disabled = true;
+        updateStatus("BYPASSING SECURITY...");
+        document.getElementById('mainFrame').classList.remove('glitch-active'); // リセット
+        reels.forEach(r => {
+            r.classList.remove('win-glow'); // リセット
+            r.classList.add('blur'); // 高速回転モード
+            r.dataset.interval = setInterval(() => {
+                r.innerText = decoSymbols[Math.floor(Math.random() * decoSymbols.length)];
+            }, 50);
+        });
+
+        try {
+            // 2. GAS実行 (APIコール)
+            const res = await fetch(`${GAS_URL}?action=slotSpin&name=${encodeURIComponent(userId)}`);
+            const data = await res.json();
+
+            // 3. 結果受信後の停止演出 (左から順に止める)
+            if (!data.success) {
+                stopAllReels(reels, '💀');
+                updateStatus(data.msg);
+                btn.disabled = false;
+                return;
+            }
+
+            // 当たり絵文字の決定
+            const targetEmoji = visuals[data.item] || '💀';
+            const results = [targetEmoji, targetEmoji, data.win ? targetEmoji : '💀']; // ハズレ時は3つ目を変える
+
+            // 順番にリールを止める (0.5秒ずつズラす)
+            for (let i = 0; i < 3; i++) {
+                await new Promise(r => setTimeout(r, 600)); // タメを作る
+                stopReel(reels[i], results[i]);
+                playSfx("stop"); // ここに効果音があれば鳴らす
+            }
+
+            // 4. 最終結果表示
+            setTimeout(() => {
+                document.getElementById('pt-val').innerText = data.newPoint;
+                
+                if (data.win) {
+                    updateStatus(`ACCESS GRANTED: +${data.payout} PT`);
+                    reels.forEach(r => r.classList.add('win-glow')); // 発光
+                    document.getElementById('mainFrame').classList.add('glitch-active'); // 画面揺れ
+                } else {
+                    updateStatus("ACCESS DENIED.");
+                }
+                btn.disabled = false;
+            }, 500);
+
+        } catch (e) {
+            stopAllReels(reels, '⚠');
+            updateStatus("CRITICAL ERROR");
+            btn.disabled = false;
+        }
+    }
+
+    // リールを個別に止める関数
+    function stopReel(el, symbol) {
+        clearInterval(el.dataset.interval); // 回転ストップ
+        el.classList.remove('blur'); // ブラー解除
+        el.innerText = symbol;
+        
+        // 止まった瞬間の「ガガッ」という衝撃演出
+        el.style.transform = "scale(1.2)";
+        setTimeout(() => el.style.transform = "scale(1)", 100);
+    }
+
+    // エラー時などの強制停止
+    function stopAllReels(reels, symbol) {
+        reels.forEach(r => stopReel(r, symbol));
+    }
+
+    // 数値をパラパラ上げる演出
+    function animateValue(id, start, end, duration) {
+        const obj = document.getElementById(id);
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            obj.innerHTML = Math.floor(progress * (end - start) + start);
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    function updateStatus(text) {
+        document.getElementById('status-msg').innerText = text;
+    }
+</script>
+</body>
+</html>
