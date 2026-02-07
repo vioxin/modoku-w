@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Julia Set Explorer</title>
+    
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+
+    <style>
+        /* 全体のスタイル：没入感のあるダークテーマ */
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-weight: 300;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ff00cc, #3333ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.description {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-bottom: 20px;
+            text-align: center;
+            max-width: 600px;
+        }
+        
+        .controls {
+            background: rgba(30, 30, 30, 0.8);
+            padding: 15px 25px;
+            border-radius: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        select {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        /* プロットエリア */
+        #plot-container {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid #333;
+        }
+
+        /* Matplotlibのキャンバスを中央寄せ */
+        #plot-container > div {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-style: italic;
+            color: #0ff;
+            text-shadow: 0 0 5px #0ff;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* 現在のCの値表示 */
+        #c-status {
+            margin-top: 10px;
+            font-family: monospace;
+            color: #0ff;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Interactive Julia Explorer</h1>
+    <p class="description">画像をクリックすると、その地点を定数Cとするジュリア集合を生成します。<br>Python(NumPy)が複素平面をリアルタイムに計算します。</p>
+
+    <div class="controls">
+        <div>
+            <label for="cmap-select">Color Palette:</label>
+            <select id="cmap-select">
+                <option value="twilight_shifted" selected>Twilight (Mysterious)</option>
+                <option value="ocean">Ocean (Deep Blue)</option>
+                <option value="gist_earth">Earth (Vibrant)</option>
+                <option value="inferno">Inferno (Fire)</option>
+                <option value="plasma">Plasma (Energy)</option>
+                <option value="viridis">Viridis (Standard)</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="plot-container">
+        <div id="loading-text" class="loading-overlay">Initializing Python Environment...</div>
+        <div id="mpl-target"></div>
+    </div>
+    
+    <div id="c-status">Current C: -0.7 + 0.27015j</div>
+
+    <py-config>
+        packages = ["matplotlib", "numpy"]
+    </py-config>
+
+    <script type="py">
+        import matplotlib.pyplot as plt
+        import numpy as np
+        from pyscript import display, document
+        from pyodide.ffi import create_proxy
+
+        # --- グローバル設定 ---
+        # 初期定数 C (有名な「デンドライト」形状付近)
+        current_c = -0.7 + 0.27015j
+        current_cmap = 'twilight_shifted'
+        
+        # 解像度設定 (高くすると綺麗ですが遅くなります)
+        H, W = 500, 500
+        MAX_ITER = 60
+
+        # 描画用のFigureとAxesを保持
+        fig, ax = plt.subplots(figsize=(6, 6), dpi=100)
+        fig.patch.set_facecolor('#121212') # 背景色をHTMLに合わせる
+        img_plot = None # imshowの戻り値を保持
+
+        # --- 1. フラクタル計算エンジン (NumPyによる高速化) ---
+        def calculate_julia_set(c_val):
+            # 複素平面のグリッドを生成 (-1.5 ~ 1.5 の範囲)
+            y, x = np.ogrid[-1.5:1.5:H*1j, -1.5:1.5:W*1j]
+            z = x + y*1j
+            
+            # 発散速度を記録する配列
+            div_speed = np.zeros(z.shape, dtype=int) + MAX_ITER
+            mask = np.full(z.shape, True, dtype=bool)
+
+            # 反復計算 z = z^2 + c
+            for i in range(MAX_ITER):
+                # まだ発散していない点のみ計算
+                z[mask] = z[mask]**2 + c_val
+                
+                # 発散判定 (閾値 2.0 -> 半径4)
+                diverged = np.abs(z) > 2.0
+                
+                # 今回発散した点の反復回数を記録
+                newly_diverged = diverged & mask
+                div_speed[newly_diverged] = i
+                
+                # マスクを更新（発散した点を除外）
+                mask[mask] == ~diverged
+                
+                # 全て発散したら早期終了
+                if not np.any(mask): break
+                
+            return div_speed
+
+        # --- 2. メイン描画関数 ---
+        def update_view():
+            nonlocal img_plot
+            document.querySelector("#loading-text").style.display = "block"
+            
+            # 計算実行
+            data = calculate_julia_set(current_c)
+            
+            ax.clear()
+            # データ表示（imshow）
+            # extentを指定して座標軸を実際の複素平面に合わせる
+            img_plot = ax.imshow(data, cmap=current_cmap, extent=[-1.5, 1.5, -1.5, 1.5], origin='lower')
+            ax.axis('off') # 軸を消してアートワーク感を出す
+            
+            # ステータス表示更新
+            c_str = f"{current_c.real:.4f} + {current_c.imag:.4f}j" if current_c.imag >= 0 else f"{current_c.real:.4f} - {abs(current_c.imag):.4f}j"
+            document.querySelector("#c-status").innerText = f"Current C: {c_str}"
+
+            document.querySelector("#loading-text").style.display = "none"
+            display(fig, target="mpl-target", append=False)
+
+        # --- 3. イベントハンドラ ---
+        
+        # マウスクリックイベント (Matplotlibの機能を利用)
+        def on_click(event):
+            nonlocal current_c
+            # プロット内で左クリックされた場合
+            if event.inaxes == ax and event.button == 1:
+                # クリック座標を新しい複素数Cとする
+                # event.xdata, ydata は設定した extent の座標系で返ってくる
+                current_c = event.xdata + event.ydata * 1j
+                update_view()
+
+        # Matplotlibのキャンバスにイベントを接続
+        fig.canvas.mpl_connect('button_press_event', on_click)
+
+        # カラーマップ変更イベント (JSから呼ばれる)
+        def on_cmap_change(event):
+            nonlocal current_cmap
+            current_cmap = event.target.value
+            # データは再計算せず、色だけ変える (高速)
+            if img_plot:
+                img_plot.set_cmap(current_cmap)
+                display(fig, target="mpl-target", append=False)
+
+        # --- 初期化処理 ---
+        # JS側のセレクトボックスにPython関数を接続
+        cmap_proxy = create_proxy(on_cmap_change)
+        document.querySelector("#cmap-select").addEventListener("change", cmap_proxy)
+        
+        # 初回描画
+        update_view()
+    </script>
+</body>
+</html>
