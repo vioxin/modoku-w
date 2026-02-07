@@ -11,7 +11,8 @@
             --color-bg: #050505;
             --color-primary: #00ff41; /* Hacker Green */
             --color-secondary: #008f11;
-            --glass-bg: rgba(20, 30, 20, 0.7);
+            --glass-bg: rgba(20, 30, 20, 0.85); /* 裏が見えないように少し濃く */
+            --glass-bg-back: rgba(10, 20, 10, 0.95);
         }
 
         /* === Base Style === */
@@ -30,215 +31,176 @@
 
         /* CRT Screen Effect */
         body::after {
-            content: " ";
-            display: block;
-            position: fixed;
+            content: " "; display: block; position: fixed;
             top: 0; left: 0; bottom: 0; right: 0;
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
             z-index: 9999;
             background-size: 100% 2px, 3px 100%;
-            pointer-events: none;
-            opacity: 0.6;
+            pointer-events: none; opacity: 0.6;
         }
 
-        /* === Layout === */
         .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-            position: relative;
-            z-index: 1;
+            max-width: 1000px; margin: 0 auto; padding: 20px;
+            position: relative; z-index: 1;
         }
 
         /* === Header === */
         header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            display: flex; justify-content: space-between; align-items: center;
             border-bottom: 2px solid var(--color-secondary);
-            padding-bottom: 20px;
-            margin-bottom: 40px;
-            flex-wrap: wrap;
-            gap: 20px;
+            padding-bottom: 20px; margin-bottom: 40px;
+            flex-wrap: wrap; gap: 20px;
         }
 
         h1 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 2.5rem;
-            margin: 0;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            position: relative;
+            font-family: 'Orbitron', sans-serif; font-size: 2.5rem; margin: 0;
+            text-transform: uppercase; letter-spacing: 4px; position: relative;
             text-shadow: 0 0 10px var(--color-primary);
         }
-
-        /* Glitch Effect */
+        /* Glitch Effect (省略なしで維持) */
         h1::before, h1::after {
-            content: attr(data-text);
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--color-bg);
+            content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--color-bg);
         }
         h1::before { left: 2px; text-shadow: -1px 0 #f0f; clip: rect(24px, 550px, 90px, 0); animation: glitch-anim-2 3s infinite linear alternate-reverse; }
         h1::after { left: -2px; text-shadow: -1px 0 #0ff; clip: rect(85px, 550px, 140px, 0); animation: glitch-anim 2.5s infinite linear alternate-reverse; }
-
         @keyframes glitch-anim { 0% { clip: rect(14px, 9999px, 122px, 0); } 100% { clip: rect(48px, 9999px, 98px, 0); } }
         @keyframes glitch-anim-2 { 0% { clip: rect(65px, 9999px, 109px, 0); } 100% { clip: rect(4px, 9999px, 83px, 0); } }
 
         /* === Buttons === */
         .btn {
-            background: transparent;
-            color: var(--color-primary);
-            border: 1px solid var(--color-primary);
-            padding: 10px 25px;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.3s;
-            position: relative;
-            overflow: hidden;
+            background: transparent; color: var(--color-primary); border: 1px solid var(--color-primary);
+            padding: 10px 25px; font-family: 'Orbitron', sans-serif; font-size: 0.9rem; cursor: pointer;
+            transition: all 0.3s; position: relative; overflow: hidden;
             clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
-            
-            /* リンクタグ(a)用に追加 */
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            line-height: normal;
+            text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
         }
+        .btn:hover { background: var(--color-primary); color: #000; box-shadow: 0 0 20px var(--color-primary); }
+        .btn-exit { border-color: #ff0055; color: #ff0055; margin-right: auto; }
+        .btn-exit:hover { background: #ff0055; color: #fff; box-shadow: 0 0 20px #ff0055; }
+        .header-btns { display: flex; gap: 10px; }
+        .btn:disabled { border-color: #555; color: #555; cursor: not-allowed; background: transparent; box-shadow: none; }
 
-        .btn:hover {
-            background: var(--color-primary);
-            color: #000;
-            box-shadow: 0 0 20px var(--color-primary);
-        }
-        
-        /* 戻るボタン用の特別な色（赤系） */
-        .btn-exit {
-            border-color: #ff0055;
-            color: #ff0055;
-            margin-right: auto; /* 左寄せにする場合など */
-        }
-        .btn-exit:hover {
-            background: #ff0055;
-            color: #fff;
-            box-shadow: 0 0 20px #ff0055;
-        }
-
-        .header-btns {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn:disabled {
-            border-color: #555;
-            color: #555;
-            cursor: not-allowed;
-            background: transparent;
-            box-shadow: none;
-        }
-
-        /* === Meme Grid === */
+        /* === Flip Card Styles (ここが重要！) === */
         .meme-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 25px;
         }
 
-        .meme-card {
+        /* カードの外枠（回転の基準） */
+        .meme-card-container {
+            perspective: 1000px; /* 3D効果の深さ */
+            min-height: 150px; /* カードの最小の高さ */
+            cursor: pointer;
+        }
+
+        /* 回転する中身 */
+        .meme-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d; /* 子要素を3D配置 */
+            display: flex; /* 高さ合わせのため */
+        }
+
+        /* クラスが付与されたら回転 */
+        .meme-card-container.flipped .meme-card-inner {
+            transform: rotateY(180deg);
+        }
+
+        /* 表と裏の共通スタイル */
+        .meme-card-front, .meme-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden; /* 裏側を見せない */
+            backface-visibility: hidden;
+            
+            /* 元のカードのデザイン */
             background: var(--glass-bg);
             border: 1px solid var(--color-secondary);
             padding: 25px;
-            position: relative;
-            transition: transform 0.3s, box-shadow 0.3s;
+            box-sizing: border-box;
             backdrop-filter: blur(5px);
+            
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            min-height: 120px;
         }
 
-        .meme-card::before {
-            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 2px;
-            background: var(--color-primary); transform: scaleX(0); transform-origin: left; transition: transform 0.3s;
-        }
-
-        .meme-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 255, 65, 0.15);
+        /* ホバー時の発光（コンテナに対してかける） */
+        .meme-card-container:hover .meme-card-front,
+        .meme-card-container:hover .meme-card-back {
             border-color: var(--color-primary);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.2);
         }
-        .meme-card:hover::before { transform: scaleX(1); }
+
+        /* 表面 */
+        .meme-card-front {
+            /* デフォルト */
+        }
+
+        /* 裏面（説明） */
+        .meme-card-back {
+            background: var(--glass-bg-back);
+            transform: rotateY(180deg); /* 最初から裏返しておく */
+            border-color: var(--color-primary); /* 裏面は少し強調 */
+        }
 
         .meme-text {
-            font-size: 1.4rem;
-            font-weight: 700;
-            line-height: 1.4;
-            margin-bottom: 20px;
-            word-break: break-all;
-            text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+            font-size: 1.4rem; font-weight: 700; line-height: 1.4;
+            word-break: break-all; text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+            text-align: left;
         }
 
+        .meme-desc {
+            font-size: 1rem; color: #fff; text-align: left;
+            overflow-y: auto; flex-grow: 1;
+            font-family: 'Zen Kaku Gothic New', sans-serif;
+        }
+        
+        /* スクロールバーのカスタマイズ */
+        .meme-desc::-webkit-scrollbar { width: 5px; }
+        .meme-desc::-webkit-scrollbar-thumb { background: var(--color-secondary); }
+
         .meme-meta {
-            font-size: 0.8rem;
-            color: rgba(0, 255, 65, 0.6);
-            text-align: right;
+            font-size: 0.8rem; color: rgba(0, 255, 65, 0.6); text-align: right;
             border-top: 1px dashed var(--color-secondary);
-            padding-top: 10px;
+            padding-top: 10px; margin-top: 15px;
             font-family: 'Share Tech Mono';
+        }
+
+        .tap-hint {
+            font-size: 0.7rem; color: #555; margin-bottom: 5px; text-align: center;
         }
 
         /* === Post Form === */
         #post-view {
-            display: none;
-            max-width: 500px;
-            margin: 50px auto;
-            padding: 40px;
-            background: rgba(10, 10, 10, 0.9);
-            border: 1px solid var(--color-primary);
+            display: none; max-width: 500px; margin: 50px auto; padding: 40px;
+            background: rgba(10, 10, 10, 0.9); border: 1px solid var(--color-primary);
             box-shadow: 0 0 50px rgba(0, 255, 65, 0.1);
         }
-
-        .form-group { margin-bottom: 25px; position: relative; }
-
-        input[type="text"] {
-            width: 100%;
-            padding: 15px;
-            background: transparent;
-            border: none;
-            border-bottom: 2px solid var(--color-secondary);
-            color: #fff;
-            font-size: 1.1rem;
-            font-family: 'Zen Kaku Gothic New', sans-serif;
-            outline: none;
-            transition: 0.3s;
-            box-sizing: border-box;
+        .form-group { margin-bottom: 25px; }
+        
+        input[type="text"], textarea {
+            width: 100%; padding: 15px; background: transparent;
+            border: none; border-bottom: 2px solid var(--color-secondary);
+            color: #fff; font-size: 1.1rem; font-family: 'Zen Kaku Gothic New', sans-serif;
+            outline: none; transition: 0.3s; box-sizing: border-box;
         }
+        textarea { resize: vertical; min-height: 80px; }
 
-        input[type="text"]:focus {
-            border-color: var(--color-primary);
-            background: rgba(0, 255, 65, 0.05);
+        input[type="text"]:focus, textarea:focus {
+            border-color: var(--color-primary); background: rgba(0, 255, 65, 0.05);
         }
-
-        input::placeholder { color: #444; }
-
-        .form-actions {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 40px;
-        }
-
-        /* Loading Spinner */
+        .form-actions { display: flex; justify-content: space-between; margin-top: 40px; }
         .spinner {
-            display: inline-block; width: 20px; height: 20px;
-            border: 2px solid var(--color-primary);
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spin 1s linear infinite;
-            margin-right: 10px;
-            vertical-align: middle;
+            display: inline-block; width: 20px; height: 20px; border: 2px solid var(--color-primary);
+            border-radius: 50%; border-top-color: transparent; animation: spin 1s linear infinite; margin-right: 10px; vertical-align: middle;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-
     </style>
 </head>
 <body>
@@ -266,10 +228,15 @@
         <h2 style="font-family:'Orbitron'; margin-bottom:30px; border-bottom:1px solid var(--color-primary); padding-bottom:10px;">RECORD_DATA</h2>
         
         <div class="form-group">
-            <input type="text" id="memeName" placeholder="MEME_CONTENT (本文)" autocomplete="off">
+            <input type="text" id="memeName" placeholder="MEME_CONTENT (ミーム本文)" autocomplete="off">
         </div>
+        
         <div class="form-group">
-            <input type="text" id="poster" placeholder="CODENAME (名前)" autocomplete="off">
+            <textarea id="memeDesc" placeholder="DESCRIPTION (解説・ネタ元など - 省略可)"></textarea>
+        </div>
+
+        <div class="form-group">
+            <input type="text" id="poster" placeholder="CODENAME (投稿者名)" autocomplete="off">
         </div>
 
         <div class="form-actions">
@@ -281,6 +248,7 @@
 </div>
 
 <script>
+    // ★ここに新しいGASのウェブアプリURLを貼り付けてください
     const GAS_URL = "https://script.google.com/macros/s/AKfycbw-I_Wafhcq8YwYXGhgFGOVgSqS0FRsPWTrr8fFxACbSvNP-K_TH3z3iKas1vYCmYsqPQ/exec";
 
     function toggleView(isPost) {
@@ -307,7 +275,6 @@
     document.getElementById('list-view').style.transition = 'opacity 0.3s ease';
     document.getElementById('post-view').style.transition = 'opacity 0.3s ease';
 
-
     async function fetchMemes() {
         const btn = document.getElementById('reloadBtn');
         const container = document.getElementById('meme-container');
@@ -329,10 +296,25 @@
                 
                 memes.forEach((m, index) => {
                     const delay = index * 0.1; 
+                    
+                    // 説明がない場合は「NO DATA」などを表示
+                    const descText = m.description ? escapeHtml(m.description) : 'NO_DESCRIPTION_AVAILABLE';
+
+                    // 3DフリップカードのHTML構造を生成
                     container.innerHTML += `
-                        <div class="meme-card" style="animation: fadeInUp 0.5s ease forwards ${delay}s; opacity:0; transform:translateY(20px);">
-                            <div class="meme-text">${escapeHtml(m.memeName)}</div>
-                            <div class="meme-meta">LOG_BY: ${escapeHtml(m.poster)}</div>
+                        <div class="meme-card-container" onclick="this.classList.toggle('flipped')" style="animation: fadeInUp 0.5s ease forwards ${delay}s; opacity:0; transform:translateY(20px);">
+                            <div class="meme-card-inner">
+                                <div class="meme-card-front">
+                                    <div class="tap-hint">[TAP TO DECRYPT]</div>
+                                    <div class="meme-text">${escapeHtml(m.memeName)}</div>
+                                    <div class="meme-meta">LOG_BY: ${escapeHtml(m.poster)}</div>
+                                </div>
+                                <div class="meme-card-back">
+                                    <div class="tap-hint">[TAP TO RETURN]</div>
+                                    <div class="meme-desc">${descText}</div>
+                                    <div class="meme-meta">INFO_LAYER</div>
+                                </div>
+                            </div>
                         </div>
                     `;
                 });
@@ -342,6 +324,7 @@
             }, 300);
 
         } catch (e) {
+            console.error(e);
             container.innerHTML = '<p style="color:#f0f; text-align:center; width:100%;">CRITICAL ERROR: CONNECTION LOST.</p>';
             container.style.opacity = '1';
         } finally {
@@ -354,13 +337,16 @@
 
     async function submitMeme() {
         const nameInput = document.getElementById('memeName');
+        const descInput = document.getElementById('memeDesc'); // 追加
         const posterInput = document.getElementById('poster');
+        
         const name = nameInput.value;
+        const desc = descInput.value; // 追加
         const poster = posterInput.value;
         const btn = document.getElementById('submitBtn');
 
         if (!name || !poster) {
-            alert("ERROR: NULL_VALUE_DETECTED. Please fill all fields.");
+            alert("ERROR: NULL_VALUE_DETECTED. Name and Poster are required.");
             return;
         }
 
@@ -368,8 +354,11 @@
         btn.innerHTML = '<span class="spinner"></span>UPLOADING...';
 
         try {
-            await fetch(`${GAS_URL}?action=postMeme&name=${encodeURIComponent(name)}&poster=${encodeURIComponent(poster)}`);
+            // URLパラメータにdescriptionを追加
+            await fetch(`${GAS_URL}?action=postMeme&name=${encodeURIComponent(name)}&poster=${encodeURIComponent(poster)}&description=${encodeURIComponent(desc)}`);
+            
             nameInput.value = "";
+            descInput.value = ""; // リセット
             toggleView(false);
             fetchMemes();
         } catch(e) {
@@ -380,9 +369,10 @@
         }
     }
 
+    // エラー修正済みのエスケープ関数
     function escapeHtml(str) {
-        if(!str) return '';
-        return str.replace(/[&<>"']/g, function(match) {
+        if (str == null) return ''; 
+        return String(str).replace(/[&<>"']/g, function(match) {
             const escape = {
                 '&': '&amp;',
                 '<': '&lt;',
