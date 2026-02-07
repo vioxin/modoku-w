@@ -1,17 +1,104 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
-  <title>python-test</title>
-  <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
-  <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyScript 3D Demo</title>
+    
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            background-color: #f0f2f5;
+            padding: 20px;
+        }
+        h1 { color: #333; }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #3776ab;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover { background-color: #265680; }
+        #loading { color: #666; font-style: italic; }
+    </style>
 </head>
 <body>
 
-  <h1>Hello from PyScript</h1>
+<div class="container">
+    <h1>Python 3D Plotter via PyScript</h1>
+    <p>JavaScriptを使わず、ブラウザ内でPython(NumPy + Matplotlib)が計算・描画しています。</p>
+    
+    <py-config>
+        packages = ["matplotlib", "numpy"]
+    </py-config>
 
-  <py-script>
-    print("こんにちは、PyScriptの世界へ！")
-  </py-script>
+    <div>
+        <label for="freq">波の細かさ:</label>
+        <input type="range" id="freq" min="1" max="10" value="5" step="1">
+        <button id="plot-btn" py-click="update_plot">グラフを更新</button>
+    </div>
+
+    <div id="plot-area"></div>
+    <div id="loading">Python環境をロード中...（初回は時間がかかります）</div>
+</div>
+
+<script type="py">
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from pyscript import display, document
+
+    def update_plot(event=None):
+        # HTMLの入力値を取得
+        freq_val = int(document.querySelector("#freq").value)
+        
+        # ローディング表示を消す（初回のみ）
+        loading_el = document.querySelector("#loading")
+        if loading_el and loading_el.style.display != "none":
+            loading_el.style.display = "none"
+
+        # 1. NumPyによるデータ生成（Pythonが得意な行列計算）
+        x = np.linspace(-5, 5, 100)
+        y = np.linspace(-5, 5, 100)
+        X, Y = np.meshgrid(x, y)
+        
+        # 波の計算 Z = sin(sqrt(x^2 + y^2) * freq)
+        R = np.sqrt(X**2 + Y**2)
+        Z = np.sin(R * (freq_val / 2.0))
+
+        # 2. Matplotlibによる3D作図
+        fig = plt.figure(figsize=(8, 6))
+        ax = fig.add_subplot(111, projection='3d')
+        
+        # サーフェスプロット
+        surf = ax.plot_surface(X, Y, Z, cmap='viridis', edgecolor='none', alpha=0.8)
+        
+        ax.set_title(f"3D Ripple (Frequency: {freq_val})")
+        ax.set_zlim(-1.5, 1.5)
+        fig.colorbar(surf, shrink=0.5, aspect=5)
+
+        # 3. HTMLのdivに描画結果を出力
+        display(fig, target="plot-area", append=False)
+        plt.close(fig) # メモリ解放
+
+    # 初回実行
+    update_plot()
+</script>
 
 </body>
 </html>
