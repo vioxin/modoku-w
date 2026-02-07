@@ -3,102 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PyScript 3D Demo</title>
+    <title>PyScript Cyber Visualizer</title>
     
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 
     <style>
+        /* サイバーパンクなスタイル定義 */
         body {
-            font-family: sans-serif;
-            text-align: center;
-            background-color: #f0f2f5;
-            padding: 20px;
+            background-color: #050505;
+            color: #0ff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
         }
-        h1 { color: #333; }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+
+        /* 走査線エフェクト（CRTモニター風） */
+        body::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
         }
-        button {
-            background-color: #3776ab;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-top: 10px;
+
+        h1 {
+            text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+            letter-spacing: 3px;
+            z-index: 3;
         }
-        button:hover { background-color: #265680; }
-        #loading { color: #666; font-style: italic; }
+
+        .status {
+            font-size: 0.8rem;
+            color: #f0f;
+            text-shadow: 0 0 5px #f0f;
+            margin-bottom: 20px;
+            z-index: 3;
+        }
+
+        /* グラフコンテナ */
+        #plot-container {
+            border: 1px solid #0ff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+            background: rgba(0, 20, 20, 0.8);
+            padding: 10px;
+            border-radius: 4px;
+            z-index: 1;
+            width: 600px;
+            height: 450px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ローディングアニメーション */
+        .loader {
+            border: 4px solid #333;
+            border-top: 4px solid #0ff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Python 3D Plotter via PyScript</h1>
-    <p>JavaScriptを使わず、ブラウザ内でPython(NumPy + Matplotlib)が計算・描画しています。</p>
-    
+    <h1>SYSTEM: PYTHON_CORE_ACTIVE</h1>
+    <div class="status" id="status-text">INITIALIZING QUANTUM MESH...</div>
+
+    <div id="plot-container">
+        <div id="loading" class="loader"></div>
+        <div id="plot-target"></div>
+    </div>
+
     <py-config>
         packages = ["matplotlib", "numpy"]
     </py-config>
 
-    <div>
-        <label for="freq">波の細かさ:</label>
-        <input type="range" id="freq" min="1" max="10" value="5" step="1">
-        <button id="plot-btn" py-click="update_plot">グラフを更新</button>
-    </div>
+    <script type="py">
+        import matplotlib.pyplot as plt
+        import numpy as np
+        import asyncio
+        from pyscript import display, document
 
-    <div id="plot-area"></div>
-    <div id="loading">Python環境をロード中...（初回は時間がかかります）</div>
-</div>
-
-<script type="py">
-    import matplotlib.pyplot as plt
-    import numpy as np
-    from pyscript import display, document
-
-    def update_plot(event=None):
-        # HTMLの入力値を取得
-        freq_val = int(document.querySelector("#freq").value)
+        # サイバーなMatplotlibスタイル設定
+        plt.style.use('dark_background')
         
-        # ローディング表示を消す（初回のみ）
-        loading_el = document.querySelector("#loading")
-        if loading_el and loading_el.style.display != "none":
-            loading_el.style.display = "none"
-
-        # 1. NumPyによるデータ生成（Pythonが得意な行列計算）
-        x = np.linspace(-5, 5, 100)
-        y = np.linspace(-5, 5, 100)
-        X, Y = np.meshgrid(x, y)
+        # グローバル変数
+        running = True
         
-        # 波の計算 Z = sin(sqrt(x^2 + y^2) * freq)
-        R = np.sqrt(X**2 + Y**2)
-        Z = np.sin(R * (freq_val / 2.0))
+        async def main():
+            # ローディング要素を削除
+            loader = document.querySelector("#loading")
+            if loader:
+                loader.style.display = "none"
+                
+            document.querySelector("#status-text").innerText = ">> REALTIME DATA PROCESSING START"
 
-        # 2. Matplotlibによる3D作図
-        fig = plt.figure(figsize=(8, 6))
-        ax = fig.add_subplot(111, projection='3d')
-        
-        # サーフェスプロット
-        surf = ax.plot_surface(X, Y, Z, cmap='viridis', edgecolor='none', alpha=0.8)
-        
-        ax.set_title(f"3D Ripple (Frequency: {freq_val})")
-        ax.set_zlim(-1.5, 1.5)
-        fig.colorbar(surf, shrink=0.5, aspect=5)
+            # グラフの初期設定（パフォーマンスのためにFigureは使い回す）
+            fig = plt.figure(figsize=(6, 4.5), dpi=100)
+            # 背景色をHTMLと合わせる
+            fig.patch.set_facecolor('#050505') 
+            ax = fig.add_subplot(111, projection='3d')
 
-        # 3. HTMLのdivに描画結果を出力
-        display(fig, target="plot-area", append=False)
-        plt.close(fig) # メモリ解放
+            # 計算グリッド（30x30）: 高速化のために解像度を調整
+            x = np.linspace(-3, 3, 30)
+            y = np.linspace(-3, 3, 30)
+            X, Y = np.meshgrid(x, y)
+            R = np.sqrt(X**2 + Y**2)
 
-    # 初回実行
-    update_plot()
-</script>
+            t = 0
+            
+            while running:
+                # 1. NumPyによる高速計算 (波の方程式)
+                # 時間 t を使って波を動かす
+                Z = np.sin(R - t) + 0.5 * np.cos(X * 0.5 + t)
 
+                # 2. 描画クリアと再描画
+                ax.clear()
+                
+                # ワイヤーフレーム描画（サイバー感のある色：シアン〜マゼンタ）
+                # rstride, cstride で線の間隔を調整
+                ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1, 
+                                  color='#00ffff', linewidth=0.8, alpha=0.8)
+
+                # 軸の装飾を消して「データ空間」っぽくする
+                ax.set_axis_off()
+                ax.set_zlim(-2, 2)
+                
+                # アングルを少しずつ回転させる
+                ax.view_init(elev=30, azim=t * 10)
+
+                # 3. 画面への出力
+                # display() は target の内容を書き換える
+                display(fig, target="plot-target", append=False)
+
+                # 時間を進める
+                t += 0.15
+                
+                # 非同期処理でブラウザのフリーズを防ぐ（重要）
+                await asyncio.sleep(0.01)
+
+        # 非同期関数の実行
+        asyncio.ensure_future(main())
+    </script>
 </body>
 </html>
