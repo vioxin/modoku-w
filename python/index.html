@@ -2,90 +2,116 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PyScript Cyber Visualizer</title>
-    
+    <title>PyScript Cyber Lab</title>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 
     <style>
-        /* サイバーパンクなスタイル定義 */
+        /* --- Cyberpunk UI Styles --- */
         body {
-            background-color: #050505;
+            background-color: #020202;
             color: #0ff;
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
+            font-family: 'Courier New', monospace;
             margin: 0;
-            overflow: hidden;
+            padding: 20px;
+            overflow-x: hidden;
+            background-image: 
+                linear-gradient(rgba(0, 20, 20, 0.9), rgba(0, 10, 10, 0.95)),
+                repeating-linear-gradient(0deg, transparent, transparent 2px, #0ff 3px, transparent 4px);
+            background-size: 100% 100%, 100% 4px;
         }
 
-        /* 走査線エフェクト（CRTモニター風） */
-        body::before {
-            content: " ";
-            display: block;
-            position: absolute;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 2;
-            background-size: 100% 2px, 3px 100%;
-            pointer-events: none;
+        h1, h2 { text-transform: uppercase; letter-spacing: 4px; text-shadow: 0 0 10px #0ff; margin: 0; }
+        h1 { border-bottom: 2px solid #0ff; padding-bottom: 10px; margin-bottom: 20px; }
+        
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
         }
 
-        h1 {
-            text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
-            font-size: 1.5rem;
-            margin-bottom: 5px;
-            letter-spacing: 3px;
-            z-index: 3;
-        }
-
-        .status {
-            font-size: 0.8rem;
-            color: #f0f;
-            text-shadow: 0 0 5px #f0f;
-            margin-bottom: 20px;
-            z-index: 3;
-        }
-
-        /* グラフコンテナ */
-        #plot-container {
-            border: 1px solid #0ff;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+        .panel {
             background: rgba(0, 20, 20, 0.8);
-            padding: 10px;
-            border-radius: 4px;
-            z-index: 1;
-            width: 600px;
-            height: 450px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            border: 1px solid #0ff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 5px;
+            position: relative;
         }
 
-        /* ローディングアニメーション */
-        .loader {
-            border: 4px solid #333;
-            border-top: 4px solid #0ff;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
+        .panel::after {
+            content: "SYSTEM_READY";
+            position: absolute;
+            top: 5px; right: 10px;
+            font-size: 10px;
+            opacity: 0.7;
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Controls */
+        .controls { margin-bottom: 15px; border-bottom: 1px dashed #055; padding-bottom: 10px; }
+        label { display: block; margin-top: 10px; font-size: 0.9em; color: #8ff; }
+        input[type="range"] { width: 100%; accent-color: #0ff; }
+        input[type="text"] {
+            width: 95%; background: #000; border: 1px solid #0ff; color: #f0f;
+            font-family: monospace; padding: 5px; font-size: 1.1em;
+        }
+        button {
+            background: #003333; border: 1px solid #0ff; color: #0ff;
+            padding: 8px 16px; cursor: pointer; margin-top: 10px; text-transform: uppercase;
+            transition: 0.3s;
+        }
+        button:hover { background: #0ff; color: #000; box-shadow: 0 0 15px #0ff; }
+
+        /* Output Areas */
+        .output-area {
+            display: flex; justify-content: center; align-items: center;
+            min-height: 400px; background: #000; border: 1px solid #333;
+        }
+
+        .loading { color: #f0f; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        @media (max-width: 900px) { .grid-container { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
-    <h1>SYSTEM: PYTHON_CORE_ACTIVE</h1>
-    <div class="status" id="status-text">INITIALIZING QUANTUM MESH...</div>
+    <h1>>> PY_SCRIPT_CORE // EXECUTION_MODE</h1>
 
-    <div id="plot-container">
-        <div id="loading" class="loader"></div>
-        <div id="plot-target"></div>
+    <div class="grid-container">
+        <div class="panel">
+            <h2>1. Cyber Wave Surface</h2>
+            <div class="controls">
+                <label>Wave Speed (Time Lapse): <span id="val-speed">0.2</span></label>
+                <input type="range" id="speed" min="0" max="0.5" step="0.01" value="0.2">
+                
+                <label>Mesh Density (Complexity): <span id="val-mesh">20</span></label>
+                <input type="range" id="mesh-size" min="10" max="40" step="5" value="20">
+            </div>
+            <div id="plot-wave" class="output-area"><div class="loading">INITIALIZING PYTHON RUNTIME...</div></div>
+        </div>
+
+        <div class="panel">
+            <h2>2. Complex Fractal Engine</h2>
+            <div class="controls">
+                <label>Complex Function (Python Syntax): <br>Ex: <code>z**2 + c</code> or <code>np.sin(z) * c</code></label>
+                <input type="text" id="fractal-eq" value="z**2 + c">
+                
+                <label>Constant 'c' (Real / Imaginary):</label>
+                <div style="display:flex; gap:10px;">
+                    <input type="range" id="c-real" min="-2" max="2" step="0.01" value="-0.8">
+                    <input type="range" id="c-imag" min="-2" max="2" step="0.01" value="0.156">
+                </div>
+                <div style="font-size:0.8em; color:#f0f; margin-top:5px;">
+                    c = <span id="c-val-display">-0.8 + 0.156j</span>
+                </div>
+                
+                <button id="render-btn" py-click="render_fractal">COMPILE FRACTAL</button>
+            </div>
+            <div id="plot-fractal" class="output-area"></div>
+        </div>
     </div>
 
     <py-config>
@@ -98,66 +124,131 @@
         import asyncio
         from pyscript import display, document
 
-        # サイバーなMatplotlibスタイル設定
+        # ------------------------------------------------
+        # MODULE 1: 3D WAVE ANIMATION LOOP
+        # ------------------------------------------------
         plt.style.use('dark_background')
         
-        # グローバル変数
-        running = True
-        
-        async def main():
-            # ローディング要素を削除
-            loader = document.querySelector("#loading")
-            if loader:
-                loader.style.display = "none"
-                
-            document.querySelector("#status-text").innerText = ">> REALTIME DATA PROCESSING START"
-
-            # グラフの初期設定（パフォーマンスのためにFigureは使い回す）
-            fig = plt.figure(figsize=(6, 4.5), dpi=100)
-            # 背景色をHTMLと合わせる
-            fig.patch.set_facecolor('#050505') 
+        async def wave_loop():
+            # Figure setup (Create once, update data)
+            fig = plt.figure(figsize=(5, 4))
+            fig.patch.set_facecolor('#000000')
             ax = fig.add_subplot(111, projection='3d')
-
-            # 計算グリッド（30x30）: 高速化のために解像度を調整
-            x = np.linspace(-3, 3, 30)
-            y = np.linspace(-3, 3, 30)
-            X, Y = np.meshgrid(x, y)
-            R = np.sqrt(X**2 + Y**2)
-
+            
             t = 0
             
-            while running:
-                # 1. NumPyによる高速計算 (波の方程式)
-                # 時間 t を使って波を動かす
+            while True:
+                # 1. Read Inputs
+                try:
+                    speed = float(document.querySelector("#speed").value)
+                    mesh_n = int(document.querySelector("#mesh-size").value)
+                    
+                    # Update UI Text
+                    document.querySelector("#val-speed").innerText = str(speed)
+                    document.querySelector("#val-mesh").innerText = str(mesh_n)
+                except:
+                    speed = 0.1
+                    mesh_n = 20
+
+                # 2. Compute Wave
+                x = np.linspace(-3, 3, mesh_n)
+                y = np.linspace(-3, 3, mesh_n)
+                X, Y = np.meshgrid(x, y)
+                R = np.sqrt(X**2 + Y**2)
+                
+                # Dynamic math
                 Z = np.sin(R - t) + 0.5 * np.cos(X * 0.5 + t)
 
-                # 2. 描画クリアと再描画
+                # 3. Render
                 ax.clear()
+                ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1, color='#00ffff', linewidth=0.6, alpha=0.7)
                 
-                # ワイヤーフレーム描画（サイバー感のある色：シアン〜マゼンタ）
-                # rstride, cstride で線の間隔を調整
-                ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1, 
-                                  color='#00ffff', linewidth=0.8, alpha=0.8)
-
-                # 軸の装飾を消して「データ空間」っぽくする
+                # Cyber aesthetics
                 ax.set_axis_off()
                 ax.set_zlim(-2, 2)
+                ax.set_title("REALTIME_WAVE_MONITOR", color='#00ffff', fontsize=8)
                 
-                # アングルを少しずつ回転させる
-                ax.view_init(elev=30, azim=t * 10)
+                display(fig, target="plot-wave", append=False)
 
-                # 3. 画面への出力
-                # display() は target の内容を書き換える
-                display(fig, target="plot-target", append=False)
+                t += speed
+                await asyncio.sleep(0.05) # Prevent browser freeze
 
-                # 時間を進める
-                t += 0.15
-                
-                # 非同期処理でブラウザのフリーズを防ぐ（重要）
-                await asyncio.sleep(0.01)
+        # Start the wave loop
+        asyncio.ensure_future(wave_loop())
 
-        # 非同期関数の実行
-        asyncio.ensure_future(main())
+
+        # ------------------------------------------------
+        # MODULE 2: INTERACTIVE FRACTAL RENDERER
+        # ------------------------------------------------
+        def render_fractal(event=None):
+            # 1. Get Inputs
+            eq_str = document.querySelector("#fractal-eq").value
+            c_r = float(document.querySelector("#c-real").value)
+            c_i = float(document.querySelector("#c-imag").value)
+            
+            # Show current C value
+            c_disp = f"{c_r} + {c_i}j" if c_i >= 0 else f"{c_r} - {abs(c_i)}j"
+            document.querySelector("#c-val-display").innerText = c_disp
+
+            # 2. Python Complex Number Calculation
+            # Create a complex grid
+            h, w = 200, 200
+            y, x = np.ogrid[-1.5:1.5:h*1j, -1.5:1.5:w*1j]
+            z = x + y*1j
+            c = c_r + c_i*1j
+
+            # Array to store divergence speed
+            div_time = np.zeros(z.shape, dtype=int)
+            max_iter = 20
+
+            # 3. Dynamic Evaluation (Python Magic)
+            # Evaluate user string safely-ish
+            try:
+                for i in range(max_iter):
+                    # Python's 'eval' allows executing mathematical strings
+                    # We limit the scope to numpy functions and variables
+                    local_scope = {"z": z, "c": c, "np": np}
+                    
+                    # Execute: z = <user_formula>
+                    # Note: We use a mask to only calculate points that haven't diverged
+                    mask = np.abs(z) < 10
+                    if not np.any(mask): break
+                    
+                    # Apply formula only to bounded points to avoid overflow
+                    z[mask] = eval(eq_str, {"__builtins__": {}}, local_scope)[mask]
+                    
+                    div_time[mask] += 1
+            except Exception as e:
+                document.querySelector("#plot-fractal").innerText = f"SYNTAX ERROR: {e}"
+                return
+
+            # 4. Render Image
+            fig2 = plt.figure(figsize=(5, 4))
+            fig2.patch.set_facecolor('#000000')
+            ax2 = fig2.add_subplot(111)
+            
+            # Use 'magma' or 'twilight' for cyber feel
+            ax2.imshow(div_time, extent=[-1.5, 1.5, -1.5, 1.5], cmap='twilight_shifted')
+            ax2.axis('off')
+            ax2.set_title(f"FRACTAL: z = {eq_str}", color='#f0f', fontsize=8)
+
+            display(fig2, target="plot-fractal", append=False)
+            plt.close(fig2)
+
+        # Initial render
+        render_fractal()
+        
+        # Bind sliders to re-render for fractal (optional, adds interactivity)
+        # Using simple event listener proxy
+        from pyodide.ffi import create_proxy
+        
+        def on_slider_change(event):
+            render_fractal()
+
+        slider_proxy = create_proxy(on_slider_change)
+        document.querySelector("#c-real").addEventListener("input", slider_proxy)
+        document.querySelector("#c-imag").addEventListener("input", slider_proxy)
+
     </script>
 </body>
 </html>
