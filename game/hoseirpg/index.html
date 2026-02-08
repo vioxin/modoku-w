@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ほうせいRPG 〜理不尽な日常〜</title>
+    <style>
+        :root {
+            --bg-color: #f0f4f8;
+            --text-color: #333;
+            --accent-color: #4a90e2;
+            --danger-color: #e74c3c;
+            --money-color: #27ae60;
+        }
+
+        body {
+            font-family: 'Courier New', monospace, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            border: 2px solid #333;
+            box-shadow: 10px 10px 0px rgba(0,0,0,0.1);
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        header {
+            text-align: center;
+            border-bottom: 2px dashed #ccc;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; }
+        .subtitle { font-size: 0.8rem; color: #666; }
+
+        .status-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: #eee;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-label { font-size: 0.8rem; font-weight: bold; }
+        .stat-value { font-size: 1.2rem; }
+        #money { color: var(--money-color); }
+        #stress { color: var(--danger-color); }
+
+        .character-display {
+            text-align: center;
+            font-size: 3rem;
+            margin: 10px 0;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .job-title {
+            text-align: center;
+            font-weight: bold;
+            background: #333;
+            color: white;
+            padding: 5px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 15px;
+            font-size: 1rem;
+            border: 2px solid #333;
+            background: white;
+            cursor: pointer;
+            transition: all 0.1s;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        button:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+
+        .btn-work { background-color: #e3f2fd; }
+        .btn-rest { background-color: #e8f5e9; }
+        .btn-job { background-color: #fff3e0; width: 100%; margin-top: 10px;}
+
+        .log-area {
+            height: 150px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            font-size: 0.85rem;
+            background: #fafafa;
+            border-radius: 4px;
+        }
+
+        .log-entry { margin-bottom: 5px; border-bottom: 1px dotted #eee; }
+        .log-bad { color: var(--danger-color); }
+        .log-good { color: var(--money-color); }
+        .log-sys { color: #888; font-style: italic; }
+
+        /* Job Change Modal */
+        #jobModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+        }
+        .job-option {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+        .job-option:hover { background: #f9f9f9; }
+        .job-req { font-size: 0.8rem; color: #666; }
+
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <header>
+        <h1>ほうせいRPG</h1>
+        <div class="subtitle">目標：100万円貯めて現実逃避する</div>
+    </header>
+
+    <div class="character-display" id="charFace">😑</div>
+    <div class="job-title">現在の職業: <span id="currentJobName">自宅警備員</span></div>
+
+    <div class="status-panel">
+        <div class="stat-item">
+            <span class="stat-label">所持金</span>
+            <span class="stat-value">¥<span id="money">0</span></span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">ストレス</span>
+            <span class="stat-value"><span id="stress">0</span> / 100</span>
+        </div>
+    </div>
+
+    <div class="actions">
+        <button class="btn-work" onclick="workAction()">働く (Work)</button>
+        <button class="btn-rest" onclick="restAction()">サボる (Rest)</button>
+    </div>
+    <button class="btn-job" onclick="openJobMenu()">ハローワークに行く (転職)</button>
+
+    <h3>活動ログ</h3>
+    <div class="log-area" id="gameLog">
+        <div class="log-entry log-sys">ゲーム開始。ほうせいは実家の子供部屋で目を覚ました...</div>
+    </div>
+</div>
+
+<div id="jobModal">
+    <div class="modal-content">
+        <h3>ハローワーク端末</h3>
+        <p>転職先を選んでください（手数料がかかります）</p>
+        <div id="jobList"></div>
+        <button onclick="closeJobMenu()" style="margin-top:10px; width:100%;">閉じる</button>
+    </div>
+</div>
+
+<script>
+    // --- Game State ---
+    let gameState = {
+        money: 1000,
+        stress: 0,
+        jobId: 'neet',
+        totalDays: 1
+    };
+
+    // --- Data: Jobs ---
+    const jobs = {
+        neet: {
+            name: "自宅警備員",
+            salaryMin: 0,
+            salaryMax: 500,
+            stressInc: 5,
+            stressDec: 10,
+            desc: "実家の警備。たまに親から小遣い(500円)が出る。",
+            cost: 0,
+            face: "😑",
+            events: [
+                "親「いつまで寝てるの！」 → ストレス+10",
+                "天井のシミを数えた。 → 虚無感",
+                "ネットでレスバに勝利した！ → ストレス-5",
+                "冷蔵庫のプリンを勝手に食べた。 → 満足"
+            ]
+        },
+        cans: {
+            name: "空き缶拾いプロ",
+            salaryMin: 500,
+            salaryMax: 1500,
+            stressInc: 15,
+            stressDec: 5,
+            desc: "公園や自販機の下を捜索。ライバルが多い。",
+            cost: 0,
+            face: "🧢",
+            events: [
+                "自販機の下に500円玉発見！ → 臨時収入+500",
+                "小学生に指をさされた... → ストレス+20",
+                "縄張り争いで野良猫に負けた。 → ストレス+10",
+                "アルミ缶だと思ったらスチール缶だった。 → 徒労"
+            ]
+        },
+        monitor: {
+            name: "治験ボランティア",
+            salaryMin: 8000,
+            salaryMax: 15000,
+            stressInc: 30,
+            stressDec: 0,
+            desc: "新薬を試す簡単なお仕事。副作用は未知数。",
+            cost: 5000, // 登録料
+            face: "🤢",
+            events: [
+                "体が緑色に発光し始めた気がする。 → ストレス+40",
+                "とてつもない眠気に襲われた。 → 強制睡眠",
+                "看護師さんが優しかった。 → ストレス-20",
+                "実はただのビタミン剤だったらしい。 → ラッキー"
+            ]
+        },
+        apology: {
+            name: "謝罪代行",
+            salaryMin: 10000,
+            salaryMax: 30000,
+            stressInc: 50,
+            stressDec: 0,
+            desc: "他人の代わりに土下座する仕事。メンタル崩壊のリスク。",
+            cost: 20000, // スーツ代
+            face: "🙇",
+            events: [
+                "土下座中に頭を踏まれた。 → ストレスMAX",
+                "涙を流して演技したらチップを貰った！ → 収入+5000",
+                "相手が元同級生だった... → 精神的ダメージ特大",
+                "菓子折りを投げつけられた。 → おやつゲット"
+            ]
+        },
+        influencer: {
+            name: "底辺インフルエンサー",
+            salaryMin: -5000, // 経費で赤字もありうる
+            salaryMax: 100000, // バズればでかい
+            stressInc: 20,
+            stressDec: 10,
+            desc: "一発逆転狙い。炎上リスクあり。",
+            cost: 50000, // 機材代
+            face: "📹",
+            events: [
+                "アンチコメで埋め尽くされた。 → ストレス+30",
+                "動画がプチバズり！ → 収入+20000",
+                "企画で買った激辛カレーでお腹を壊した。 → 医療費-3000",
+                "誰も見ていないライブ配信を3時間した。 → 虚無"
+            ]
+        }
+    };
+
+    // --- Elements ---
+    const els = {
+        money: document.getElementById('money'),
+        stress: document.getElementById('stress'),
+        jobName: document.getElementById('currentJobName'),
+        log: document.getElementById('gameLog'),
+        face: document.getElementById('charFace'),
+        jobModal: document.getElementById('jobModal'),
+        jobList: document.getElementById('jobList')
+    };
+
+    // --- Core Functions ---
+
+    function updateDisplay() {
+        els.money.innerText = gameState.money.toLocaleString();
+        els.stress.innerText = gameState.stress;
+        els.jobName.innerText = jobs[gameState.jobId].name;
+        els.face.innerText = jobs[gameState.jobId].face;
+        
+        // Color change for high stress
+        if (gameState.stress > 80) {
+            els.stress.style.fontWeight = 'bold';
+            els.face.style.animation = 'shake 0.5s infinite';
+        } else {
+            els.stress.style.fontWeight = 'normal';
+            els.face.style.animation = 'bounce 2s infinite';
+        }
+    }
+
+    function addLog(text, type = 'normal') {
+        const div = document.createElement('div');
+        div.className = 'log-entry';
+        if (type === 'good') div.classList.add('log-good');
+        if (type === 'bad') div.classList.add('log-bad');
+        div.innerText = `[Day ${gameState.totalDays}] ${text}`;
+        els.log.insertBefore(div, els.log.firstChild);
+    }
+
+    function checkGameOver() {
+        if (gameState.stress >= 100) {
+            addLog("【限界突破】ストレスが爆発した！", 'bad');
+            addLog("ほうせいは大声で叫びながら街を走り回った...", 'bad');
+            
+            const cost = Math.floor(gameState.money * 0.3) + 5000;
+            gameState.money -= cost;
+            if(gameState.money < 0) gameState.money = 0;
+            
+            gameState.stress = 0;
+            addLog(`警察のお世話になり、賠償金と治療費で ${cost}円 失った。`, 'bad');
+            
+            // 強制的にニートに戻る可能性がある
+            if(gameState.jobId !== 'neet' && Math.random() > 0.5) {
+                gameState.jobId = 'neet';
+                addLog("社会的信用を失い、ニートに戻った。", 'bad');
+            }
+        }
+
+        if (gameState.money >= 1000000) {
+            alert("おめでとうございます！\n100万円貯まりました。\nほうせいは高スペックゲーミングPCを買い、ネットの世界へ旅立ちました。\n(GAME CLEAR)");
+            gameState.money = 0; // ループ
+            addLog("★ゲームクリア！しかし人生は続く...", 'good');
+        }
+    }
+
+    // --- Action Functions ---
+
+    function workAction() {
+        const job = jobs[gameState.jobId];
+        gameState.totalDays++;
+
+        // Calculate Salary
+        let earned = Math.floor(Math.random() * (job.salaryMax - job.salaryMin + 1)) + job.salaryMin;
+        
+        // Calculate Stress
+        let stressAdd = job.stressInc + Math.floor(Math.random() * 10);
+        
+        // Random Events
+        const eventRoll = Math.random();
+        let eventLog = "";
+        
+        if (eventRoll < 0.3) {
+            // Bad/Funny Event
+            const evIndex = Math.floor(Math.random() * job.events.length);
+            eventLog = job.events[evIndex];
+            
+            // Parse event effects simply based on text keywords (Simulated logic)
+            if(eventLog.includes("ストレス+")) stressAdd += 10;
+            if(eventLog.includes("ストレスMAX")) stressAdd += 99;
+            if(eventLog.includes("収入+")) earned += 5000;
+            if(eventLog.includes("マイナス")) earned -= 3000;
+        }
+
+        gameState.money += earned;
+        gameState.stress += stressAdd;
+
+        addLog(`${job.name}として活動。${earned}円 稼いだ。 (ストレス +${stressAdd})`);
+        if(eventLog) addLog(`発生: ${eventLog}`, 'bad');
+
+        checkGameOver();
+        updateDisplay();
+    }
+
+    function restAction() {
+        gameState.totalDays++;
+        const job = jobs[gameState.jobId];
+        
+        let heal = 15;
+        if (gameState.jobId === 'neet') heal = 30; // NEET rests better
+        
+        // Using money to relieve stress?
+        let cost = 0;
+        if (gameState.money > 2000 && gameState.jobId !== 'neet') {
+            cost = 2000;
+            heal += 20;
+            addLog(`2000円使って豪遊(牛丼特盛)した。ストレス大幅回復。`, 'good');
+        } else {
+            addLog(`公園で鳩を眺めて過ごした。`);
+        }
+
+        gameState.money -= cost;
+        gameState.stress -= heal;
+        if (gameState.stress < 0) gameState.stress = 0;
+
+        updateDisplay();
+    }
+
+    // --- Job System ---
+
+    function openJobMenu() {
+        els.jobList.innerHTML = '';
+        
+        for (const [key, job] of Object.entries(jobs)) {
+            if (key === gameState.jobId) continue;
+
+            const div = document.createElement('div');
+            div.className = 'job-option';
+            div.innerHTML = `
+                <strong>${job.name}</strong> ${job.face}<br>
+                <span class="job-req">転職費用: ${job.cost}円</span><br>
+                <span style="font-size:0.8rem">${job.desc}</span>
+            `;
+            div.onclick = () => changeJob(key);
+            els.jobList.appendChild(div);
+        }
+        els.jobModal.style.display = 'flex';
+    }
+
+    function closeJobMenu() {
+        els.jobModal.style.display = 'none';
+    }
+
+    function changeJob(newJobId) {
+        const job = jobs[newJobId];
+        if (gameState.money < job.cost) {
+            alert("お金が足りません！世の中金です。");
+            return;
+        }
+
+        if (confirm(`${job.name}に転職しますか？\n費用: ${job.cost}円`)) {
+            gameState.money -= job.cost;
+            gameState.jobId = newJobId;
+            addLog(`【転職】${job.name} になりました！心機一転頑張ろう。`, 'good');
+            closeJobMenu();
+            updateDisplay();
+        }
+    }
+
+    // Init
+    updateDisplay();
+
+    // Add extra CSS animation keyframe
+    const styleSheet = document.createElement("style");
+    styleSheet.innerText = `
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+    `;
+    document.head.appendChild(styleSheet);
+
+</script>
+
+</body>
+</html>
