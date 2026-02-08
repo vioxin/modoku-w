@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ほうせいRPG 2 〜激闘！社会の荒波〜</title>
+<style>
+    :root {
+        --bg-color: #2c3e50;
+        --map-bg: #ecf0f1;
+        --text-color: #ecf0f1;
+        --highlight: #e74c3c;
+        --ui-bg: #34495e;
+    }
+    body {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: 'Pixel', 'Courier New', monospace;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100vh;
+        overflow: hidden;
+    }
+    h1 { margin: 5px 0; font-size: 1.2rem; text-shadow: 2px 2px 0 #000; }
+    
+    /* Game Area */
+    #game-container {
+        position: relative;
+        width: 320px;
+        height: 320px;
+        background: var(--map-bg);
+        border: 4px solid #95a5a6;
+        image-rendering: pixelated;
+        overflow: hidden;
+    }
+    
+    .tile {
+        position: absolute;
+        width: 32px;
+        height: 32px;
+        font-size: 24px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: default;
+    }
+    
+    #player {
+        z-index: 10;
+        transition: top 0.1s, left 0.1s;
+    }
+
+    /* UI Panels */
+    #ui-panel {
+        width: 320px;
+        background: var(--ui-bg);
+        padding: 5px;
+        box-sizing: border-box;
+        border: 2px solid #7f8c8d;
+        font-size: 0.8rem;
+    }
+
+    .stat-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+    .stat-val { font-weight: bold; color: #f1c40f; }
+    .danger { color: #e74c3c !important; animation: blink 1s infinite; }
+
+    #log-box {
+        width: 320px;
+        height: 80px;
+        background: #000;
+        color: #0f0;
+        font-size: 0.7rem;
+        padding: 5px;
+        overflow-y: scroll;
+        box-sizing: border-box;
+        border: 2px solid #7f8c8d;
+        margin-top: 5px;
+        font-family: monospace;
+    }
+
+    /* Controls */
+    #controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 5px;
+        margin-top: 10px;
+        width: 200px;
+    }
+    button {
+        background: #95a5a6;
+        border: 2px solid #fff;
+        padding: 10px;
+        font-weight: bold;
+        cursor: pointer;
+        border-radius: 4px;
+    }
+    button:active { background: #7f8c8d; transform: scale(0.95); }
+    #btn-act { grid-column: 2; background: #e67e22; color: white; }
+
+    /* Modal */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.8);
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+    }
+    .modal-content {
+        background: #fff;
+        color: #000;
+        padding: 20px;
+        width: 300px;
+        border-radius: 5px;
+        text-align: center;
+    }
+    .shop-item {
+        border: 1px solid #ccc;
+        padding: 5px;
+        margin: 5px 0;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+    }
+    .shop-item:hover { background: #eee; }
+
+    @keyframes blink { 50% { opacity: 0.5; } }
+</style>
+</head>
+<body>
+
+<h1>ほうせいRPG 2 〜激闘！社会の荒波〜</h1>
+
+<div id="ui-panel">
+    <div class="stat-row">
+        <span>職業: <span id="s-job">ニート</span></span>
+        <span>所持金: <span id="s-money" class="stat-val">0</span>円</span>
+    </div>
+    <div class="stat-row">
+        <span>体力(HP): <span id="s-hp">100</span></span>
+        <span>満腹度: <span id="s-food">100</span></span>
+        <span>ストレス: <span id="s-stress">0</span></span>
+    </div>
+</div>
+
+<div id="game-container">
+    <div id="player" class="tile">😐</div>
+</div>
+
+<div id="log-box">
+    <div>ゲーム開始。社会の厳しさを思い知れ。</div>
+</div>
+
+<div id="controls">
+    <button onclick="move(0, -1)">▲</button>
+    <button id="btn-act" onclick="interact()">ACT</button>
+    <button onclick="move(0, 1)">▼</button>
+    <button onclick="move(-1, 0)">◀</button>
+    <button onclick="move(1, 0)">▶</button>
+</div>
+
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <h2 id="modal-title">タイトル</h2>
+        <div id="modal-body">内容</div>
+        <button onclick="closeModal()" style="margin-top:10px; width:100%; background:#333; color:white;">閉じる</button>
+    </div>
+</div>
+
+<script>
+    // --- Config ---
+    const TILE_SIZE = 32;
+    const MAP_WIDTH = 10;
+    const MAP_HEIGHT = 10;
+
+    // --- State ---
+    const state = {
+        x: 1, y: 1, // Player pos
+        money: 1000,
+        hp: 100,
+        maxHp: 100,
+        food: 100,
+        maxFood: 100,
+        stress: 0,
+        maxStress: 100,
+        job: 'neet',
+        inventory: { suit: false },
+        turn: 0
+    };
+
+    // --- Map Data ---
+    // .: Road, H: Home, W: HelloWork, C: Company, P: Park, S: Shop, +: Hospital
+    // ■: Wall
+    const mapLayout = [
+        "■■■■■■■■■■",
+        "■H......S■",
+        "■........■",
+        "■..P..P..■",
+        "■..P..P..■",
+        "■........■",
+        "■W......C■",
+        "■........■",
+        "■...+....■",
+        "■■■■■■■■■■"
+    ];
+
+    const tiles = {
+        'H': { icon: '🏠', name: '実家', color: '#f1c40f' },
+        'W': { icon: '🏢', name: 'ハローワーク', color: '#3498db' },
+        'C': { icon: '🏭', name: '謝罪代行社', color: '#2c3e50' },
+        'P': { icon: '🌳', name: '公園', color: '#27ae60' },
+        'S': { icon: '🏪', name: 'コンビニ', color: '#e67e22' },
+        '+': { icon: '🏥', name: 'ヤブ医者', color: '#e74c3c' },
+        '.': { icon: '', name: '道', color: '#ecf0f1' },
+        '■': { icon: '', name: '壁', color: '#95a5a6' }
+    };
+
+    const jobs = {
+        neet: { name: "ニート", salary: 0, desc: "実家の警備。収入なし。" },
+        can: { name: "空き缶拾い", salary: 500, desc: "公園で活動。体力を使う。" },
+        apology: { name: "謝罪代行", salary: 10000, desc: "高収入だがストレスで死ぬ。要スーツ。" },
+        monitor: { name: "治験", salary: 5000, desc: "楽だがHPがランダムで減る。" }
+    };
+
+    // --- Init ---
+    const container = document.getElementById('game-container');
+    const playerEl = document.getElementById('player');
+    
+    function initMap() {
+        for(let y=0; y<MAP_HEIGHT; y++) {
+            for(let x=0; x<MAP_WIDTH; x++) {
+                const char = mapLayout[y][x];
+                const tileInfo = tiles[char] || tiles['.'];
+                const div = document.createElement('div');
+                div.className = 'tile';
+                div.style.left = (x * TILE_SIZE) + 'px';
+                div.style.top = (y * TILE_SIZE) + 'px';
+                div.innerText = tileInfo.icon;
+                if(char === '■') div.style.backgroundColor = '#7f8c8d';
+                
+                // Debug visuals for special spots
+                if(tileInfo.name !== '道' && tileInfo.name !== '壁') {
+                    div.style.border = `1px dashed ${tileInfo.color}`;
+                }
+                
+                container.appendChild(div);
+            }
+        }
+        updatePlayerPos();
+        updateUI();
+    }
+
+    // --- Core Logic ---
+    function move(dx, dy) {
+        if(state.hp <= 0) return; // Dead
+
+        const newX = state.x + dx;
+        const newY = state.y + dy;
+
+        if (mapLayout[newY][newX] === '■') {
+            log("壁だ。進めない。");
+            return;
+        }
+
+        state.x = newX;
+        state.y = newY;
+        
+        // Step costs
+        state.food -= 2;
+        if(state.food < 0) {
+            state.food = 0;
+            state.hp -= 5;
+            log("腹が減りすぎて視界が霞む...", "bad");
+        }
+        
+        state.turn++;
+        
+        // Random Encounters (5% chance)
+        if(Math.random() < 0.05) randomEvent();
+
+        updatePlayerPos();
+        updateUI();
+        checkGameOver();
+    }
+
+    function updatePlayerPos() {
+        playerEl.style.left = (state.x * TILE_SIZE) + 'px';
+        playerEl.style.top = (state.y * TILE_SIZE) + 'px';
+        
+        // Change face based on status
+        let face = "😐";
+        if(state.stress > 50) face = "😓";
+        if(state.stress > 80) face = "😱";
+        if(state.hp < 30) face = "🤢";
+        if(state.job === 'apology') face = "🙇";
+        playerEl.innerText = face;
+    }
+
+    function interact() {
+        if(state.hp <= 0) return;
+
+        const tileChar = mapLayout[state.y][state.x];
+        const tile = tiles[tileChar];
+
+        log(`${tile.name}にいる。`);
+
+        switch(tileChar) {
+            case 'H': homeEvent(); break;
+            case 'W': helloWorkEvent(); break;
+            case 'S': shopEvent(); break;
+            case 'P': parkEvent(); break;
+            case 'C': companyEvent(); break;
+            case '+': hospitalEvent(); break;
+            default: log("ここでは特に何もできない。");
+        }
+        updateUI();
+    }
+
+    // --- Events & Locations ---
+
+    function homeEvent() {
+        openModal("実家", `
+            <p>ママ「あら、ほうせいちゃん。ご飯食べる？」</p>
+            <button onclick="action('rest_home')">寝る (HP・ストレス回復 / 0円)</button>
+            <button onclick="action('eat_mom')">ママのご飯 (満腹度回復 / -500円)</button>
+            <p style="font-size:0.7rem; color:red;">※ニート以外だと親の視線が痛い</p>
+        `);
+    }
+
+    function helloWorkEvent() {
+        let html = `<p>職を探しますか？</p>`;
+        for(let key in jobs) {
+            if(key === state.job) continue;
+            html += `<div class="shop-item" onclick="action('change_job', '${key}')">
+                <b>${jobs[key].name}</b>
+                <small>${jobs[key].desc}</small>
+            </div>`;
+        }
+        openModal("ハローワーク", html);
+    }
+
+    function shopEvent() {
+        openModal("コンビニ", `
+            <div class="shop-item" onclick="action('buy', 'onigiri')">
+                <span>廃棄寸前おにぎり (満腹+30)</span> <b>300円</b>
+            </div>
+            <div class="shop-item" onclick="action('buy', 'zero')">
+                <span>ストロングゼロ (ストレス-30 / HP-10)</span> <b>200円</b>
+            </div>
+            <div class="shop-item" onclick="action('buy', 'suit')">
+                <span>リクルートスーツ (就職に必要)</span> <b>20000円</b>
+            </div>
+        `);
+    }
+
+    function parkEvent() {
+        let html = `<p>公園です。</p>`;
+        
+        if(state.job === 'can') {
+            html += `<button onclick="action('work_can')">空き缶を探す (収入小 / ストレス中)</button>`;
+        } else {
+            html += `<p>空き缶拾いのプロじゃないと、いい空き缶は見つからない。</p>`;
+        }
+        
+        html += `<button onclick="action('rest_park')">ベンチで寝る (HP微回復 / 満腹減)</button>`;
+        openModal("公園", html);
+    }
+
+    function companyEvent() {
+        if(state.job === 'apology') {
+            openModal("謝罪代行社", `
+                <p>本日の依頼：クレーマーへの土下座</p>
+                <button onclick="action('work_apology')">出勤する (収入大 / ストレス特大)</button>
+            `);
+        } else if(state.job === 'monitor') {
+            openModal("怪しい研究所", `
+                <p>治験バイト会場</p>
+                <button onclick="action('work_monitor')">薬を飲む (収入中 / リスク有)</button>
+            `);
+        } else {
+            log("関係者以外立ち入り禁止と書かれている。", "bad");
+            closeModal();
+        }
+    }
+
+    function hospitalEvent() {
+        openModal("ヤブ医者", `
+            <p>医者「金さえあれば治してやる」</p>
+            <button onclick="action('heal_hp')">治療する (HP全快 / 5000円)</button>
+            <button onclick="action('heal_stress')">精神安定剤 (ストレス0 / 3000円)</button>
+        `);
+    }
+
+    // --- Actions Processing ---
+
+    function action(type, param) {
+        closeModal();
+        let success = true;
+
+        if (type === 'rest_home') {
+            state.hp = state.maxHp;
+            state.stress -= 50;
+            if(state.job !== 'neet') {
+                log("親「働いてるのに家にお金入れないの？」(ストレス+10)", "bad");
+                state.stress += 10;
+            } else {
+                log("実家の布団は最高だ。");
+            }
+        }
+        else if (type === 'eat_mom') {
+            if(state.money >= 500) {
+                state.money -= 500;
+                state.food = state.maxFood;
+                log("ママのカレーを食べた。うまい。");
+            } else {
+                log("金がないなら冷蔵庫の氷でも舐めてな！", "bad");
+            }
+        }
+        else if (type === 'buy') {
+            if(param === 'onigiri' && pay(300)) {
+                state.food += 30;
+                log("パサパサのおにぎりを食べた。");
+            }
+            else if(param === 'zero' && pay(200)) {
+                state.stress -= 30;
+                state.hp -= 10;
+                log("アルコールが五臓六腑に染み渡る！(体には悪い)");
+            }
+            else if(param === 'suit' && pay(20000)) {
+                state.inventory.suit = true;
+                log("スーツを買った！これでまともな仕事ができる。");
+            }
+        }
+        else if (type === 'change_job') {
+            if(param === 'apology' && !state.inventory.suit) {
+                alert("この仕事にはスーツが必要です！（コンビニで買えます）");
+                return;
+            }
+            state.job = param;
+            log(`${jobs[param].name}に転職した！`);
+            updatePlayerPos();
+        }
+        else if (type === 'work_can') {
+            state.food -= 10;
+            state.stress += 10;
+            const earn = 300 + Math.floor(Math.random() * 500);
+            state.money += earn;
+            log(`空き缶を拾って ${earn}円 になった。腰が痛い。`);
+        }
+        else if (type === 'work_apology') {
+            state.food -= 20;
+            state.stress += 40; // High risk
+            const earn = 10000 + Math.floor(Math.random() * 5000);
+            state.money += earn;
+            log(`地面に頭を擦り付け ${earn}円 稼いだ。プライドは死んだ。`);
+            
+            if(Math.random() < 0.2) {
+                log("客に頭を踏まれた！(HP-30)", "bad");
+                state.hp -= 30;
+            }
+        }
+        else if (type === 'work_monitor') {
+            state.food -= 5;
+            const earn = 5000;
+            state.money += earn;
+            const sideEffect = Math.random();
+            if(sideEffect < 0.3) {
+                log("副作用で髪が抜けた。(ストレス+30)", "bad");
+                state.stress += 30;
+            } else if (sideEffect < 0.6) {
+                log("猛烈な吐き気！(HP-40)", "bad");
+                state.hp -= 40;
+            } else {
+                log("特に何も起きなかった。ラッキー。", "good");
+            }
+        }
+        else if (type === 'heal_hp' && pay(5000)) {
+            state.hp = state.maxHp;
+            log("謎の注射で元気になった！");
+        }
+        else if (type === 'heal_stress' && pay(3000)) {
+            state.stress = 0;
+            log("心が軽くなった（薬物的な意味で）。");
+        }
+        else if (type === 'rest_park') {
+            state.hp += 10;
+            state.food -= 10;
+            log("ベンチで仮眠した。蚊に刺された。");
+        }
+
+        // Clamp values
+        if(state.food > 100) state.food = 100;
+        if(state.stress < 0) state.stress = 0;
+        if(state.hp > 100) state.hp = 100;
+
+        updateUI();
+        checkGameOver();
+    }
+
+    function pay(amount) {
+        if(state.money >= amount) {
+            state.money -= amount;
+            return true;
+        }
+        alert("金が足りない！！！");
+        return false;
+    }
+
+    // --- System & Utils ---
+
+    function randomEvent() {
+        const events = [
+            { text: "職務質問された。「職業は？」と聞かれ30分ロス。", cost: 0, dmg: 0, stress: 10 },
+            { text: "ポケットに100円入ってた。", cost: -100, dmg: 0, stress: 0 },
+            { text: "カラスに襲われた！", cost: 0, dmg: 10, stress: 5 },
+            { text: "宗教の勧誘を受けた。", cost: 0, dmg: 0, stress: 5 },
+            { text: "靴紐が切れた。不吉だ。", cost: 0, dmg: 0, stress: 5 }
+        ];
+        const ev = events[Math.floor(Math.random() * events.length)];
+        
+        log(`【イベント】${ev.text}`, "bad");
+        state.money -= ev.cost; // Negative cost adds money
+        state.hp -= ev.dmg;
+        state.stress += ev.stress;
+    }
+
+    function checkGameOver() {
+        if(state.hp <= 0) {
+            alert("【死亡】\nほうせいは力尽きた...");
+            respawn("病院に運ばれ蘇生した。");
+        }
+        else if(state.stress >= 100) {
+            alert("【発狂】\nストレスで限界を迎え、街中で暴れまわった！");
+            respawn("精神科に強制入院させられた。");
+        }
+    }
+
+    function respawn(reason) {
+        const penalty = Math.floor(state.money / 2) + 1000;
+        state.money -= penalty;
+        if(state.money < 0) state.money = 0;
+        
+        state.hp = 50;
+        state.stress = 0;
+        state.food = 50;
+        state.x = 1; state.y = 1; // Back home
+        
+        log(reason, "bad");
+        log(`治療費と賠償金で ${penalty}円 失った...`, "bad");
+        updatePlayerPos();
+        updateUI();
+    }
+
+    function log(msg, type) {
+        const div = document.createElement('div');
+        div.innerText = `> ${msg}`;
+        if(type === 'bad') div.style.color = '#e74c3c';
+        if(type === 'good') div.style.color = '#f1c40f';
+        const box = document.getElementById('log-box');
+        box.insertBefore(div, box.firstChild);
+    }
+
+    function updateUI() {
+        document.getElementById('s-money').innerText = state.money;
+        
+        const hpEl = document.getElementById('s-hp');
+        hpEl.innerText = state.hp;
+        if(state.hp < 30) hpEl.className = 'danger';
+        else hpEl.className = '';
+
+        const foodEl = document.getElementById('s-food');
+        foodEl.innerText = state.food;
+        if(state.food < 20) foodEl.className = 'danger';
+        else foodEl.className = '';
+
+        const stressEl = document.getElementById('s-stress');
+        stressEl.innerText = state.stress;
+        if(state.stress > 80) stressEl.className = 'danger';
+        else stressEl.className = '';
+
+        document.getElementById('s-job').innerText = jobs[state.job].name;
+    }
+
+    function openModal(title, content) {
+        document.getElementById('modal-title').innerText = title;
+        document.getElementById('modal-body').innerHTML = content;
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+
+    // Key Listeners
+    window.addEventListener('keydown', (e) => {
+        if(e.key === 'ArrowUp') move(0, -1);
+        if(e.key === 'ArrowDown') move(0, 1);
+        if(e.key === 'ArrowLeft') move(-1, 0);
+        if(e.key === 'ArrowRight') move(1, 0);
+        if(e.key === 'Enter' || e.key === ' ') interact();
+    });
+
+    initMap();
+
+</script>
+</body>
+</html>
