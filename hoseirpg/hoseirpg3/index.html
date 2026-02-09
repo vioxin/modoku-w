@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>ほうせいRPG 3 〜大自然と資本主義〜</title>
+<title>ほうせいRPG 3.5 〜社会の荒波〜</title>
 <style>
     :root {
         --bg-color: #202020;
@@ -30,7 +30,6 @@
         overflow: hidden;
     }
 
-    /* ゲーム全体を包むラッパー */
     #scaler {
         display: flex;
         justify-content: center;
@@ -50,7 +49,6 @@
         padding: 10px;
         box-shadow: 0 0 20px rgba(0,0,0,0.5);
         height: auto;
-        transform-origin: center center;
     }
 
     #screen-area {
@@ -86,7 +84,6 @@
 
     #map-container {
         position: relative;
-        box-shadow: 0 0 10px rgba(0,0,0,0.5);
     }
 
     .tile {
@@ -110,6 +107,7 @@
         justify-content: center;
         align-items: center;
         line-height: 1;
+        text-shadow: 0 0 5px white;
     }
 
     #log-window {
@@ -124,6 +122,7 @@
     .log-sys { color: #aaa; }
     .log-warn { color: #ffeb3b; }
     .log-bad { color: #ff5252; }
+    .log-good { color: #69f0ae; }
 
     #controls {
         display: grid;
@@ -178,7 +177,6 @@
         box-shadow: 0 3px 0 #222;
         -webkit-tap-highlight-color: transparent;
     }
-    .menu-btn:active { transform: translateY(3px); box-shadow: none; }
 
     /* モーダル */
     .modal {
@@ -204,11 +202,12 @@
     }
     .modal-header { font-size: 1.2rem; border-bottom: 2px solid var(--accent); margin-bottom: 10px; padding-bottom: 5px; font-weight: bold;}
     .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; font-size: 0.9rem; }
-    .skill-item, .job-item { background: #444; border: 1px solid #666; padding: 8px; margin-bottom: 6px; cursor: pointer; border-radius: 5px; font-size: 0.9rem;}
+    .skill-item, .job-item { background: #444; border: 1px solid #666; padding: 8px; margin-bottom: 6px; cursor: pointer; border-radius: 5px; font-size: 0.9rem; position: relative; }
+    .skill-owned { background: #2e7d32; border-color: #4caf50; }
     .btn-close { margin-top: 10px; padding: 10px; width: 100%; background: var(--danger); border: none; color: white; font-weight: bold; border-radius: 6px; }
-    .save-area { display: flex; gap: 10px; margin-top: 10px; }
-    .save-btn { flex: 1; padding: 10px; background: #2196f3; color: white; border: none; border-radius: 6px; font-weight: bold; }
-    .event-btn { width: 100%; padding: 10px; margin-bottom: 6px; background: #eee; color: #000; border: none; border-radius: 5px; font-size: 0.9rem; text-align: left; }
+    .event-btn { width: 100%; padding: 10px; margin-bottom: 6px; background: #eee; color: #000; border: none; border-radius: 5px; font-size: 0.9rem; text-align: left; cursor: pointer; }
+    .event-btn:hover { background: #fff; }
+    .important-text { color: #ffeb3b; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -229,7 +228,7 @@
                 </div>
             </div>
             <div id="log-window">
-                <div>ようこそ。実家で勉強してLvを上げよう。</div>
+                <div>社会の荒波へようこそ。まずは実家で資格勉強だ。</div>
             </div>
         </div>
 
@@ -242,7 +241,7 @@
                 <div></div><button class="btn-pad" onclick="game.move(0, 1)">▼</button><div></div>
             </div>
             <div class="action-pad">
-                <button class="menu-btn" onclick="ui.openMenu()">📋 メニュー</button>
+                <button class="menu-btn" onclick="ui.openMenu()">📋 ステータス</button>
                 <button class="menu-btn" onclick="ui.openSkill()">⚡ スキル</button>
                 <button class="menu-btn" style="background:#4caf50; border-color:#388e3c" onclick="game.saveGame()">💾 セーブ</button>
             </div>
@@ -254,21 +253,20 @@
     <div class="modal-content">
         <div class="modal-header">ステータス</div>
         <div class="stat-grid">
-            <div>名前: ほうせい</div>
             <div>職業: <span id="st-job">ニート</span></div>
-            <div>レベル: <span id="st-lv">1</span></div>
-            <div>経験値: <span id="st-xp">0</span> / <span id="st-next">30</span></div>
+            <div>配偶者: <span id="st-partner">なし</span></div>
+            <div>住居: <span id="st-house">実家(寄生)</span></div>
+            <div>Lv: <span id="st-lv">1</span></div>
+            <div>Exp: <span id="st-xp">0</span> / <span id="st-next">30</span></div>
             <div>所持金: <span id="st-money">0</span>円</div>
             <div>ストレス: <span id="st-stress">0</span>%</div>
             <div>体力: <span id="st-hp">100</span> / <span id="st-maxhp">100</span></div>
             <div>スキルP: <span id="st-sp">0</span></div>
             <div>カルマ: <span id="st-karma">0</span></div>
         </div>
-        <div class="save-area">
-            <button class="save-btn" onclick="game.saveGame()">セーブ</button>
-            <button class="save-btn" onclick="game.loadGame()" style="background:#ff9800">ロード</button>
-        </div>
+        <div>所持品: <span id="st-items">なし</span></div>
         <button class="btn-close" onclick="ui.closeAll()">閉じる</button>
+        <button class="save-btn" onclick="game.loadGame()" style="width:100%; margin-top:10px; padding:10px; background:#ff9800; border:none; border-radius:6px; color:white;">ロード</button>
     </div>
 </div>
 
@@ -283,102 +281,85 @@
 <div id="modal-event" class="modal">
     <div class="modal-content">
         <div class="modal-header" id="ev-title">イベント</div>
-        <div id="ev-body" style="margin-bottom: 15px; font-size: 0.95rem; line-height: 1.4;">内容</div>
+        <div id="ev-body" style="margin-bottom: 15px; font-size: 0.95rem; line-height: 1.4;"></div>
         <div id="ev-actions"></div>
         <button class="btn-close" onclick="ui.closeAll()">閉じる</button>
     </div>
 </div>
 
 <script>
-/**
- * ほうせいRPG 3 - Easy Start Edition
- */
-
-// 画面サイズ設定
+// --- Config ---
 const TILE_SIZE = 32;
 const VIEW_W = 13; 
 const VIEW_H = 7;
 const MAP_W = 40;  
 const MAP_H = 40;  
 
-const mapContainer = document.getElementById('map-container');
-mapContainer.style.width = (VIEW_W * TILE_SIZE) + 'px';
-mapContainer.style.height = (VIEW_H * TILE_SIZE) + 'px';
-
-// --- 自動スケーリング処理 ---
-function fitScreen() {
-    const gameBoy = document.getElementById('game-boy');
-    const wrapper = document.getElementById('scaler');
-    gameBoy.style.transform = 'none';
-    const wrapperH = wrapper.clientHeight;
-    const wrapperW = wrapper.clientWidth;
-    const gameH = gameBoy.offsetHeight;
-    const gameW = gameBoy.offsetWidth;
-    const scaleH = wrapperH / (gameH + 20);
-    const scaleW = wrapperW / (gameW + 20);
-    let scale = Math.min(scaleH, scaleW);
-    if(scale > 1) scale = 1; 
-    gameBoy.style.transform = `scale(${scale})`;
-}
-window.addEventListener('load', fitScreen);
-window.addEventListener('resize', fitScreen);
-
-
-// --- ゲームロジック ---
 const TERRAIN = {
-    GRASS: { id: 0, icon: '', bg: '#8bc34a', name: '草原', walk: true },
-    FOREST: { id: 1, icon: '🌲', bg: '#2e7d32', name: '森', walk: true, cost: 2 },
-    WATER:  { id: 2, icon: '🌊', bg: '#2196f3', name: '川', walk: false },
-    MOUNTAIN:{ id: 3, icon: '⛰️', bg: '#795548', name: '山', walk: true, cost: 3 },
-    CITY:   { id: 4, icon: '', bg: '#9e9e9e', name: '市街地', walk: true },
-    WALL:   { id: 5, icon: '🧱', bg: '#555', name: '壁', walk: false },
-    HOME:   { id: 10, icon: '🏠', bg: '#ffeb3b', name: '実家', type: 'spot' },
-    WORK:   { id: 11, icon: '🏢', bg: '#607d8b', name: 'ハロワ', type: 'spot' },
-    SHOP:   { id: 12, icon: '🏪', bg: '#ff9800', name: 'コンビニ', type: 'spot' },
-    SLUM:   { id: 13, icon: '🏚️', bg: '#3e2723', name: 'スラム', type: 'spot' },
-    SHRINE: { id: 14, icon: '⛩️', bg: '#e91e63', name: '神社', type: 'spot' }
+    GRASS: { id: 0, icon: '', bg: '#8bc34a', walk: true },
+    FOREST: { id: 1, icon: '🌲', bg: '#2e7d32', walk: true, cost: 2 },
+    WATER:  { id: 2, icon: '🌊', bg: '#2196f3', walk: false },
+    MOUNTAIN:{ id: 3, icon: '⛰️', bg: '#795548', walk: true, cost: 3 },
+    CITY:   { id: 4, icon: '', bg: '#bdbdbd', walk: true },
+    WALL:   { id: 5, icon: '🧱', bg: '#555', walk: false },
+    // Spots
+    HOME:   { id: 10, icon: '🏠', bg: '#ffeb3b', type: 'spot', name: '実家' },
+    WORK:   { id: 11, icon: '💼', bg: '#607d8b', type: 'spot', name: 'ハロワ' },
+    SHOP:   { id: 12, icon: '🏪', bg: '#ff9800', type: 'spot', name: 'コンビニ' },
+    SLUM:   { id: 13, icon: '🏚️', bg: '#3e2723', type: 'spot', name: 'スラム' },
+    SHRINE: { id: 14, icon: '⛩️', bg: '#e91e63', type: 'spot', name: '神社' },
+    OFFICE: { id: 15, icon: '🏢', bg: '#90caf9', type: 'spot', name: 'オフィス' },
+    KOBAN:  { id: 16, icon: '👮', bg: '#fff', type: 'spot', name: '交番' },
+    HOUSE:  { id: 17, icon: '🏘️', bg: '#a1887f', type: 'spot', name: '民家' }
 };
 
 const JOBS = {
-    neet: { name: "ニート", reqLv: 0, skill: null, desc: "基本職。ストレス耐性低。" },
-    parttime: { name: "店員", reqLv: 1, skill: "smile", desc: "低賃金だが安定。" },
-    can: { name: "空き缶", reqLv: 2, skill: "survival", desc: "体力を使うが自由。" },
-    writer: { name: "ライター", reqLv: 5, skill: "typing", desc: "スキル「タイピング」必須。" },
-    host: { name: "ホスト", reqLv: 8, skill: "charm", desc: "要「魅力」。高収入。" },
-    yamibaito: { name: "闇バイト", reqLv: 1, skill: null, desc: "【危険】高額報酬だが…逮捕リスク有" },
-    scammer: { name: "受け子", reqLv: 5, skill: "criminal", desc: "【闇】プロの犯罪者。" },
+    neet: { name: "ニート", req: ()=>true, desc: "全ての始まり。" },
+    homeless: { name: "ホームレス", req: ()=>true, desc: "実家を追い出された姿。サバイバル・根性効率UP。" },
+    parttime: { name: "店員", req: (s)=>s.skills.smile>=1, desc: "要:営業スマイルLv1" },
+    yamibaito: { name: "闇バイト", req: ()=>true, desc: "【危険】即採用・高収入・逮捕有" },
+    apology: { name: "謝罪代行", req: (s)=>s.skills.smile>=2 && s.skills.guts>=2, desc: "要:スマイル2/根性2。民家で謝罪する。" },
+    fighter: { name: "戦闘員", req: (s)=>s.skills.guts>=3 && s.lv>=5, desc: "要:根性3/Lv5。闇の世界の兵隊。" },
+    scammer: { name: "受け子", req: (s)=>s.skills.criminal>=1 && s.lv>=5, desc: "要:裏の知識/Lv5。" },
+    regular: { name: "正規社員", req: (s)=>s.skills.society>=3 && s.lv>=10 && s.items.includes('suit'), desc: "要:社会人Lv3/Lv10/スーツ。安定。" }
 };
 
 const SKILLS = {
-    survival: { name: "サバイバル", cost: 1, max: 5, desc: "森・山の移動コスト減" },
-    smile: { name: "営業スマイル", cost: 1, max: 3, desc: "バイト収入UP" },
-    typing: { name: "タイピング", cost: 2, max: 5, desc: "デスクワーク効率UP" },
-    guts: { name: "根性", cost: 3, max: 5, desc: "最大HP・ストレス耐性UP" },
-    charm: { name: "魅力", cost: 3, max: 5, desc: "アイテム入手率UP" },
-    negotiation: { name: "交渉術", cost: 4, max: 3, desc: "報酬UP" },
+    survival: { name: "サバイバル", cost: 1, max: 5, desc: "野宿・移動効率UP" },
+    smile: { name: "営業スマイル", cost: 1, max: 3, desc: "接客・謝罪に必須" },
+    typing: { name: "タイピング", cost: 2, max: 5, desc: "事務作業効率UP" },
+    guts: { name: "根性", cost: 3, max: 5, desc: "HP/ストレス耐性UP" },
+    charm: { name: "魅力", cost: 3, max: 5, desc: "交渉・詐欺成功率UP" },
+    society: { name: "社会人としての全て", cost: 4, max: 5, desc: "正規社員に必須。マナー・常識。" },
+    mote: { name: "モテるための全て", cost: 4, max: 5, desc: "結婚に必須。外見とトーク。" },
     criminal: { name: "裏の知識", cost: 5, max: 1, desc: "スラム街で上級職" }
 };
 
+// --- State ---
 let state = {
     x: 20, y: 20,
-    lv: 1, xp: 0, nextXp: 30, // 初期レベルアップを30に緩和
-    sp: 0,
+    lv: 1, xp: 0, nextXp: 30, sp: 0,
     hp: 100, maxHp: 100,
     money: 1000,
     stress: 0,
     karma: 0,
     job: 'neet',
     skills: {},
-    flags: {},
+    items: [],
+    flags: {
+        married: false,
+        myHome: false, // 持ち家
+        policeGuard: 0 // 詐欺防止期間
+    },
     mapData: []
 };
 
+// --- Game Logic ---
 const game = {
     init: function() {
         this.generateMap();
         this.renderMap();
         ui.update();
-        game.log("開始。実家を調べよう。");
         setTimeout(fitScreen, 100);
     },
 
@@ -387,33 +368,44 @@ const game = {
         for(let y=0; y<MAP_H; y++){
             let row = [];
             for(let x=0; x<MAP_W; x++){
-                let noise = Math.sin(x/5) + Math.cos(y/5) + Math.random()*0.5;
                 let type = TERRAIN.GRASS.id;
+                let dist = Math.sqrt((x-20)**2 + (y-20)**2);
+                
+                // 自然
+                let noise = Math.sin(x/5) + Math.cos(y/5) + Math.random()*0.5;
                 if (noise > 1.5) type = TERRAIN.MOUNTAIN.id;
                 else if (noise > 0.8) type = TERRAIN.FOREST.id;
                 else if (noise < -1.0) type = TERRAIN.WATER.id;
                 
-                let dist = Math.sqrt((x-20)**2 + (y-20)**2);
-                if(dist < 8) type = TERRAIN.CITY.id;
+                // 街
+                if(dist < 10) type = TERRAIN.CITY.id;
                 row.push(type);
             }
             state.mapData.push(row);
         }
-        this.setTile(20, 20, TERRAIN.HOME.id);
-        this.setTile(20, 19, TERRAIN.WORK.id);
-        this.setTile(21, 20, TERRAIN.SHOP.id);
-        this.setTile(10, 30, TERRAIN.SLUM.id);
-        this.setTile(30, 10, TERRAIN.SHRINE.id);
-    },
 
-    setTile: function(x, y, id) {
-        if(x>=0 && x<MAP_W && y>=0 && y<MAP_H) state.mapData[y][x] = id;
+        // 施設配置
+        const set = (x, y, id) => state.mapData[y][x] = id;
+        
+        set(20, 20, TERRAIN.HOME.id);
+        set(20, 19, TERRAIN.WORK.id);
+        set(21, 20, TERRAIN.SHOP.id);
+        set(22, 19, TERRAIN.OFFICE.id); // オフィス
+        set(19, 21, TERRAIN.KOBAN.id);  // 交番
+
+        set(10, 30, TERRAIN.SLUM.id);
+        set(30, 10, TERRAIN.SHRINE.id);
+
+        // 民家を点在させる
+        set(18, 18, TERRAIN.HOUSE.id);
+        set(22, 22, TERRAIN.HOUSE.id);
+        set(24, 18, TERRAIN.HOUSE.id);
+        set(16, 22, TERRAIN.HOUSE.id);
     },
 
     getTile: function(x, y) {
         if(x<0 || x>=MAP_W || y<0 || y>=MAP_H) return TERRAIN.WALL;
-        let id = state.mapData[y][x];
-        return Object.values(TERRAIN).find(t => t.id === id) || TERRAIN.GRASS;
+        return Object.values(TERRAIN).find(t => t.id === state.mapData[y][x]) || TERRAIN.GRASS;
     },
 
     move: function(dx, dy) {
@@ -423,16 +415,22 @@ const game = {
         let tile = this.getTile(nx, ny);
         if(!tile.walk && tile.type !== 'spot') return;
         
+        // 移動コスト
         let cost = tile.cost || 1;
-        let survivalLv = state.skills.survival || 0;
-        if(tile.id === TERRAIN.FOREST.id || tile.id === TERRAIN.MOUNTAIN.id) {
-            cost = Math.max(1, cost - survivalLv);
-        }
+        if(state.skills.survival) cost = Math.max(1, cost - state.skills.survival);
         state.hp -= cost;
-        state.x = nx;
-        state.y = ny;
-        this.gainXp(2); // 歩くだけで2XPゲット（緩和）
+        state.x = nx; state.y = ny;
+
+        // 経験値 (緩和)
+        this.gainXp(2);
+        if(state.job === 'homeless' && tile.id === TERRAIN.FOREST.id) this.gainXp(3); // ホームレスボーナス
+
+        // イベント判定
+        this.checkFraudEvent(tile);
         if(Math.random() < 0.05) this.randomEncounter(tile);
+        
+        if(state.flags.policeGuard > 0) state.flags.policeGuard--;
+
         this.renderMap();
         ui.update();
         this.checkGameOver();
@@ -441,15 +439,16 @@ const game = {
     interact: function() {
         if(ui.isModalOpen) return;
         let tile = this.getTile(state.x, state.y);
-        if(tile.type === 'spot') {
-            if(tile.id === TERRAIN.HOME.id) this.eventHome();
-            else if(tile.id === TERRAIN.WORK.id) this.eventHelloWork();
-            else if(tile.id === TERRAIN.SHOP.id) this.eventShop();
-            else if(tile.id === TERRAIN.SLUM.id) this.eventSlum();
-            else if(tile.id === TERRAIN.SHRINE.id) this.eventShrine();
-        } else {
-            game.log("特に何もない。");
-        }
+        
+        if(tile.id === TERRAIN.HOME.id) this.eventHome();
+        else if(tile.id === TERRAIN.WORK.id) this.eventHelloWork();
+        else if(tile.id === TERRAIN.SHOP.id) this.eventShop();
+        else if(tile.id === TERRAIN.SLUM.id) this.eventSlum();
+        else if(tile.id === TERRAIN.SHRINE.id) this.eventShrine();
+        else if(tile.id === TERRAIN.OFFICE.id) this.eventOffice();
+        else if(tile.id === TERRAIN.KOBAN.id) this.eventKoban();
+        else if(tile.id === TERRAIN.HOUSE.id) this.eventGenericHouse();
+        else game.log("特に何もない。");
     },
 
     gainXp: function(amount) {
@@ -457,146 +456,188 @@ const game = {
         if(state.xp >= state.nextXp) {
             state.lv++;
             state.xp -= state.nextXp;
-            state.nextXp = Math.floor(state.nextXp * 1.5); // レベルアップ幅を少し調整
+            state.nextXp = Math.floor(state.nextXp * 1.5);
             state.sp += 3;
             state.maxHp += 10;
             state.hp = state.maxHp;
-            game.log(`Lv${state.lv}になった！SP+3`, "warn");
+            game.log(`Lv${state.lv}に上がった！SP+3`, "good");
         }
     },
 
-    checkGameOver: function() {
-        if(state.hp <= 0) {
-            alert("体力が尽きました...");
-            state.hp = state.maxHp;
-            state.money = Math.floor(state.money / 2);
-            state.x = 20; state.y = 20;
-            game.log("病院で目覚めた。金半減。", "bad");
-            this.renderMap();
-        }
-        if(state.stress >= 100) {
-            game.log("ストレス限界！散財した！", "bad");
-            state.money = Math.max(0, state.money - 30000);
-            state.stress = 0;
-        }
-        if(state.money >= 1000000) { alert("【GOOD END】100万円貯めた！"); this.reset(); }
-    },
-
-    reset: function() {
-        localStorage.removeItem('houseiRPG3_save');
-        location.reload();
-    },
-
-    renderMap: function() {
-        const layer = document.getElementById('map-layer');
-        layer.innerHTML = '';
-        
-        let startX = state.x - Math.floor(VIEW_W/2);
-        let startY = state.y - Math.floor(VIEW_H/2);
-
-        for(let y=0; y<VIEW_H; y++) {
-            for(let x=0; x<VIEW_W; x++) {
-                let mapX = startX + x;
-                let mapY = startY + y;
-                let tile = this.getTile(mapX, mapY);
-                let div = document.createElement('div');
-                div.className = 'tile';
-                div.style.left = (x * TILE_SIZE) + 'px';
-                div.style.top = (y * TILE_SIZE) + 'px';
-                div.innerText = tile.icon;
-                div.style.backgroundColor = tile.bg;
-                layer.appendChild(div);
+    // --- Events ---
+    
+    // 詐欺イベント
+    checkFraudEvent: function(tile) {
+        if(tile.id === TERRAIN.CITY.id && state.money >= 100000 && Math.random() < 0.03) {
+            // 防衛判定
+            if(state.flags.policeGuard > 0) {
+                game.log("詐欺師が近寄ってきたが、警官の姿を見て逃げた。", "good");
+            } else if(state.skills.society >= 3) {
+                game.log("詐欺師の口車を見抜いて追い払った！(社会人スキル)", "good");
+            } else {
+                let loss = Math.floor(state.money * 0.3);
+                state.money -= loss;
+                state.stress += 50;
+                ui.showEvent("詐欺被害！！", `
+                    <p class="important-text">「オレオレ！事故っちゃって…」</p>
+                    <p>気づいた時には金がなかった。</p>
+                    <p>-${loss}円</p>
+                    <p>交番で防犯登録しておけば…</p>
+                `);
             }
         }
-        
-        let face = "😐";
-        if(state.job === 'host') face = "😎";
-        if(state.job === 'yamibaito' || state.job === 'scammer') face = "🕶️";
-        if(state.stress > 80) face = "😱";
-        if(state.hp < 20) face = "🤢";
-        document.getElementById('player-sprite').innerText = face;
-        
-        const sprite = document.getElementById('player-sprite');
-        sprite.style.left = (Math.floor(VIEW_W/2) * TILE_SIZE) + 'px';
-        sprite.style.top = (Math.floor(VIEW_H/2) * TILE_SIZE) + 'px';
-    },
-
-    log: function(msg, type) {
-        const box = document.getElementById('log-window');
-        const div = document.createElement('div');
-        div.innerText = msg;
-        if(type) div.className = 'log-' + type;
-        box.insertBefore(div, box.firstChild);
-    },
-
-    saveGame: function() {
-        localStorage.setItem('houseiRPG3_save', JSON.stringify(state));
-        alert("セーブしました！");
-    },
-
-    loadGame: function() {
-        const data = localStorage.getItem('houseiRPG3_save');
-        if(data) {
-            state = JSON.parse(data);
-            this.renderMap();
-            ui.update();
-            ui.closeAll();
-            alert("ロードしました。");
-        } else {
-            alert("データがありません。");
-        }
-    },
-
-    randomEncounter: function(tile) {
-        if(tile.id === TERRAIN.CITY.id) { game.log("キャッチを無視。", "sys"); state.stress += 5; }
-        else if(tile.id === TERRAIN.FOREST.id) { game.log("花を見て癒やされた。", "sys"); state.stress = Math.max(0, state.stress - 10); }
-        else if(tile.id === TERRAIN.SLUM.id) { game.log("小銭を盗まれた！", "bad"); state.money = Math.max(0, state.money - 500); }
     },
 
     eventHome: function() {
-        ui.showEvent("実家", `
-            <p>安息の地。</p>
-            <button class="event-btn" onclick="ui.doAction('study')">📚 資格勉強 (XP+10 / ストレス+5)</button>
-            <button class="event-btn" onclick="ui.doAction('sleep')">🛌 寝る (HP全回復)</button>
-            <button class="event-btn" onclick="ui.doAction('pc')">💻 ネット (ストレス解消)</button>
+        if(state.job === 'homeless' && !state.flags.myHome) {
+            ui.showEvent("実家", "<p>「働かないやつを入れる家はない！」<br>鍵が変えられている…</p>");
+            return;
+        }
+        
+        let houseName = state.flags.myHome ? "マイホーム" : "実家";
+        let html = `<p>${houseName}。安らぎの場所。</p>`;
+        
+        html += `<button class="event-btn" onclick="ui.doAction('sleep')">🛌 寝る (全回復)</button>`;
+        html += `<button class="event-btn" onclick="ui.doAction('study')">📚 資格勉強 (XP+10)</button>`;
+        
+        if(state.flags.married) {
+            html += `<p>配偶者が優しく微笑んでいる。</p>`;
+            html += `<button class="event-btn" onclick="ui.doAction('love')">💕 愛を育む (ストレス超回復)</button>`;
+        } else {
+            html += `<button class="event-btn" onclick="ui.doAction('pc')">💻 ネット (ストレス-40)</button>`;
+        }
+
+        ui.showEvent(houseName, html);
+    },
+
+    eventGenericHouse: function() {
+        let html = "<p>普通の民家だ。</p>";
+        
+        // 謝罪代行
+        if(state.job === 'apology') {
+            html += `<button class="event-btn" onclick="ui.doAction('work_apology')">🙇 謝罪代行する</button>`;
+        }
+        // 闇バイト・戦闘員
+        if(state.job === 'yamibaito' || state.job === 'fighter') {
+            html += `<button class="event-btn" onclick="ui.doAction('work_crime')">🔨 押し込み強盗する</button>`;
+        }
+        
+        // 訪問販売(店員)
+        if(state.job === 'parttime') {
+             html += `<button class="event-btn" onclick="ui.doAction('work_sales')">📦 置き配バイト</button>`;
+        }
+
+        ui.showEvent("民家", html);
+    },
+
+    eventKoban: function() {
+        ui.showEvent("交番", `
+            <p>街の安全を守る。</p>
+            <button class="event-btn" onclick="ui.doAction('koban_consult')">👮 防犯登録 (無料/詐欺防止)</button>
+            <button class="event-btn" onclick="ui.doAction('koban_lost')">😭 落とし物届 (運が良ければ金拾う)</button>
         `);
     },
 
+    eventOffice: function() {
+        let html = "<p>高層オフィスビル。ビジネスの中心。</p>";
+        
+        if(state.job === 'regular') {
+            html += `<button class="event-btn" onclick="ui.doAction('work_office')">💼 出社して働く (収入安定)</button>`;
+        }
+        
+        if(!state.flags.myHome) {
+             html += `<button class="event-btn" onclick="ui.doAction('buy_house')">🏠 マイホーム購入 (100万円)</button>`;
+        }
+        
+        ui.showEvent("オフィス", html);
+    },
+
     eventHelloWork: function() {
-        let html = "<p>職業を選んでください。</p>";
+        let html = "<p>職業斡旋所。</p>";
         for(let key in JOBS) {
+            if(['yamibaito','fighter','scammer','apology'].includes(key)) continue; // 裏稼業はここに出ない
             let j = JOBS[key];
-            if(key === 'yamibaito' || key === 'scammer') continue; 
-            html += `<div class="job-item" onclick="ui.doAction('job', '${key}')">
-                <b>${j.name}</b> (Lv${j.reqLv}〜)<br>${j.desc}
+            let color = state.job === key ? "#4caf50" : "";
+            html += `<div class="job-item" style="border-color:${color}" onclick="ui.doAction('change_job', '${key}')">
+                <b>${j.name}</b><br><small>${j.desc}</small>
             </div>`;
         }
         ui.showEvent("ハローワーク", html);
     },
 
-    eventShop: function() {
-        ui.showEvent("コンビニ", `
-            <button class="event-btn" onclick="ui.doAction('buy', 'food')">🍱 弁当 (300円/HP+50)</button>
-            <button class="event-btn" onclick="ui.doAction('buy', 'drink')">🍺 酒 (200円/ストレス-30)</button>
-            <button class="event-btn" onclick="ui.doAction('work_parttime')">💰 バイト (3時間)</button>
-        `);
-    },
-
     eventSlum: function() {
-        let html = `<p>怪しい男が立っている...<br>「金が欲しいのか？いい仕事があるぞ」</p>
-            <button class="event-btn" onclick="ui.doAction('job', 'yamibaito')">😈 闇バイトに応募 (誰でも可)</button>`;
-            
-        if(state.skills.criminal >= 1) {
-             html += `<button class="event-btn" onclick="ui.doAction('job', 'scammer')">💼 受け子 (要スキル)</button>`;
-        }
+        let html = "<p>危険な匂いがするエリア。</p>";
+        // 闇職の斡旋
+        const darkJobs = ['yamibaito', 'apology', 'scammer', 'fighter'];
+        darkJobs.forEach(key => {
+            let j = JOBS[key];
+            html += `<div class="job-item" style="border-color:#ff5252" onclick="ui.doAction('change_job', '${key}')">
+                <b>${j.name}</b><br><small>${j.desc}</small>
+            </div>`;
+        });
         ui.showEvent("スラム街", html);
     },
     
     eventShrine: function() {
-        ui.showEvent("神社", `
-            <button class="event-btn" onclick="ui.doAction('pray', 100)">🙏 祈る (-100円)</button>
-            <button class="event-btn" onclick="ui.doAction('pray', -100)">💰 盗む (+500円/カルマ↓)</button>
-        `);
+        let html = `<p>神聖な場所。</p>
+            <button class="event-btn" onclick="ui.doAction('pray', 100)">🙏 祈る (-100円/カルマ浄化)</button>
+            <button class="event-btn" onclick="ui.doAction('pray', -100)">💰 賽銭泥棒 (危険)</button>`;
+            
+        // 結婚イベント
+        if(!state.flags.married) {
+            html += `<hr><p>【縁結び】</p>
+            <button class="event-btn" onclick="ui.doAction('marry_check')">💍 プロポーズする (要:30万円/正規社員)</button>`;
+        }
+        
+        ui.showEvent("神社", html);
+    },
+
+    eventShop: function() {
+        let html = `<p>24時間営業。</p>
+            <button class="event-btn" onclick="ui.doAction('buy', 'food')">🍱 弁当 (300円)</button>
+            <button class="event-btn" onclick="ui.doAction('buy', 'drink')">🍺 酒 (200円)</button>`;
+            
+        if(!state.items.includes('suit')) {
+            html += `<button class="event-btn" onclick="ui.doAction('buy', 'suit')">👔 スーツを買う (5万円)</button>`;
+        }
+        ui.showEvent("コンビニ", html);
+    },
+
+    checkGameOver: function() {
+        if(state.hp <= 0) {
+            alert("過労で倒れました…病院送りです。");
+            state.hp = state.maxHp;
+            state.money = Math.floor(state.money / 2);
+            state.x = 20; state.y = 20;
+            state.job = 'neet'; // クビ
+            game.renderMap();
+        }
+        if(state.stress >= 100) {
+            game.log("ストレス限界！発狂して散財！", "bad");
+            state.money = Math.max(0, state.money - 50000);
+            state.stress = 0;
+            if(state.flags.married) {
+                game.log("配偶者に愛想を尽かされ離婚した…", "bad");
+                state.flags.married = false;
+            }
+        }
+    },
+
+    randomEncounter: function(tile) {
+        // 簡易エンカウント
+        if(tile.id === TERRAIN.CITY.id) { 
+             game.log("街の騒音で頭が痛い。", "sys"); state.stress+=2;
+        }
+    },
+    
+    saveGame: function() {
+        localStorage.setItem('houseiRPG35_save', JSON.stringify(state));
+        alert("セーブ完了");
+    },
+    
+    loadGame: function() {
+        let d = localStorage.getItem('houseiRPG35_save');
+        if(d) { state = JSON.parse(d); game.generateMap(); game.renderMap(); ui.update(); ui.closeAll(); alert("ロード完了"); }
     }
 };
 
@@ -614,15 +655,19 @@ const ui = {
         this.isModalOpen = true;
         document.getElementById('modal-menu').style.display = 'flex';
         document.getElementById('st-job').innerText = JOBS[state.job].name;
+        document.getElementById('st-partner').innerText = state.flags.married ? "あり(ラブラブ)" : "なし";
+        document.getElementById('st-house').innerText = state.flags.myHome ? "持ち家" : (state.job==='homeless'?"なし":"実家");
         document.getElementById('st-lv').innerText = state.lv;
         document.getElementById('st-xp').innerText = state.xp;
         document.getElementById('st-next').innerText = state.nextXp;
         document.getElementById('st-money').innerText = state.money;
         document.getElementById('st-stress').innerText = state.stress;
-        document.getElementById('st-hp').innerText = state.hp;
-        document.getElementById('st-maxhp').innerText = state.maxHp;
+        document.getElementById('st-hp').innerText = state.hp + "/" + state.maxHp;
         document.getElementById('st-sp').innerText = state.sp;
         document.getElementById('st-karma').innerText = state.karma;
+        
+        let items = state.items.map(i => i === 'suit' ? 'スーツ' : i).join(', ');
+        document.getElementById('st-items').innerText = items || "なし";
     },
 
     openSkill: function() {
@@ -635,19 +680,22 @@ const ui = {
             let s = SKILLS[key];
             let currentLv = state.skills[key] || 0;
             let cls = currentLv > 0 ? "skill-item skill-owned" : "skill-item";
-            list.innerHTML += `<div class="${cls}" onclick="ui.learnSkill('${key}')"><b>${s.name}</b> (Lv.${currentLv}/${s.max}) SP:${s.cost}</div>`;
+            list.innerHTML += `<div class="${cls}" onclick="ui.learnSkill('${key}')">
+                <b>${s.name}</b> (Lv.${currentLv}/${s.max}) SP:${s.cost}<br>
+                <small>${s.desc}</small>
+            </div>`;
         }
     },
 
     learnSkill: function(key) {
         let s = SKILLS[key];
         let currentLv = state.skills[key] || 0;
-        if(currentLv >= s.max) return alert("最大です");
-        if(state.sp < s.cost) return alert("SP不足");
-        if(confirm(`習得しますか？`)) {
+        if(currentLv >= s.max) return alert("最大レベルです");
+        if(state.sp < s.cost) return alert("SPが足りません");
+        if(confirm(`${s.name} を習得しますか？`)) {
             state.sp -= s.cost;
             state.skills[key] = currentLv + 1;
-            game.log(`${s.name}習得！`, "warn");
+            game.log(`${s.name} Lv${currentLv+1} 習得！`, "good");
             this.openSkill();
         }
     },
@@ -657,6 +705,7 @@ const ui = {
         document.getElementById('modal-event').style.display = 'flex';
         document.getElementById('ev-title').innerText = title;
         document.getElementById('ev-body').innerHTML = html;
+        document.getElementById('ev-actions').innerHTML = "";
     },
 
     closeAll: function() {
@@ -666,61 +715,116 @@ const ui = {
 
     doAction: function(act, param) {
         let success = true;
-        if(act === 'study') { 
-            state.xp += 10; 
-            state.stress += 5; 
-            game.log("勉強した(XP+10)");
-            game.gainXp(0); // レベルアップチェック
-        }
-        else if(act === 'sleep') { state.hp = state.maxHp; state.stress = Math.max(0, state.stress - 20); game.log("寝た。"); }
-        else if(act === 'pc') { state.stress = Math.max(0, state.stress - 40); game.log("レスバした。"); }
+        
+        // --- 生活 ---
+        if(act === 'sleep') { state.hp = state.maxHp; state.stress = Math.max(0, state.stress - 20); game.log("ぐっすり寝た。"); }
+        else if(act === 'study') { state.xp += 10; state.stress += 5; game.gainXp(0); game.log("勉強した(XP+10)"); }
+        else if(act === 'pc') { state.stress = Math.max(0, state.stress - 40); game.log("ネットサーフィンした。"); }
+        else if(act === 'love') { state.stress = 0; game.log("幸せな時間を過ごした。", "good"); }
+        
+        // --- 買い物 ---
         else if(act === 'buy') {
-            if(param === 'food' && state.money >= 300) { state.money -= 300; state.hp += 50; game.log("弁当食った。"); }
-            else if(param === 'drink' && state.money >= 200) { state.money -= 200; state.stress -= 30; game.log("飲んだ。"); }
-            else { alert("金不足！"); success = false; }
+            if(param === 'food' && state.money >= 300) { state.money -= 300; state.hp += 50; game.log("弁当を食べた。"); }
+            else if(param === 'drink' && state.money >= 200) { state.money -= 200; state.stress -= 30; game.log("酒を飲んだ。"); }
+            else if(param === 'suit') {
+                if(state.money < 50000) return alert("金が足りない！");
+                state.money -= 50000;
+                state.items.push('suit');
+                game.log("スーツを購入した！就職活動ができる！", "good");
+            }
         }
-        else if(act === 'job') {
+        
+        // --- 仕事・職業 ---
+        else if(act === 'change_job') {
             let j = JOBS[param];
-            if(state.lv < j.reqLv) { alert("レベル不足"); success = false; }
-            else if(j.skill && !state.skills[j.skill]) { alert("スキル不足"); success = false; }
-            else { 
-                state.job = param; 
-                game.log(param==='yamibaito'?"闇に手を染めた...":"転職！", "warn"); 
-                if(param==='yamibaito' || param==='scammer') state.karma-=50; 
+            if(!j.req(state)) { alert("条件を満たしていません\n" + j.desc); success = false; }
+            else { state.job = param; game.log(`${j.name}に転職した！`, "good"); }
+        }
+        else if(act === 'work_office') { // 正規社員用
+            let earn = 15000 + (state.skills.society * 2000) + (state.skills.typing * 1000);
+            state.money += earn; state.hp -= 30; state.stress += 20; game.gainXp(20);
+            game.log(`定時退社。+${earn}円`, "good");
+        }
+        else if(act === 'work_apology') { // 謝罪代行
+            let earn = 8000 + (state.skills.smile * 2000);
+            state.money += earn; state.hp -= 20; state.stress += 40; game.gainXp(15);
+            game.log(`土下座して${earn}円得た。胃が痛い。`, "warn");
+        }
+        else if(act === 'work_crime') { // 強盗
+            if(Math.random() < 0.3) {
+                state.money = 0; state.job = 'neet'; state.stress=100;
+                game.log("警察だ！逮捕！全てを失った！", "bad");
+            } else {
+                let earn = 50000 + (Math.random()*50000);
+                state.money += Math.floor(earn); state.karma -= 50; state.stress += 50;
+                game.log(`押し入って${Math.floor(earn)}円奪った！`, "bad");
             }
         }
-        else if(act === 'work_parttime') {
-            if(state.job === 'neet') { alert("ニートは不可"); success = false; }
-            else {
-                if(state.job === 'yamibaito') {
-                    if(Math.random() < 0.3) { 
-                        state.money = 0;
-                        state.stress = 100;
-                        state.job = 'neet';
-                        game.log("警察だ！！逮捕された！全財産没収＆クビ！", "bad");
-                    } else {
-                        let earn = 30000 + Math.floor(Math.random() * 20000); 
-                        state.money += earn; state.stress += 50; state.karma -= 30;
-                        game.log(`ヤバい仕事で${earn}円稼いだ...`, "warn");
-                    }
-                } else {
-                    let earn = (state.job==='host'?10000:state.job==='scammer'?50000:1000) + (state.skills.smile?500*state.skills.smile:0);
-                    if(state.job==='scammer' && Math.random()<0.1) { earn=0; game.log("警察だ！逃げた！", "bad"); }
-                    state.money += earn; state.stress += 10; state.hp -= 20; game.gainXp(10);
-                    game.log(`${earn}円稼いだ。`);
-                }
+        else if(act === 'work_sales') {
+            state.money += 2000; state.hp -= 10; game.gainXp(5);
+            game.log("荷物を置いた。+2000円");
+        }
+
+        // --- 交番 ---
+        else if(act === 'koban_consult') {
+            state.flags.policeGuard = 100; // 100歩守られる
+            game.log("お巡りさんがパトロールを強化してくれた！", "good");
+        }
+        else if(act === 'koban_lost') {
+            if(Math.random() < 0.2) {
+                let found = 1000 + Math.floor(Math.random()*5000);
+                state.money += found;
+                game.log(`落とし主から謝礼${found}円をもらった！`, "good");
+            } else {
+                game.log("特に何も届いていなかった。");
             }
         }
+
+        // --- その他 ---
         else if(act === 'pray') {
-            if(param > 0 && state.money>=100) { state.money-=100; state.karma+=10; game.log("祈った。"); }
-            else if(param < 0) { state.money+=500; state.karma-=20; game.log("盗んだ！", "bad"); }
+            if(param > 0 && state.money>=100) { state.money-=100; state.karma = Math.max(0, state.karma+10); game.log("心が洗われた。"); }
+            else if(param < 0) { state.money+=500; state.karma-=30; game.log("バチ当たりめ！", "bad"); }
         }
+        else if(act === 'buy_house') {
+            if(state.money < 1000000) return alert("100万円必要です。");
+            if(confirm("本当に100万円でマイホームを買いますか？")) {
+                state.money -= 1000000;
+                state.flags.myHome = true;
+                game.log("夢のマイホームを手に入れた！！！", "good");
+            }
+        }
+        else if(act === 'marry_check') {
+            // 結婚判定
+            if(state.job !== 'regular') return alert("相手の親「正規社員じゃないと娘はやらん！」");
+            if(state.lv < 15) return alert("相手「もう少し頼りがい（Lv15以上）が欲しいわ」");
+            if((state.skills.mote || 0) < 3) return alert("相手「話がつまらないわ（モテスキルLv3必要）」");
+            if(state.money < 300000) return alert("結婚資金（30万円）が足りません！");
+            
+            if(confirm("30万円支払って結婚しますか？")) {
+                state.money -= 300000;
+                state.flags.married = true;
+                game.log("おめでとう！結婚しました！幸せな家庭を築こう。", "good");
+            }
+        }
+
         if(success) this.closeAll();
-        this.update();
+        ui.update();
         game.checkGameOver();
     }
 };
 
+// スケーリング処理
+function fitScreen() {
+    const gameBoy = document.getElementById('game-boy');
+    const wrapper = document.getElementById('scaler');
+    gameBoy.style.transform = 'none';
+    const scale = Math.min(wrapper.clientHeight / (gameBoy.offsetHeight + 20), wrapper.clientWidth / (gameBoy.offsetWidth + 20));
+    gameBoy.style.transform = `scale(${Math.min(scale, 1)})`;
+}
+window.addEventListener('load', fitScreen);
+window.addEventListener('resize', fitScreen);
+
+// 操作
 window.addEventListener('keydown', (e) => {
     if(e.key === 'ArrowUp') game.move(0, -1);
     if(e.key === 'ArrowDown') game.move(0, 1);
