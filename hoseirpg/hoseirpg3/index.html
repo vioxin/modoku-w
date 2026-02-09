@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ほうせいRPG 3 〜大自然と資本主義〜</title>
+<style>
+    :root {
+        --bg-color: #202020;
+        --screen-bg: #e0f0e0; /* レトロ液晶風 */
+        --ui-bg: #333;
+        --text-color: #fff;
+        --accent: #4caf50;
+        --danger: #ff5252;
+    }
+    
+    * { box-sizing: border-box; touch-action: manipulation; }
+    
+    body {
+        background: var(--bg-color);
+        color: var(--text-color);
+        font-family: 'Courier New', monospace;
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        overflow: hidden;
+    }
+
+    /* --- メイン画面レイアウト --- */
+    #game-boy {
+        width: 100%;
+        max-width: 480px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background: #444;
+        border: 2px solid #666;
+        border-radius: 10px;
+        padding: 10px;
+    }
+
+    /* 画面部分 */
+    #screen-area {
+        flex: 1;
+        background: var(--screen-bg);
+        border: 4px solid #222;
+        border-radius: 4px;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        color: #000;
+        image-rendering: pixelated;
+    }
+
+    #status-bar {
+        background: #222;
+        color: #fff;
+        padding: 4px;
+        font-size: 10px;
+        display: flex;
+        justify-content: space-between;
+        z-index: 10;
+    }
+
+    #viewport {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        background: #88c070; /* 草原の色 */
+    }
+
+    /* マップタイル */
+    .tile {
+        position: absolute;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 20px;
+    }
+    
+    /* プレイヤー */
+    #player-sprite {
+        position: absolute;
+        width: 32px;
+        height: 32px;
+        font-size: 24px;
+        z-index: 5;
+        transition: top 0.1s, left 0.1s;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    /* メッセージログ */
+    #log-window {
+        height: 80px;
+        background: rgba(0,0,0,0.8);
+        color: #fff;
+        font-size: 12px;
+        padding: 5px;
+        overflow-y: auto;
+        border-top: 2px solid #fff;
+    }
+    .log-sys { color: #aaa; }
+    .log-warn { color: #ffeb3b; }
+    .log-bad { color: #ff5252; }
+
+    /* --- コントローラー --- */
+    #controls {
+        height: 180px;
+        background: #444;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        padding: 10px;
+    }
+
+    .d-pad {
+        display: grid;
+        grid-template-columns: 40px 40px 40px;
+        grid-template-rows: 40px 40px 40px;
+        gap: 5px;
+        align-self: center;
+        justify-self: center;
+    }
+    
+    .btn-pad {
+        background: #222;
+        border-radius: 5px;
+        border: none;
+        box-shadow: 0 4px 0 #000;
+        cursor: pointer;
+    }
+    .btn-pad:active { transform: translateY(4px); box-shadow: none; }
+    
+    .action-pad {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .menu-btn {
+        width: 100px;
+        padding: 10px;
+        background: #555;
+        color: white;
+        border: 2px solid #fff;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+    }
+
+    /* --- モーダル (メニュー、ステータス、店) --- */
+    .modal {
+        display: none;
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.85);
+        z-index: 100;
+        color: white;
+        flex-direction: column;
+        padding: 20px;
+        overflow-y: auto;
+    }
+    
+    .modal-header { font-size: 1.2rem; border-bottom: 2px solid var(--accent); margin-bottom: 10px; padding-bottom: 5px; }
+    
+    .stat-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .skill-item, .job-item {
+        background: #333;
+        border: 1px solid #666;
+        padding: 8px;
+        margin-bottom: 5px;
+        cursor: pointer;
+    }
+    .skill-item:hover, .job-item:hover { background: #555; }
+    .skill-owned { border-color: var(--accent); color: var(--accent); }
+
+    .btn-close {
+        margin-top: 10px; padding: 10px; width: 100%; background: var(--danger); border: none; color: white; font-weight: bold;
+    }
+    
+    .save-area { display: flex; gap: 5px; margin-top: 10px; }
+    .save-btn { flex: 1; padding: 5px; background: #2196f3; color: white; border: none; }
+
+</style>
+</head>
+<body>
+
+<div id="game-boy">
+    <div id="screen-area">
+        <div id="status-bar">
+            <span>LV:<span id="ui-lv">1</span></span>
+            <span>HP:<span id="ui-hp">100</span></span>
+            <span>¥:<span id="ui-money">0</span></span>
+            <span>JOB:<span id="ui-job">ニート</span></span>
+        </div>
+        <div id="viewport">
+            <div id="map-layer"></div>
+            <div id="player-sprite">😐</div>
+        </div>
+        <div id="log-window">
+            <div>ようこそ、ほうせいRPG3へ。</div>
+            <div>まずは「メニュー」からステータスを確認しよう。</div>
+        </div>
+    </div>
+
+    <div id="controls">
+        <div class="d-pad">
+            <div></div><button class="btn-pad" onclick="game.move(0, -1)">▲</button><div></div>
+            <button class="btn-pad" onclick="game.move(-1, 0)">◀</button>
+            <button class="btn-pad" onclick="game.interact()" style="background:#e91e63;">A</button>
+            <button class="btn-pad" onclick="game.move(1, 0)">▶</button>
+            <div></div><button class="btn-pad" onclick="game.move(0, 1)">▼</button><div></div>
+        </div>
+        <div class="action-pad">
+            <button class="menu-btn" onclick="ui.openMenu()">メニュー/能力</button>
+            <button class="menu-btn" onclick="ui.openSkill()">スキル習得</button>
+            <button class="menu-btn" style="background:#4caf50" onclick="game.saveGame()">セーブ</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-menu" class="modal">
+    <div class="modal-header">ステータス</div>
+    <div class="stat-grid">
+        <div>名前: ほうせい</div>
+        <div>職業: <span id="st-job">ニート</span></div>
+        <div>レベル: <span id="st-lv">1</span></div>
+        <div>経験値: <span id="st-xp">0</span> / <span id="st-next">100</span></div>
+        <div>所持金: <span id="st-money">0</span>円</div>
+        <div>ストレス: <span id="st-stress">0</span>%</div>
+        <div>体力: <span id="st-hp">100</span> / <span id="st-maxhp">100</span></div>
+        <div>スキルP: <span id="st-sp">0</span></div>
+        <div>カルマ: <span id="st-karma">0</span> (善悪値)</div>
+    </div>
+    <div style="font-size:0.8rem; color:#aaa;">※カルマが低いと裏社会、高いと表社会で有利</div>
+    
+    <div class="save-area">
+        <button class="save-btn" onclick="game.saveGame()">セーブ</button>
+        <button class="save-btn" onclick="game.loadGame()" style="background:#ff9800">ロード</button>
+    </div>
+    <button class="btn-close" onclick="ui.closeAll()">閉じる</button>
+</div>
+
+<div id="modal-skill" class="modal">
+    <div class="modal-header">スキル習得 (SP: <span id="sk-sp">0</span>)</div>
+    <div id="skill-list"></div>
+    <button class="btn-close" onclick="ui.closeAll()">閉じる</button>
+</div>
+
+<div id="modal-event" class="modal">
+    <div class="modal-header" id="ev-title">イベント</div>
+    <div id="ev-body" style="margin-bottom: 20px;">内容</div>
+    <div id="ev-actions"></div>
+    <button class="btn-close" onclick="ui.closeAll()">閉じる</button>
+</div>
+
+<script>
+/**
+ * ほうせいRPG 3 Core Logic
+ */
+
+// --- 定数とデータ ---
+const TILE_SIZE = 32;
+const VIEW_W = 15; // 表示幅（マス）
+const VIEW_H = 11; // 表示高さ（マス）
+const MAP_W = 40;  // 全体マップ幅
+const MAP_H = 40;  // 全体マップ高さ
+
+// 地形タイプ
+const TERRAIN = {
+    GRASS: { id: 0, icon: '', bg: '#8bc34a', name: '草原', walk: true },
+    FOREST: { id: 1, icon: '🌲', bg: '#2e7d32', name: '森', walk: true, cost: 2 },
+    WATER:  { id: 2, icon: '🌊', bg: '#2196f3', name: '川', walk: false },
+    MOUNTAIN:{ id: 3, icon: '⛰️', bg: '#795548', name: '山', walk: true, cost: 3 },
+    CITY:   { id: 4, icon: '', bg: '#9e9e9e', name: '市街地', walk: true },
+    WALL:   { id: 5, icon: '🧱', bg: '#555', name: '壁', walk: false },
+    HOME:   { id: 10, icon: '🏠', bg: '#ffeb3b', name: '実家', type: 'spot' },
+    WORK:   { id: 11, icon: '🏢', bg: '#607d8b', name: 'ハローワーク', type: 'spot' },
+    SHOP:   { id: 12, icon: '🏪', bg: '#ff9800', name: 'コンビニ', type: 'spot' },
+    SLUM:   { id: 13, icon: '🏚️', bg: '#3e2723', name: 'スラム街', type: 'spot' },
+    SHRINE: { id: 14, icon: '⛩️', bg: '#e91e63', name: '神社', type: 'spot' }
+};
+
+// 職業データ
+const JOBS = {
+    neet: { name: "ニート", reqLv: 0, skill: null, desc: "基本職。ストレス耐性が低い。" },
+    parttime: { name: "コンビニバイト", reqLv: 1, skill: "smile", desc: "低賃金だが安定。" },
+    can: { name: "空き缶プロ", reqLv: 2, skill: "survival", desc: "体力を使うが自由。" },
+    writer: { name: "Webライター", reqLv: 5, skill: "typing", desc: "スキル「タイピング」が必要。" },
+    host: { name: "ホスト", reqLv: 8, skill: "charm", desc: "スキル「魅力」が必要。高収入。" },
+    scammer: { name: "受け子", reqLv: 1, skill: "criminal", desc: "【闇職】捕まるリスクがある。" },
+    hero: { name: "勇者", reqLv: 20, skill: "bravery", desc: "【伝説】特定のイベントで解放。" }
+};
+
+// スキルデータ
+const SKILLS = {
+    survival: { name: "サバイバル", cost: 1, max: 5, desc: "森や山での移動コスト減＆アイテム発見率UP" },
+    smile: { name: "営業スマイル", cost: 1, max: 3, desc: "バイトの収入が少しアップ" },
+    typing: { name: "タイピング", cost: 2, max: 5, desc: "デスクワーク職の解放＆効率UP" },
+    guts: { name: "根性", cost: 3, max: 5, desc: "最大HPとストレス耐性がアップ" },
+    charm: { name: "魅力", cost: 3, max: 5, desc: "人からアイテムを貰いやすくなる" },
+    negotiation: { name: "交渉術", cost: 4, max: 3, desc: "報酬のつり上げが可能" },
+    criminal: { name: "裏の知識", cost: 5, max: 1, desc: "スラム街での取引が可能になる" }
+};
+
+// --- ゲームステート ---
+let state = {
+    x: 20, y: 20, // スタート位置
+    lv: 1, xp: 0, nextXp: 100, sp: 0,
+    hp: 100, maxHp: 100,
+    money: 1000,
+    stress: 0,
+    karma: 0, // 善悪値 (-100 ~ 100)
+    job: 'neet',
+    skills: {}, // { survival: 1, ... }
+    flags: {}, // イベントフラグ
+    mapData: [] // 2次元配列
+};
+
+// --- コアシステム ---
+const game = {
+    init: function() {
+        this.generateMap();
+        this.renderMap();
+        ui.update();
+        game.log("ゲーム開始！まずは街へ行こう。");
+    },
+
+    // マップ自動生成 (簡易的な地形生成)
+    generateMap: function() {
+        state.mapData = [];
+        for(let y=0; y<MAP_H; y++){
+            let row = [];
+            for(let x=0; x<MAP_W; x++){
+                // 基本地形：パーリンノイズっぽく簡易生成
+                let noise = Math.sin(x/5) + Math.cos(y/5) + Math.random()*0.5;
+                let type = TERRAIN.GRASS.id;
+                
+                if (noise > 1.5) type = TERRAIN.MOUNTAIN.id;
+                else if (noise > 0.8) type = TERRAIN.FOREST.id;
+                else if (noise < -1.0) type = TERRAIN.WATER.id;
+
+                // 街エリア (中央付近)
+                let dist = Math.sqrt((x-20)**2 + (y-20)**2);
+                if(dist < 8) type = TERRAIN.CITY.id;
+
+                row.push(type);
+            }
+            state.mapData.push(row);
+        }
+
+        // スポット配置
+        this.setTile(20, 20, TERRAIN.HOME.id);
+        this.setTile(20, 18, TERRAIN.WORK.id);
+        this.setTile(22, 20, TERRAIN.SHOP.id);
+        this.setTile(10, 30, TERRAIN.SLUM.id); // 遠くのスラム
+        this.setTile(30, 10, TERRAIN.SHRINE.id); // 山奥の神社
+    },
+
+    setTile: function(x, y, id) {
+        if(x>=0 && x<MAP_W && y>=0 && y<MAP_H) state.mapData[y][x] = id;
+    },
+
+    getTile: function(x, y) {
+        if(x<0 || x>=MAP_W || y<0 || y>=MAP_H) return TERRAIN.WALL;
+        let id = state.mapData[y][x];
+        return Object.values(TERRAIN).find(t => t.id === id) || TERRAIN.GRASS;
+    },
+
+    // 移動処理
+    move: function(dx, dy) {
+        if(ui.isModalOpen) return;
+
+        let nx = state.x + dx;
+        let ny = state.y + dy;
+        let tile = this.getTile(nx, ny);
+
+        if(!tile.walk && tile.type !== 'spot') {
+            game.log("そこは通れない。", "sys");
+            return;
+        }
+
+        // コスト計算 (スキルで軽減)
+        let cost = tile.cost || 1;
+        let survivalLv = state.skills.survival || 0;
+        if(tile.id === TERRAIN.FOREST.id || tile.id === TERRAIN.MOUNTAIN.id) {
+            cost = Math.max(1, cost - survivalLv);
+        }
+
+        state.hp -= cost;
+        state.x = nx;
+        state.y = ny;
+
+        // 経験値獲得 (歩くだけで少し入る)
+        this.gainXp(1);
+
+        // ランダムイベント
+        if(Math.random() < 0.05) this.randomEncounter(tile);
+
+        this.renderMap();
+        ui.update();
+        this.checkGameOver();
+    },
+
+    // インタラクション (Aボタン)
+    interact: function() {
+        let tile = this.getTile(state.x, state.y);
+        
+        if(tile.id === TERRAIN.HOME.id) {
+            this.eventHome();
+        } else if(tile.id === TERRAIN.WORK.id) {
+            this.eventHelloWork();
+        } else if(tile.id === TERRAIN.SHOP.id) {
+            this.eventShop();
+        } else if(tile.id === TERRAIN.SLUM.id) {
+            this.eventSlum();
+        } else if(tile.id === TERRAIN.SHRINE.id) {
+            this.eventShrine();
+        } else {
+            game.log("ここでは特に何もない。");
+        }
+    },
+
+    // 経験値とレベルアップ
+    gainXp: function(amount) {
+        state.xp += amount;
+        if(state.xp >= state.nextXp) {
+            state.lv++;
+            state.xp -= state.nextXp;
+            state.nextXp = Math.floor(state.nextXp * 1.2);
+            state.sp += 3; // スキルポイント付与
+            state.maxHp += 10;
+            state.hp = state.maxHp;
+            game.log(`【レベルアップ！】Lv${state.lv}になった！SP+3`, "warn");
+            
+            // レベルアップイベント
+            if(state.lv === 5) game.log("体力がつき、Webライターへの道が見えてきた...", "sys");
+        }
+    },
+
+    // ゲームオーバー判定
+    checkGameOver: function() {
+        if(state.hp <= 0) {
+            alert("【野垂れ死に】\n体力が尽きました...");
+            state.hp = state.maxHp;
+            state.money = Math.floor(state.money / 2);
+            state.x = 20; state.y = 20; // 実家へ
+            game.log("病院で目が覚めた。所持金が半分になった。", "bad");
+            this.renderMap();
+        }
+        if(state.stress >= 100) {
+            game.log("ストレスで発狂し、爆買いしてしまった！", "bad");
+            state.money = Math.max(0, state.money - 30000);
+            state.stress = 0;
+        }
+        this.checkEnding();
+    },
+
+    // エンディング判定
+    checkEnding: function() {
+        if(state.money >= 1000000) {
+            alert("【GOOD END: 億万長者】\n100万円貯めた！ほうせいは投資家としてデビューした。");
+            this.reset();
+        } else if(state.skills.survival >= 5 && state.lv >= 30 && state.x < 5 && state.y < 5) {
+            alert("【TRUE END: 森の賢者】\n社会に絶望し、森の奥で自給自足の生活を始めた。");
+            this.reset();
+        } else if(state.karma <= -100 && state.money >= 500000) {
+            alert("【BAD END: 闇の帝王】\n裏社会のボスとして君臨した。警察に追われる日々が始まる。");
+            this.reset();
+        }
+    },
+
+    reset: function() {
+        localStorage.removeItem('houseiRPG3_save');
+        location.reload();
+    },
+
+    // --- マップ描画 (重要: カメラ制御) ---
+    renderMap: function() {
+        const layer = document.getElementById('map-layer');
+        layer.innerHTML = '';
+        
+        // プレイヤー中心に描画範囲を決定
+        let startX = state.x - Math.floor(VIEW_W/2);
+        let startY = state.y - Math.floor(VIEW_H/2);
+
+        for(let y=0; y<VIEW_H; y++) {
+            for(let x=0; x<VIEW_W; x++) {
+                let mapX = startX + x;
+                let mapY = startY + y;
+                
+                let tile = this.getTile(mapX, mapY);
+                
+                let div = document.createElement('div');
+                div.className = 'tile';
+                div.style.left = (x * TILE_SIZE) + 'px';
+                div.style.top = (y * TILE_SIZE) + 'px';
+                div.innerText = tile.icon;
+                div.style.backgroundColor = tile.bg;
+                
+                // プレイヤーの相対位置は常に中心
+                if(x === Math.floor(VIEW_W/2) && y === Math.floor(VIEW_H/2)) {
+                    // プレイヤー描画は別レイヤーだが、ここで位置合わせ不要（CSSで固定）
+                }
+
+                layer.appendChild(div);
+            }
+        }
+        
+        // プレイヤーの顔更新
+        let face = "😐";
+        if(state.job === 'host') face = "😎";
+        if(state.job === 'scammer') face = "🕶️";
+        if(state.stress > 80) face = "😱";
+        if(state.hp < 20) face = "🤢";
+        document.getElementById('player-sprite').innerText = face;
+        
+        // プレイヤー位置を中心に固定 (CSSで調整済みだが微調整)
+        const sprite = document.getElementById('player-sprite');
+        sprite.style.left = (Math.floor(VIEW_W/2) * TILE_SIZE) + 'px';
+        sprite.style.top = (Math.floor(VIEW_H/2) * TILE_SIZE) + 'px';
+    },
+
+    log: function(msg, type) {
+        const box = document.getElementById('log-window');
+        const div = document.createElement('div');
+        div.innerText = msg;
+        if(type) div.className = 'log-' + type;
+        box.insertBefore(div, box.firstChild);
+    },
+
+    saveGame: function() {
+        localStorage.setItem('houseiRPG3_save', JSON.stringify(state));
+        alert("セーブしました！");
+    },
+
+    loadGame: function() {
+        const data = localStorage.getItem('houseiRPG3_save');
+        if(data) {
+            state = JSON.parse(data);
+            this.renderMap();
+            ui.update();
+            ui.closeAll();
+            alert("ロードしました。");
+        } else {
+            alert("セーブデータがありません。");
+        }
+    },
+
+    // --- イベント群 ---
+    
+    randomEncounter: function(tile) {
+        if(tile.id === TERRAIN.CITY.id) {
+            game.log("キャッチに声をかけられた... 無視した。", "sys");
+            state.stress += 5;
+        } else if(tile.id === TERRAIN.FOREST.id) {
+            game.log("きれいな花を見つけた。心が洗われる。", "sys");
+            state.stress = Math.max(0, state.stress - 10);
+        } else if(tile.id === TERRAIN.SLUM.id) {
+            game.log("小銭を盗まれた！", "bad");
+            state.money = Math.max(0, state.money - 500);
+        }
+    },
+
+    eventHome: function() {
+        ui.showEvent("実家", `
+            <p>安息の地。どうする？</p>
+            <button onclick="ui.doAction('sleep')">寝る (HP回復/無料)</button>
+            <button onclick="ui.doAction('pc')">PCでネットサーフィン (ストレス解消)</button>
+        `);
+    },
+
+    eventHelloWork: function() {
+        let html = "<p>職業を選んでください。</p>";
+        for(let key in JOBS) {
+            let j = JOBS[key];
+            if(key === 'hero' || key === 'scammer') continue; // 特殊職は除く
+            html += `<div class="job-item" onclick="ui.doAction('job', '${key}')">
+                <b>${j.name}</b> (Lv${j.reqLv}〜)<br><small>${j.desc}</small>
+            </div>`;
+        }
+        ui.showEvent("ハローワーク", html);
+    },
+
+    eventShop: function() {
+        ui.showEvent("コンビニ", `
+            <button onclick="ui.doAction('buy', 'food')">お弁当 (300円 / HP+50)</button>
+            <button onclick="ui.doAction('buy', 'drink')">ストゼロ (200円 / ストレス-30)</button>
+            <button onclick="ui.doAction('work_parttime')">バイトする (3時間)</button>
+        `);
+    },
+
+    eventSlum: function() {
+        if(state.skills.criminal >= 1) {
+            ui.showEvent("スラム街の路地裏", `
+                <p>怪しい男「仕事あるぜ...？」</p>
+                <button onclick="ui.doAction('job', 'scammer')">闇バイト (受け子) になる</button>
+            `);
+        } else {
+            game.log("雰囲気が悪くて近づけない... (スキル「裏の知識」が必要)", "sys");
+        }
+    },
+    
+    eventShrine: function() {
+        ui.showEvent("古びた神社", `
+            <p>賽銭箱がある。</p>
+            <button onclick="ui.doAction('pray', 100)">100円入れる (カルマ↑)</button>
+            <button onclick="ui.doAction('pray', -100)">賽銭を盗む (カルマ↓↓ 収入+)</button>
+        `);
+    }
+};
+
+// --- UI制御 ---
+const ui = {
+    isModalOpen: false,
+
+    update: function() {
+        document.getElementById('ui-lv').innerText = state.lv;
+        document.getElementById('ui-hp').innerText = state.hp;
+        document.getElementById('ui-money').innerText = state.money;
+        document.getElementById('ui-job').innerText = JOBS[state.job].name;
+    },
+
+    openMenu: function() {
+        this.isModalOpen = true;
+        document.getElementById('modal-menu').style.display = 'flex';
+        // ステータス反映
+        document.getElementById('st-job').innerText = JOBS[state.job].name;
+        document.getElementById('st-lv').innerText = state.lv;
+        document.getElementById('st-xp').innerText = state.xp;
+        document.getElementById('st-next').innerText = state.nextXp;
+        document.getElementById('st-money').innerText = state.money;
+        document.getElementById('st-stress').innerText = state.stress;
+        document.getElementById('st-hp').innerText = state.hp;
+        document.getElementById('st-maxhp').innerText = state.maxHp;
+        document.getElementById('st-sp').innerText = state.sp;
+        document.getElementById('st-karma').innerText = state.karma;
+    },
+
+    openSkill: function() {
+        this.isModalOpen = true;
+        document.getElementById('modal-skill').style.display = 'flex';
+        document.getElementById('sk-sp').innerText = state.sp;
+        
+        const list = document.getElementById('skill-list');
+        list.innerHTML = "";
+        
+        for(let key in SKILLS) {
+            let s = SKILLS[key];
+            let currentLv = state.skills[key] || 0;
+            let cls = currentLv > 0 ? "skill-item skill-owned" : "skill-item";
+            
+            list.innerHTML += `
+                <div class="${cls}" onclick="ui.learnSkill('${key}')">
+                    <b>${s.name}</b> (Lv.${currentLv}/${s.max})<br>
+                    消費SP: ${s.cost} <small>${s.desc}</small>
+                </div>
+            `;
+        }
+    },
+
+    learnSkill: function(key) {
+        let s = SKILLS[key];
+        let currentLv = state.skills[key] || 0;
+        
+        if(currentLv >= s.max) {
+            alert("これ以上レベルを上げられません。");
+            return;
+        }
+        if(state.sp < s.cost) {
+            alert("SPが足りません！レベルを上げて出直してください。");
+            return;
+        }
+        
+        if(confirm(`${s.name} を習得/強化しますか？(消費SP:${s.cost})`)) {
+            state.sp -= s.cost;
+            state.skills[key] = currentLv + 1;
+            game.log(`${s.name} Lv.${state.skills[key]} を習得！`, "warn");
+            this.openSkill(); // 更新
+        }
+    },
+
+    showEvent: function(title, html) {
+        this.isModalOpen = true;
+        document.getElementById('modal-event').style.display = 'flex';
+        document.getElementById('ev-title').innerText = title;
+        document.getElementById('ev-body').innerHTML = html;
+    },
+
+    closeAll: function() {
+        this.isModalOpen = false;
+        document.querySelectorAll('.modal').forEach(e => e.style.display = 'none');
+    },
+
+    doAction: function(act, param) {
+        let success = true;
+        
+        if(act === 'sleep') {
+            state.hp = state.maxHp;
+            state.stress = Math.max(0, state.stress - 20);
+            game.log("ぐっすり眠った。");
+        }
+        else if(act === 'pc') {
+            state.stress = Math.max(0, state.stress - 40);
+            game.log("ネット掲示板でレスバしてスッキリした。");
+        }
+        else if(act === 'buy') {
+            if(param === 'food' && state.money >= 300) {
+                state.money -= 300;
+                state.hp = Math.min(state.maxHp, state.hp + 50);
+                game.log("コンビニ弁当を食べた。");
+            } else if(param === 'drink' && state.money >= 200) {
+                state.money -= 200;
+                state.stress = Math.max(0, state.stress - 30);
+                game.log("ストゼロを一気飲みした！");
+            } else {
+                alert("金が足りない！");
+                success = false;
+            }
+        }
+        else if(act === 'job') {
+            let j = JOBS[param];
+            if(state.lv < j.reqLv) {
+                alert(`レベルが足りません (必要Lv: ${j.reqLv})`);
+                success = false;
+            } else if(j.skill && !state.skills[j.skill]) {
+                alert(`スキル「${SKILLS[j.skill].name}」が必要です！`);
+                success = false;
+            } else {
+                state.job = param;
+                game.log(`${j.name} に転職しました！`, "warn");
+                
+                // イベント転職時の特殊メッセージ
+                if(param === 'scammer') {
+                    game.log("【警告】あなたは犯罪に手を染めました。(カルマ低下)", "bad");
+                    state.karma -= 50;
+                }
+            }
+        }
+        else if(act === 'work_parttime') {
+            if(state.job === 'neet') {
+                alert("ニートは働けません。ハローワークで職を探してください。");
+                success = false;
+            } else {
+                // 労働処理
+                let baseIncome = 1000;
+                let bonus = 0;
+                
+                // 職による補正
+                if(state.job === 'host') baseIncome = 10000;
+                if(state.job === 'scammer') baseIncome = 50000;
+
+                // スキル補正
+                if(state.skills.smile) bonus += 500 * state.skills.smile;
+                if(state.skills.negotiation) bonus += baseIncome * 0.2;
+
+                let earn = baseIncome + bonus;
+                let stressDmg = 10;
+                if(state.job === 'scammer') { // リスク判定
+                    if(Math.random() < 0.2) {
+                        earn = 0;
+                        game.log("警察に見つかりかけ、報酬無しで逃げた！", "bad");
+                    }
+                    stressDmg = 30;
+                }
+
+                state.money += earn;
+                state.stress += stressDmg;
+                state.hp -= 20;
+                game.gainXp(10);
+                game.log(`${earn}円 稼いだ。(ストレス+${stressDmg})`);
+            }
+        }
+        else if(act === 'pray') {
+            if(param > 0) { // 寄付
+                if(state.money >= 100) {
+                    state.money -= 100;
+                    state.karma += 10;
+                    game.log("心が洗われた気がする。(カルマ上昇)");
+                }
+            } else { // 泥棒
+                state.money += 500;
+                state.karma -= 20;
+                game.log("賽銭を盗んだ。バチが当たるぞ...(カルマ低下)", "bad");
+            }
+        }
+
+        if(success) this.closeAll();
+        this.update();
+        game.checkGameOver();
+    }
+};
+
+// キーボード操作
+window.addEventListener('keydown', (e) => {
+    if(e.key === 'ArrowUp') game.move(0, -1);
+    if(e.key === 'ArrowDown') game.move(0, 1);
+    if(e.key === 'ArrowLeft') game.move(-1, 0);
+    if(e.key === 'ArrowRight') game.move(1, 0);
+    if(e.key === 'z' || e.key === 'Enter') game.interact();
+    if(e.key === 'x') ui.openMenu();
+});
+
+// 開始
+game.init();
+
+</script>
+</body>
+</html>
