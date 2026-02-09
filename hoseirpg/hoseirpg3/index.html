@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>ほうせいRPG 3.5 〜社会の荒波〜</title>
+<title>ほうせいRPG 3.6 〜演出強化版〜</title>
 <style>
     :root {
         --bg-color: #202020;
@@ -13,12 +13,11 @@
         --accent: #4caf50;
         --danger: #ff5252;
         --tile-size: 32px;
-        /* 画面サイズ定義 */
         --view-w: 416px; /* 13 * 32 */
         --view-h: 224px; /* 7 * 32 */
     }
     
-    * { box-sizing: border-box; touch-action: manipulation; }
+    * { box-sizing: border-box; touch-action: manipulation; user-select: none; }
     
     body {
         background: var(--bg-color);
@@ -43,13 +42,13 @@
 
     #game-boy {
         width: 100%;
-        max-width: 480px; /* 少し広げました */
+        max-width: 460px;
         display: flex;
         flex-direction: column;
         background: #444;
         border: 2px solid #666;
         border-radius: 10px;
-        padding: 10px;
+        padding: 15px;
         box-shadow: 0 0 20px rgba(0,0,0,0.5);
     }
 
@@ -61,7 +60,9 @@
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        margin-bottom: 10px;
+        margin-bottom: 15px;
+        /* 高さを明示的に確保 */
+        height: 320px; 
     }
 
     #status-bar {
@@ -73,10 +74,10 @@
         justify-content: space-between;
         z-index: 10;
         border-bottom: 2px solid #000;
+        height: 24px;
         flex-shrink: 0;
     }
 
-    /* ここを修正：高さを強制的に確保 */
     #viewport {
         position: relative;
         overflow: hidden;
@@ -85,7 +86,18 @@
         justify-content: center;
         align-items: center;
         width: 100%;
-        height: var(--view-h); /* 高さ固定 */
+        height: var(--view-h); /* 224px */
+        flex-shrink: 0;
+    }
+
+    /* フラッシュエフェクト用 */
+    #flash-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        pointer-events: none;
+        z-index: 20;
+        opacity: 0;
+        transition: opacity 0.1s;
     }
 
     #map-container {
@@ -110,25 +122,44 @@
         width: var(--tile-size);
         height: var(--tile-size);
         font-size: 24px;
-        z-index: 5;
+        z-index: 10;
         display: flex;
         justify-content: center;
         align-items: center;
         line-height: 1;
         text-shadow: 0 0 5px white;
-        transition: top 0.1s, left 0.1s; /* 滑らか移動 */
+        transition: top 0.1s, left 0.1s;
+    }
+
+    /* ポップアップテキスト */
+    .popup-text {
+        position: absolute;
+        font-weight: bold;
+        font-size: 14px;
+        text-shadow: 1px 1px 0 #000;
+        pointer-events: none;
+        z-index: 100;
+        animation: floatUp 1s forwards;
+        width: 100px;
+        text-align: center;
+        margin-left: -34px; /* 中央寄せ調整 */
+    }
+    @keyframes floatUp {
+        0% { transform: translateY(0); opacity: 1; }
+        100% { transform: translateY(-30px); opacity: 0; }
     }
 
     #log-window {
-        height: 60px;
-        background: rgba(0,0,0,0.85);
+        flex-grow: 1; /* 残りのスペースを埋める */
+        background: rgba(0,0,0,0.9);
         color: #fff;
         font-size: 12px;
         padding: 5px;
         overflow-y: auto;
         border-top: 2px solid #fff;
-        flex-shrink: 0;
+        font-family: 'Courier New', sans-serif;
     }
+    .log-entry { margin-bottom: 2px; border-bottom: 1px solid #333; padding-bottom: 1px; }
     .log-sys { color: #aaa; }
     .log-warn { color: #ffeb3b; }
     .log-bad { color: #ff5252; }
@@ -178,7 +209,7 @@
     .menu-btn {
         width: 100%;
         max-width: 130px;
-        padding: 10px;
+        padding: 12px;
         background: #555;
         color: white;
         border: 2px solid #fff;
@@ -195,7 +226,7 @@
         display: none;
         position: fixed;
         top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,0.9);
+        background: rgba(0,0,0,0.8);
         z-index: 1000;
         color: white;
         flex-direction: column;
@@ -203,6 +234,7 @@
         overflow-y: auto;
         justify-content: center;
         align-items: center;
+        backdrop-filter: blur(2px);
     }
     .modal-content {
         width: 100%;
@@ -211,15 +243,17 @@
         border: 2px solid #fff;
         padding: 15px;
         border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     }
     .modal-header { font-size: 1.2rem; border-bottom: 2px solid var(--accent); margin-bottom: 10px; padding-bottom: 5px; font-weight: bold;}
     .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; font-size: 0.9rem; }
-    .skill-item, .job-item { background: #444; border: 1px solid #666; padding: 8px; margin-bottom: 6px; cursor: pointer; border-radius: 5px; font-size: 0.9rem; position: relative; }
+    .skill-item, .job-item { background: #444; border: 1px solid #666; padding: 10px; margin-bottom: 6px; cursor: pointer; border-radius: 5px; font-size: 0.9rem; position: relative; }
     .skill-owned { background: #2e7d32; border-color: #4caf50; }
-    .btn-close { margin-top: 10px; padding: 10px; width: 100%; background: var(--danger); border: none; color: white; font-weight: bold; border-radius: 6px; }
-    .event-btn { width: 100%; padding: 10px; margin-bottom: 6px; background: #eee; color: #000; border: none; border-radius: 5px; font-size: 0.9rem; text-align: left; cursor: pointer; }
-    .event-btn:hover { background: #fff; }
-    .important-text { color: #ffeb3b; font-weight: bold; }
+    .btn-close { margin-top: 10px; padding: 12px; width: 100%; background: var(--danger); border: none; color: white; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .event-btn { width: 100%; padding: 12px; margin-bottom: 8px; background: #eee; color: #000; border: none; border-radius: 5px; font-size: 1rem; text-align: left; cursor: pointer; border-left: 5px solid #ccc; transition: all 0.1s;}
+    .event-btn:hover { background: #fff; border-left-color: var(--accent); padding-left: 15px; }
+    .event-btn:active { background: #ccc; transform: scale(0.98); }
+    .important-text { color: #ffeb3b; font-weight: bold; background: rgba(255,0,0,0.2); padding: 5px; border-radius: 4px; }
 </style>
 </head>
 <body>
@@ -233,14 +267,17 @@
                 <span>¥:<span id="ui-money">0</span></span>
                 <span><span id="ui-job">ニート</span></span>
             </div>
+            
             <div id="viewport">
                 <div id="map-container">
                     <div id="map-layer"></div>
                     <div id="player-sprite">😐</div>
                 </div>
+                <div id="flash-overlay"></div>
             </div>
+            
             <div id="log-window">
-                <div>社会の荒波へようこそ。まずは実家で資格勉強だ。</div>
+                <div class="log-entry">社会の荒波へようこそ。</div>
             </div>
         </div>
 
@@ -278,7 +315,7 @@
         </div>
         <div>所持品: <span id="st-items">なし</span></div>
         <button class="btn-close" onclick="ui.closeAll()">閉じる</button>
-        <button class="save-btn" onclick="game.loadGame()" style="width:100%; margin-top:10px; padding:10px; background:#ff9800; border:none; border-radius:6px; color:white;">ロード</button>
+        <button class="save-btn" onclick="game.loadGame()" style="width:100%; margin-top:10px; padding:10px; background:#ff9800; border:none; border-radius:6px; color:white; cursor:pointer;">ロード</button>
     </div>
 </div>
 
@@ -425,7 +462,10 @@ const game = {
         let nx = state.x + dx;
         let ny = state.y + dy;
         let tile = this.getTile(nx, ny);
-        if(!tile.walk && tile.type !== 'spot') return;
+        if(!tile.walk && tile.type !== 'spot') {
+             // 壁にぶつかった演出
+             return;
+        }
         
         // 移動コスト
         let cost = tile.cost || 1;
@@ -435,7 +475,7 @@ const game = {
 
         // 経験値 (緩和)
         this.gainXp(2);
-        if(state.job === 'homeless' && tile.id === TERRAIN.FOREST.id) this.gainXp(3); // ホームレスボーナス
+        if(state.job === 'homeless' && tile.id === TERRAIN.FOREST.id) this.gainXp(3); 
 
         // イベント判定
         this.checkFraudEvent(tile);
@@ -472,6 +512,7 @@ const game = {
             state.sp += 3;
             state.maxHp += 10;
             state.hp = state.maxHp;
+            ui.showPopup("LEVEL UP!", "#ffeb3b");
             game.log(`Lv${state.lv}に上がった！SP+3`, "good");
         }
     },
@@ -490,6 +531,8 @@ const game = {
                 let loss = Math.floor(state.money * 0.3);
                 state.money -= loss;
                 state.stress += 50;
+                ui.showPopup(`-${loss}円`, "#ff5252");
+                ui.flash('red');
                 ui.showEvent("詐欺被害！！", `
                     <p class="important-text">「オレオレ！事故っちゃって…」</p>
                     <p>気づいた時には金がなかった。</p>
@@ -567,7 +610,7 @@ const game = {
     eventHelloWork: function() {
         let html = "<p>職業斡旋所。</p>";
         for(let key in JOBS) {
-            if(['yamibaito','fighter','scammer','apology'].includes(key)) continue; // 裏稼業はここに出ない
+            if(['yamibaito','fighter','scammer','apology'].includes(key)) continue; 
             let j = JOBS[key];
             let color = state.job === key ? "#4caf50" : "";
             html += `<div class="job-item" style="border-color:${color}" onclick="ui.doAction('change_job', '${key}')">
@@ -579,7 +622,6 @@ const game = {
 
     eventSlum: function() {
         let html = "<p>危険な匂いがするエリア。</p>";
-        // 闇職の斡旋
         const darkJobs = ['yamibaito', 'apology', 'scammer', 'fighter'];
         darkJobs.forEach(key => {
             let j = JOBS[key];
@@ -617,14 +659,16 @@ const game = {
 
     checkGameOver: function() {
         if(state.hp <= 0) {
+            ui.flash('red');
             alert("過労で倒れました…病院送りです。");
             state.hp = state.maxHp;
             state.money = Math.floor(state.money / 2);
             state.x = 20; state.y = 20;
-            state.job = 'neet'; // クビ
+            state.job = 'neet';
             game.renderMap();
         }
         if(state.stress >= 100) {
+            ui.flash('red');
             game.log("ストレス限界！発狂して散財！", "bad");
             state.money = Math.max(0, state.money - 50000);
             state.stress = 0;
@@ -636,20 +680,28 @@ const game = {
     },
 
     randomEncounter: function(tile) {
-        // 簡易エンカウント
         if(tile.id === TERRAIN.CITY.id) { 
              game.log("街の騒音で頭が痛い。", "sys"); state.stress+=2;
         }
     },
     
     saveGame: function() {
-        localStorage.setItem('houseiRPG35_save', JSON.stringify(state));
+        localStorage.setItem('houseiRPG36_save', JSON.stringify(state));
         alert("セーブ完了");
     },
     
     loadGame: function() {
-        let d = localStorage.getItem('houseiRPG35_save');
+        let d = localStorage.getItem('houseiRPG36_save');
         if(d) { state = JSON.parse(d); game.generateMap(); game.renderMap(); ui.update(); ui.closeAll(); alert("ロード完了"); }
+    },
+
+    log: function(msg, type='') {
+        const win = document.getElementById('log-window');
+        const div = document.createElement('div');
+        div.className = "log-entry " + (type ? 'log-'+type : '');
+        div.innerText = msg;
+        win.appendChild(div);
+        win.scrollTop = win.scrollHeight; // 自動スクロール
     },
 
     renderMap: function() {
@@ -700,6 +752,32 @@ const ui = {
         document.getElementById('ui-job').innerText = JOBS[state.job].name;
     },
 
+    // ポップアップ表示機能
+    showPopup: function(text, color="#fff") {
+        const container = document.getElementById('player-sprite');
+        const el = document.createElement('div');
+        el.className = 'popup-text';
+        el.innerText = text;
+        el.style.color = color;
+        // Viewportに追加
+        document.getElementById('viewport').appendChild(el);
+        
+        // スプライトの位置に合わせる
+        const sprite = document.getElementById('player-sprite');
+        el.style.left = sprite.style.left;
+        el.style.top = sprite.style.top;
+
+        setTimeout(() => el.remove(), 1000);
+    },
+
+    // 画面フラッシュ
+    flash: function(color) {
+        const ov = document.getElementById('flash-overlay');
+        ov.style.backgroundColor = color;
+        ov.style.opacity = 0.5;
+        setTimeout(() => ov.style.opacity = 0, 100);
+    },
+
     openMenu: function() {
         this.isModalOpen = true;
         document.getElementById('modal-menu').style.display = 'flex';
@@ -744,6 +822,7 @@ const ui = {
         if(confirm(`${s.name} を習得しますか？`)) {
             state.sp -= s.cost;
             state.skills[key] = currentLv + 1;
+            ui.showPopup("SKILL UP!", "#69f0ae");
             game.log(`${s.name} Lv${currentLv+1} 習得！`, "good");
             this.openSkill();
         }
@@ -766,19 +845,38 @@ const ui = {
         let success = true;
         
         // --- 生活 ---
-        if(act === 'sleep') { state.hp = state.maxHp; state.stress = Math.max(0, state.stress - 20); game.log("ぐっすり寝た。"); }
-        else if(act === 'study') { state.xp += 10; state.stress += 5; game.gainXp(0); game.log("勉強した(XP+10)"); }
-        else if(act === 'pc') { state.stress = Math.max(0, state.stress - 40); game.log("ネットサーフィンした。"); }
-        else if(act === 'love') { state.stress = 0; game.log("幸せな時間を過ごした。", "good"); }
+        if(act === 'sleep') { 
+            state.hp = state.maxHp; state.stress = Math.max(0, state.stress - 20); 
+            ui.flash('white'); ui.showPopup("HP全快", "#69f0ae"); game.log("ぐっすり寝た。"); 
+        }
+        else if(act === 'study') { 
+            state.xp += 10; state.stress += 5; game.gainXp(0); 
+            ui.showPopup("XP+10", "#fff"); game.log("勉強した(XP+10)"); 
+        }
+        else if(act === 'pc') { 
+            state.stress = Math.max(0, state.stress - 40); 
+            ui.showPopup("ストレス↓", "#2196f3"); game.log("ネットサーフィンした。"); 
+        }
+        else if(act === 'love') { 
+            state.stress = 0; ui.flash('pink'); ui.showPopup("LOVE!!", "#e91e63"); 
+            game.log("幸せな時間を過ごした。", "good"); 
+        }
         
         // --- 買い物 ---
         else if(act === 'buy') {
-            if(param === 'food' && state.money >= 300) { state.money -= 300; state.hp += 50; game.log("弁当を食べた。"); }
-            else if(param === 'drink' && state.money >= 200) { state.money -= 200; state.stress -= 30; game.log("酒を飲んだ。"); }
+            if(param === 'food' && state.money >= 300) { 
+                state.money -= 300; state.hp += 50; 
+                ui.showPopup("HP+50", "#69f0ae"); game.log("弁当を食べた。"); 
+            }
+            else if(param === 'drink' && state.money >= 200) { 
+                state.money -= 200; state.stress -= 30; 
+                ui.showPopup("ストレス↓", "#2196f3"); game.log("酒を飲んだ。"); 
+            }
             else if(param === 'suit') {
                 if(state.money < 50000) return alert("金が足りない！");
                 state.money -= 50000;
                 state.items.push('suit');
+                ui.showPopup("-5万円", "#ff5252");
                 game.log("スーツを購入した！就職活動ができる！", "good");
             }
         }
@@ -787,42 +885,54 @@ const ui = {
         else if(act === 'change_job') {
             let j = JOBS[param];
             if(!j.req(state)) { alert("条件を満たしていません\n" + j.desc); success = false; }
-            else { state.job = param; game.log(`${j.name}に転職した！`, "good"); }
+            else { 
+                state.job = param; 
+                ui.flash('white');
+                game.log(`${j.name}に転職した！`, "good"); 
+            }
         }
         else if(act === 'work_office') { // 正規社員用
             let earn = 15000 + (state.skills.society * 2000) + (state.skills.typing * 1000);
             state.money += earn; state.hp -= 30; state.stress += 20; game.gainXp(20);
+            ui.showPopup(`+${earn}円`, "#ffeb3b");
             game.log(`定時退社。+${earn}円`, "good");
         }
         else if(act === 'work_apology') { // 謝罪代行
             let earn = 8000 + (state.skills.smile * 2000);
             state.money += earn; state.hp -= 20; state.stress += 40; game.gainXp(15);
+            ui.flash('purple');
+            ui.showPopup(`+${earn}円`, "#ffeb3b");
             game.log(`土下座して${earn}円得た。胃が痛い。`, "warn");
         }
         else if(act === 'work_crime') { // 強盗
             if(Math.random() < 0.3) {
                 state.money = 0; state.job = 'neet'; state.stress=100;
+                ui.flash('red');
                 game.log("警察だ！逮捕！全てを失った！", "bad");
             } else {
                 let earn = 50000 + (Math.random()*50000);
                 state.money += Math.floor(earn); state.karma -= 50; state.stress += 50;
+                ui.showPopup(`+${Math.floor(earn)}円`, "#ffeb3b");
                 game.log(`押し入って${Math.floor(earn)}円奪った！`, "bad");
             }
         }
         else if(act === 'work_sales') {
             state.money += 2000; state.hp -= 10; game.gainXp(5);
+            ui.showPopup("+2000円", "#ffeb3b");
             game.log("荷物を置いた。+2000円");
         }
 
         // --- 交番 ---
         else if(act === 'koban_consult') {
             state.flags.policeGuard = 100; // 100歩守られる
+            ui.showPopup("防犯登録完了", "#2196f3");
             game.log("お巡りさんがパトロールを強化してくれた！", "good");
         }
         else if(act === 'koban_lost') {
             if(Math.random() < 0.2) {
                 let found = 1000 + Math.floor(Math.random()*5000);
                 state.money += found;
+                ui.showPopup(`+${found}円`, "#ffeb3b");
                 game.log(`落とし主から謝礼${found}円をもらった！`, "good");
             } else {
                 game.log("特に何も届いていなかった。");
@@ -831,14 +941,23 @@ const ui = {
 
         // --- その他 ---
         else if(act === 'pray') {
-            if(param > 0 && state.money>=100) { state.money-=100; state.karma = Math.max(0, state.karma+10); game.log("心が洗われた。"); }
-            else if(param < 0) { state.money+=500; state.karma-=30; game.log("バチ当たりめ！", "bad"); }
+            if(param > 0 && state.money>=100) { 
+                state.money-=100; state.karma = Math.max(0, state.karma+10); 
+                ui.flash('white');
+                game.log("心が洗われた。"); 
+            }
+            else if(param < 0) { 
+                state.money+=500; state.karma-=30; 
+                ui.flash('red'); ui.showPopup("バチ当たり", "#ff5252");
+                game.log("賽銭を盗んだ…", "bad"); 
+            }
         }
         else if(act === 'buy_house') {
             if(state.money < 1000000) return alert("100万円必要です。");
             if(confirm("本当に100万円でマイホームを買いますか？")) {
                 state.money -= 1000000;
                 state.flags.myHome = true;
+                ui.flash('gold');
                 game.log("夢のマイホームを手に入れた！！！", "good");
             }
         }
@@ -852,6 +971,7 @@ const ui = {
             if(confirm("30万円支払って結婚しますか？")) {
                 state.money -= 300000;
                 state.flags.married = true;
+                ui.flash('pink');
                 game.log("おめでとう！結婚しました！幸せな家庭を築こう。", "good");
             }
         }
