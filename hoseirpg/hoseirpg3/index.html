@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>ほうせいRPG 3.6 〜演出強化版〜</title>
+<title>ほうせいRPG 3.7 〜労働とアジト〜</title>
 <style>
     :root {
         --bg-color: #202020;
@@ -61,7 +61,6 @@
         display: flex;
         flex-direction: column;
         margin-bottom: 15px;
-        /* 高さを明示的に確保 */
         height: 320px; 
     }
 
@@ -86,11 +85,10 @@
         justify-content: center;
         align-items: center;
         width: 100%;
-        height: var(--view-h); /* 224px */
+        height: var(--view-h);
         flex-shrink: 0;
     }
 
-    /* フラッシュエフェクト用 */
     #flash-overlay {
         position: absolute;
         top: 0; left: 0; right: 0; bottom: 0;
@@ -131,7 +129,6 @@
         transition: top 0.1s, left 0.1s;
     }
 
-    /* ポップアップテキスト */
     .popup-text {
         position: absolute;
         font-weight: bold;
@@ -140,9 +137,9 @@
         pointer-events: none;
         z-index: 100;
         animation: floatUp 1s forwards;
-        width: 100px;
+        width: 150px;
         text-align: center;
-        margin-left: -34px; /* 中央寄せ調整 */
+        margin-left: -59px;
     }
     @keyframes floatUp {
         0% { transform: translateY(0); opacity: 1; }
@@ -150,7 +147,7 @@
     }
 
     #log-window {
-        flex-grow: 1; /* 残りのスペースを埋める */
+        flex-grow: 1;
         background: rgba(0,0,0,0.9);
         color: #fff;
         font-size: 12px;
@@ -221,7 +218,6 @@
     }
     .menu-btn:active { transform: translateY(3px); box-shadow: none; }
 
-    /* モーダル */
     .modal {
         display: none;
         position: fixed;
@@ -254,6 +250,8 @@
     .event-btn:hover { background: #fff; border-left-color: var(--accent); padding-left: 15px; }
     .event-btn:active { background: #ccc; transform: scale(0.98); }
     .important-text { color: #ffeb3b; font-weight: bold; background: rgba(255,0,0,0.2); padding: 5px; border-radius: 4px; }
+    
+    .job-badge { background: #2196f3; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; margin-left: 5px; }
 </style>
 </head>
 <body>
@@ -277,7 +275,7 @@
             </div>
             
             <div id="log-window">
-                <div class="log-entry">社会の荒波へようこそ。</div>
+                <div class="log-entry">アジトと職場が追加されました。</div>
             </div>
         </div>
 
@@ -303,14 +301,12 @@
         <div class="modal-header">ステータス</div>
         <div class="stat-grid">
             <div>職業: <span id="st-job">ニート</span></div>
-            <div>配偶者: <span id="st-partner">なし</span></div>
-            <div>住居: <span id="st-house">実家(寄生)</span></div>
+            <div>役職: <span id="st-rank">平社員</span></div>
             <div>Lv: <span id="st-lv">1</span></div>
             <div>Exp: <span id="st-xp">0</span> / <span id="st-next">30</span></div>
             <div>所持金: <span id="st-money">0</span>円</div>
             <div>ストレス: <span id="st-stress">0</span>%</div>
-            <div>体力: <span id="st-hp">100</span> / <span id="st-maxhp">100</span></div>
-            <div>スキルP: <span id="st-sp">0</span></div>
+            <div>体力: <span id="st-hp">100</span></div>
             <div>カルマ: <span id="st-karma">0</span></div>
         </div>
         <div>所持品: <span id="st-items">なし</span></div>
@@ -359,18 +355,19 @@ const TERRAIN = {
     SHRINE: { id: 14, icon: '⛩️', bg: '#e91e63', type: 'spot', name: '神社' },
     OFFICE: { id: 15, icon: '🏢', bg: '#90caf9', type: 'spot', name: 'オフィス' },
     KOBAN:  { id: 16, icon: '👮', bg: '#fff', type: 'spot', name: '交番' },
-    HOUSE:  { id: 17, icon: '🏘️', bg: '#a1887f', type: 'spot', name: '民家' }
+    HOUSE:  { id: 17, icon: '🏘️', bg: '#a1887f', type: 'spot', name: '民家' },
+    HIDEOUT:{ id: 18, icon: '🏴', bg: '#424242', type: 'spot', name: 'アジト' } // 追加
 };
 
 const JOBS = {
     neet: { name: "ニート", req: ()=>true, desc: "全ての始まり。" },
     homeless: { name: "ホームレス", req: ()=>true, desc: "実家を追い出された姿。サバイバル・根性効率UP。" },
-    parttime: { name: "店員", req: (s)=>s.skills.smile>=1, desc: "要:営業スマイルLv1" },
+    parttime: { name: "店員", req: (s)=>s.skills.smile>=1, desc: "要:営業スマイルLv1。コンビニで働く。" },
     yamibaito: { name: "闇バイト", req: ()=>true, desc: "【危険】即採用・高収入・逮捕有" },
     apology: { name: "謝罪代行", req: (s)=>s.skills.smile>=2 && s.skills.guts>=2, desc: "要:スマイル2/根性2。民家で謝罪する。" },
-    fighter: { name: "戦闘員", req: (s)=>s.skills.guts>=3 && s.lv>=5, desc: "要:根性3/Lv5。闇の世界の兵隊。" },
-    scammer: { name: "受け子", req: (s)=>s.skills.criminal>=1 && s.lv>=5, desc: "要:裏の知識/Lv5。" },
-    regular: { name: "正規社員", req: (s)=>s.skills.society>=3 && s.lv>=10 && s.items.includes('suit'), desc: "要:社会人Lv3/Lv10/スーツ。安定。" }
+    fighter: { name: "戦闘員", req: (s)=>s.skills.guts>=3 && s.lv>=5, desc: "要:根性3/Lv5。アジトで働く。" },
+    scammer: { name: "受け子", req: (s)=>s.skills.criminal>=1 && s.lv>=5, desc: "要:裏の知識/Lv5。アジトで働く。" },
+    regular: { name: "正規社員", req: (s)=>s.skills.society>=3 && s.lv>=10 && s.items.includes('suit'), desc: "要:社会人Lv3/Lv10/スーツ。オフィスで働く。" }
 };
 
 const SKILLS = {
@@ -397,8 +394,9 @@ let state = {
     items: [],
     flags: {
         married: false,
-        myHome: false, // 持ち家
-        policeGuard: 0 // 詐欺防止期間
+        myHome: false,
+        policeGuard: 0,
+        officeRank: 0 // 0:平社員 1:課長 2:部長
     },
     mapData: []
 };
@@ -420,13 +418,11 @@ const game = {
                 let type = TERRAIN.GRASS.id;
                 let dist = Math.sqrt((x-20)**2 + (y-20)**2);
                 
-                // 自然
                 let noise = Math.sin(x/5) + Math.cos(y/5) + Math.random()*0.5;
                 if (noise > 1.5) type = TERRAIN.MOUNTAIN.id;
                 else if (noise > 0.8) type = TERRAIN.FOREST.id;
                 else if (noise < -1.0) type = TERRAIN.WATER.id;
                 
-                // 街
                 if(dist < 10) type = TERRAIN.CITY.id;
                 row.push(type);
             }
@@ -439,13 +435,13 @@ const game = {
         set(20, 20, TERRAIN.HOME.id);
         set(20, 19, TERRAIN.WORK.id);
         set(21, 20, TERRAIN.SHOP.id);
-        set(22, 19, TERRAIN.OFFICE.id); // オフィス
-        set(19, 21, TERRAIN.KOBAN.id);  // 交番
+        set(22, 19, TERRAIN.OFFICE.id); 
+        set(19, 21, TERRAIN.KOBAN.id);  
 
         set(10, 30, TERRAIN.SLUM.id);
+        set(8, 32, TERRAIN.HIDEOUT.id); // アジト
         set(30, 10, TERRAIN.SHRINE.id);
 
-        // 民家を点在させる
         set(18, 18, TERRAIN.HOUSE.id);
         set(22, 22, TERRAIN.HOUSE.id);
         set(24, 18, TERRAIN.HOUSE.id);
@@ -462,22 +458,16 @@ const game = {
         let nx = state.x + dx;
         let ny = state.y + dy;
         let tile = this.getTile(nx, ny);
-        if(!tile.walk && tile.type !== 'spot') {
-             // 壁にぶつかった演出
-             return;
-        }
+        if(!tile.walk && tile.type !== 'spot') return;
         
-        // 移動コスト
         let cost = tile.cost || 1;
         if(state.skills.survival) cost = Math.max(1, cost - state.skills.survival);
         state.hp -= cost;
         state.x = nx; state.y = ny;
 
-        // 経験値 (緩和)
         this.gainXp(2);
         if(state.job === 'homeless' && tile.id === TERRAIN.FOREST.id) this.gainXp(3); 
 
-        // イベント判定
         this.checkFraudEvent(tile);
         if(Math.random() < 0.05) this.randomEncounter(tile);
         
@@ -496,6 +486,7 @@ const game = {
         else if(tile.id === TERRAIN.WORK.id) this.eventHelloWork();
         else if(tile.id === TERRAIN.SHOP.id) this.eventShop();
         else if(tile.id === TERRAIN.SLUM.id) this.eventSlum();
+        else if(tile.id === TERRAIN.HIDEOUT.id) this.eventHideout();
         else if(tile.id === TERRAIN.SHRINE.id) this.eventShrine();
         else if(tile.id === TERRAIN.OFFICE.id) this.eventOffice();
         else if(tile.id === TERRAIN.KOBAN.id) this.eventKoban();
@@ -517,12 +508,8 @@ const game = {
         }
     },
 
-    // --- Events ---
-    
-    // 詐欺イベント
     checkFraudEvent: function(tile) {
         if(tile.id === TERRAIN.CITY.id && state.money >= 100000 && Math.random() < 0.03) {
-            // 防衛判定
             if(state.flags.policeGuard > 0) {
                 game.log("詐欺師が近寄ってきたが、警官の姿を見て逃げた。", "good");
             } else if(state.skills.society >= 3) {
@@ -537,74 +524,90 @@ const game = {
                     <p class="important-text">「オレオレ！事故っちゃって…」</p>
                     <p>気づいた時には金がなかった。</p>
                     <p>-${loss}円</p>
-                    <p>交番で防犯登録しておけば…</p>
                 `);
             }
         }
     },
 
     eventHome: function() {
+        let houseName = state.flags.myHome ? "マイホーム" : "実家";
         if(state.job === 'homeless' && !state.flags.myHome) {
-            ui.showEvent("実家", "<p>「働かないやつを入れる家はない！」<br>鍵が変えられている…</p>");
+            ui.showEvent("実家", "<p>鍵が変えられている…</p>");
             return;
         }
+        let html = `<p>${houseName}。安らぎの場所。</p>
+        <button class="event-btn" onclick="ui.doAction('sleep')">🛌 寝る (全回復)</button>
+        <button class="event-btn" onclick="ui.doAction('study')">📚 資格勉強 (XP+10)</button>`;
         
-        let houseName = state.flags.myHome ? "マイホーム" : "実家";
-        let html = `<p>${houseName}。安らぎの場所。</p>`;
-        
-        html += `<button class="event-btn" onclick="ui.doAction('sleep')">🛌 寝る (全回復)</button>`;
-        html += `<button class="event-btn" onclick="ui.doAction('study')">📚 資格勉強 (XP+10)</button>`;
-        
-        if(state.flags.married) {
-            html += `<p>配偶者が優しく微笑んでいる。</p>`;
-            html += `<button class="event-btn" onclick="ui.doAction('love')">💕 愛を育む (ストレス超回復)</button>`;
-        } else {
-            html += `<button class="event-btn" onclick="ui.doAction('pc')">💻 ネット (ストレス-40)</button>`;
-        }
-
+        if(state.flags.married) html += `<button class="event-btn" onclick="ui.doAction('love')">💕 愛を育む (ストレス超回復)</button>`;
+        else html += `<button class="event-btn" onclick="ui.doAction('pc')">💻 ネット (ストレス-40)</button>`;
         ui.showEvent(houseName, html);
     },
 
     eventGenericHouse: function() {
         let html = "<p>普通の民家だ。</p>";
-        
-        // 謝罪代行
-        if(state.job === 'apology') {
-            html += `<button class="event-btn" onclick="ui.doAction('work_apology')">🙇 謝罪代行する</button>`;
-        }
-        // 闇バイト・戦闘員
-        if(state.job === 'yamibaito' || state.job === 'fighter') {
-            html += `<button class="event-btn" onclick="ui.doAction('work_crime')">🔨 押し込み強盗する</button>`;
-        }
-        
-        // 訪問販売(店員)
-        if(state.job === 'parttime') {
-             html += `<button class="event-btn" onclick="ui.doAction('work_sales')">📦 置き配バイト</button>`;
-        }
-
+        if(state.job === 'apology') html += `<button class="event-btn" onclick="ui.doAction('work_apology')">🙇 謝罪代行する</button>`;
+        if(state.job === 'yamibaito' || state.job === 'fighter') html += `<button class="event-btn" onclick="ui.doAction('work_crime')">🔨 押し込み強盗する</button>`;
+        if(state.job === 'parttime') html += `<button class="event-btn" onclick="ui.doAction('work_sales')">📦 置き配バイト</button>`;
         ui.showEvent("民家", html);
     },
 
     eventKoban: function() {
         ui.showEvent("交番", `
             <p>街の安全を守る。</p>
-            <button class="event-btn" onclick="ui.doAction('koban_consult')">👮 防犯登録 (無料/詐欺防止)</button>
-            <button class="event-btn" onclick="ui.doAction('koban_lost')">😭 落とし物届 (運が良ければ金拾う)</button>
+            <button class="event-btn" onclick="ui.doAction('koban_consult')">👮 防犯登録 (無料)</button>
+            <button class="event-btn" onclick="ui.doAction('koban_lost')">😭 落とし物届</button>
         `);
     },
 
     eventOffice: function() {
-        let html = "<p>高層オフィスビル。ビジネスの中心。</p>";
+        let rankName = ["平社員", "課長", "部長"][state.flags.officeRank || 0];
+        let html = `<p>高層オフィスビル。<br>現在の役職: <b>${rankName}</b></p>`;
         
         if(state.job === 'regular') {
-            html += `<button class="event-btn" onclick="ui.doAction('work_office')">💼 出社して働く (収入安定)</button>`;
+            html += `<button class="event-btn" onclick="ui.doAction('work_office')">💼 出社して働く (安定収入)</button>`;
+            
+            // 昇進判定
+            if(state.flags.officeRank === 0 && state.lv >= 20 && state.skills.society >= 4) {
+                 html += `<button class="event-btn" style="border-color:gold" onclick="ui.doAction('promote')">🌟 課長昇進試験を受ける</button>`;
+            } else if(state.flags.officeRank === 1 && state.lv >= 35 && state.skills.guts >= 4) {
+                 html += `<button class="event-btn" style="border-color:gold" onclick="ui.doAction('promote')">👑 部長昇進試験を受ける</button>`;
+            }
+        } else {
+            html += `<p class="log-sys">※正規社員のみ入館可能</p>`;
         }
         
-        if(!state.flags.myHome) {
-             html += `<button class="event-btn" onclick="ui.doAction('buy_house')">🏠 マイホーム購入 (100万円)</button>`;
-        }
-        
+        if(!state.flags.myHome) html += `<button class="event-btn" onclick="ui.doAction('buy_house')">🏠 マイホーム購入 (100万円)</button>`;
         ui.showEvent("オフィス", html);
+    },
+
+    eventShop: function() {
+        let html = `<p>24時間営業。</p>`;
+        
+        // 店員（parttime）の仕事
+        if(state.job === 'parttime') {
+            html += `<button class="event-btn" style="background:#e3f2fd; border-color:#2196f3" onclick="ui.doAction('work_shop')">🏪 レジ打ちバイト (+3000円)</button><hr>`;
+        }
+
+        html += `<button class="event-btn" onclick="ui.doAction('buy', 'food')">🍱 弁当 (300円)</button>
+            <button class="event-btn" onclick="ui.doAction('buy', 'drink')">🍺 酒 (200円)</button>`;
+        if(!state.items.includes('suit')) html += `<button class="event-btn" onclick="ui.doAction('buy', 'suit')">👔 スーツを買う (5万円)</button>`;
+        ui.showEvent("コンビニ", html);
+    },
+
+    eventHideout: function() {
+        let html = "<p>薄暗い部屋に強面な男たちがいる。</p>";
+        
+        if(state.job === 'fighter') {
+            html += `<p>「おぅ、仕事の時間だぞ」</p>
+            <button class="event-btn" style="background:#ffebee; border-color:#d32f2f" onclick="ui.doAction('work_fight')">👊 対立組織へカチコミ (+2万円/危険)</button>`;
+        } else if (state.job === 'scammer') {
+            html += `<p>「名簿はここにある」</p>
+            <button class="event-btn" style="background:#fff3e0; border-color:#ff9800" onclick="ui.doAction('work_scam')">📞 現金回収の電話 (+5万円〜/高リスク)</button>`;
+        } else {
+            html += `<p>「関係ねえ奴は消えな！」<br>睨まれただけで逃げ出した。</p>`;
+        }
+        ui.showEvent("アジト", html);
     },
 
     eventHelloWork: function() {
@@ -636,25 +639,8 @@ const game = {
         let html = `<p>神聖な場所。</p>
             <button class="event-btn" onclick="ui.doAction('pray', 100)">🙏 祈る (-100円/カルマ浄化)</button>
             <button class="event-btn" onclick="ui.doAction('pray', -100)">💰 賽銭泥棒 (危険)</button>`;
-            
-        // 結婚イベント
-        if(!state.flags.married) {
-            html += `<hr><p>【縁結び】</p>
-            <button class="event-btn" onclick="ui.doAction('marry_check')">💍 プロポーズする (要:30万円/正規社員)</button>`;
-        }
-        
+        if(!state.flags.married) html += `<hr><button class="event-btn" onclick="ui.doAction('marry_check')">💍 プロポーズする (要:30万円/正規社員)</button>`;
         ui.showEvent("神社", html);
-    },
-
-    eventShop: function() {
-        let html = `<p>24時間営業。</p>
-            <button class="event-btn" onclick="ui.doAction('buy', 'food')">🍱 弁当 (300円)</button>
-            <button class="event-btn" onclick="ui.doAction('buy', 'drink')">🍺 酒 (200円)</button>`;
-            
-        if(!state.items.includes('suit')) {
-            html += `<button class="event-btn" onclick="ui.doAction('buy', 'suit')">👔 スーツを買う (5万円)</button>`;
-        }
-        ui.showEvent("コンビニ", html);
     },
 
     checkGameOver: function() {
@@ -686,12 +672,12 @@ const game = {
     },
     
     saveGame: function() {
-        localStorage.setItem('houseiRPG36_save', JSON.stringify(state));
+        localStorage.setItem('houseiRPG37_save', JSON.stringify(state));
         alert("セーブ完了");
     },
     
     loadGame: function() {
-        let d = localStorage.getItem('houseiRPG36_save');
+        let d = localStorage.getItem('houseiRPG37_save');
         if(d) { state = JSON.parse(d); game.generateMap(); game.renderMap(); ui.update(); ui.closeAll(); alert("ロード完了"); }
     },
 
@@ -701,7 +687,7 @@ const game = {
         div.className = "log-entry " + (type ? 'log-'+type : '');
         div.innerText = msg;
         win.appendChild(div);
-        win.scrollTop = win.scrollHeight; // 自動スクロール
+        win.scrollTop = win.scrollHeight;
     },
 
     renderMap: function() {
@@ -728,7 +714,7 @@ const game = {
         
         let face = "😐";
         if(state.job === 'host') face = "😎";
-        if(state.job === 'yamibaito' || state.job === 'scammer' || state.job === 'fighter') face = "🕶️";
+        if(['yamibaito','scammer','fighter'].includes(state.job)) face = "🕶️";
         if(state.job === 'apology') face = "🙇";
         if(state.job === 'regular') face = "👔";
         if(state.stress > 80) face = "😱";
@@ -752,17 +738,14 @@ const ui = {
         document.getElementById('ui-job').innerText = JOBS[state.job].name;
     },
 
-    // ポップアップ表示機能
     showPopup: function(text, color="#fff") {
         const container = document.getElementById('player-sprite');
         const el = document.createElement('div');
         el.className = 'popup-text';
         el.innerText = text;
         el.style.color = color;
-        // Viewportに追加
         document.getElementById('viewport').appendChild(el);
         
-        // スプライトの位置に合わせる
         const sprite = document.getElementById('player-sprite');
         el.style.left = sprite.style.left;
         el.style.top = sprite.style.top;
@@ -770,7 +753,6 @@ const ui = {
         setTimeout(() => el.remove(), 1000);
     },
 
-    // 画面フラッシュ
     flash: function(color) {
         const ov = document.getElementById('flash-overlay');
         ov.style.backgroundColor = color;
@@ -781,9 +763,11 @@ const ui = {
     openMenu: function() {
         this.isModalOpen = true;
         document.getElementById('modal-menu').style.display = 'flex';
+        let rankName = ["平社員", "課長", "部長"][state.flags.officeRank || 0];
+        
         document.getElementById('st-job').innerText = JOBS[state.job].name;
+        document.getElementById('st-rank').innerText = state.job === 'regular' ? rankName : "-";
         document.getElementById('st-partner').innerText = state.flags.married ? "あり(ラブラブ)" : "なし";
-        document.getElementById('st-house').innerText = state.flags.myHome ? "持ち家" : (state.job==='homeless'?"なし":"実家");
         document.getElementById('st-lv').innerText = state.lv;
         document.getElementById('st-xp').innerText = state.xp;
         document.getElementById('st-next').innerText = state.nextXp;
@@ -881,7 +865,7 @@ const ui = {
             }
         }
         
-        // --- 仕事・職業 ---
+        // --- 転職 ---
         else if(act === 'change_job') {
             let j = JOBS[param];
             if(!j.req(state)) { alert("条件を満たしていません\n" + j.desc); success = false; }
@@ -891,24 +875,72 @@ const ui = {
                 game.log(`${j.name}に転職した！`, "good"); 
             }
         }
-        else if(act === 'work_office') { // 正規社員用
-            let earn = 15000 + (state.skills.society * 2000) + (state.skills.typing * 1000);
-            state.money += earn; state.hp -= 30; state.stress += 20; game.gainXp(20);
-            ui.showPopup(`+${earn}円`, "#ffeb3b");
-            game.log(`定時退社。+${earn}円`, "good");
+
+        // --- 仕事（New!） ---
+        
+        // 店員（コンビニ）
+        else if(act === 'work_shop') {
+            state.money += 3000; state.hp -= 15; state.stress += 10; game.gainXp(10);
+            ui.showPopup("+3000円", "#ffeb3b");
+            game.log("「温めますか？」機械的な接客をした。", "good");
         }
-        else if(act === 'work_apology') { // 謝罪代行
+
+        // 正規社員（オフィス）
+        else if(act === 'work_office') {
+            let rankBonus = (state.flags.officeRank || 0) * 10000;
+            let earn = 15000 + rankBonus + (state.skills.society * 2000) + (state.skills.typing * 1000);
+            state.money += earn; state.hp -= 30; state.stress += 25; game.gainXp(25);
+            ui.showPopup(`+${earn}円`, "#ffeb3b");
+            game.log(`定時まで働いた。(役職手当:+${rankBonus})`, "good");
+        }
+        
+        // 昇進（オフィス）
+        else if(act === 'promote') {
+            state.flags.officeRank = (state.flags.officeRank || 0) + 1;
+            ui.flash('gold');
+            ui.showPopup("昇進！！", "#ffeb3b");
+            game.log("昇進試験に合格した！給料アップ！", "good");
+        }
+
+        // 戦闘員（アジト）
+        else if(act === 'work_fight') {
+            if(Math.random() < 0.1) {
+                state.hp = 1; state.money = Math.floor(state.money * 0.8);
+                ui.flash('red'); ui.showPopup("返り討ち", "#d32f2f");
+                game.log("敵対組織に囲まれボコボコにされた…", "bad");
+            } else {
+                let earn = 20000 + (Math.random()*10000);
+                state.money += Math.floor(earn); state.hp -= 40; state.karma -= 20; game.gainXp(50);
+                ui.showPopup(`+${Math.floor(earn)}円`, "#ffeb3b");
+                game.log("抗争に勝利した！", "good");
+            }
+        }
+
+        // 受け子（アジト）
+        else if(act === 'work_scam') {
+             if(Math.random() < 0.2) {
+                state.money = 0; state.job = 'neet'; state.stress=100;
+                ui.flash('blue');
+                game.log("警察だ！逮捕！全てを没収された！", "bad");
+            } else {
+                let earn = 50000 + (state.skills.charm * 10000);
+                state.money += Math.floor(earn); state.karma -= 50; state.stress += 40; game.gainXp(40);
+                ui.showPopup(`+${Math.floor(earn)}円`, "#ffeb3b");
+                game.log("老人を騙して金を回収した…良心が痛む。", "warn");
+            }
+        }
+        
+        // --- 既存の仕事 ---
+        else if(act === 'work_apology') { 
             let earn = 8000 + (state.skills.smile * 2000);
             state.money += earn; state.hp -= 20; state.stress += 40; game.gainXp(15);
-            ui.flash('purple');
-            ui.showPopup(`+${earn}円`, "#ffeb3b");
-            game.log(`土下座して${earn}円得た。胃が痛い。`, "warn");
+            ui.flash('purple'); ui.showPopup(`+${earn}円`, "#ffeb3b");
+            game.log(`土下座して${earn}円得た。`, "warn");
         }
-        else if(act === 'work_crime') { // 強盗
+        else if(act === 'work_crime') { 
             if(Math.random() < 0.3) {
                 state.money = 0; state.job = 'neet'; state.stress=100;
-                ui.flash('red');
-                game.log("警察だ！逮捕！全てを失った！", "bad");
+                ui.flash('red'); game.log("警察だ！逮捕！", "bad");
             } else {
                 let earn = 50000 + (Math.random()*50000);
                 state.money += Math.floor(earn); state.karma -= 50; state.stress += 50;
@@ -924,18 +956,18 @@ const ui = {
 
         // --- 交番 ---
         else if(act === 'koban_consult') {
-            state.flags.policeGuard = 100; // 100歩守られる
+            state.flags.policeGuard = 100;
             ui.showPopup("防犯登録完了", "#2196f3");
-            game.log("お巡りさんがパトロールを強化してくれた！", "good");
+            game.log("パトロール強化！", "good");
         }
         else if(act === 'koban_lost') {
             if(Math.random() < 0.2) {
                 let found = 1000 + Math.floor(Math.random()*5000);
                 state.money += found;
                 ui.showPopup(`+${found}円`, "#ffeb3b");
-                game.log(`落とし主から謝礼${found}円をもらった！`, "good");
+                game.log(`謝礼${found}円をもらった！`, "good");
             } else {
-                game.log("特に何も届いていなかった。");
+                game.log("届いていなかった。");
             }
         }
 
@@ -943,8 +975,7 @@ const ui = {
         else if(act === 'pray') {
             if(param > 0 && state.money>=100) { 
                 state.money-=100; state.karma = Math.max(0, state.karma+10); 
-                ui.flash('white');
-                game.log("心が洗われた。"); 
+                ui.flash('white'); game.log("心が洗われた。"); 
             }
             else if(param < 0) { 
                 state.money+=500; state.karma-=30; 
@@ -954,25 +985,24 @@ const ui = {
         }
         else if(act === 'buy_house') {
             if(state.money < 1000000) return alert("100万円必要です。");
-            if(confirm("本当に100万円でマイホームを買いますか？")) {
+            if(confirm("100万円でマイホームを買いますか？")) {
                 state.money -= 1000000;
                 state.flags.myHome = true;
                 ui.flash('gold');
-                game.log("夢のマイホームを手に入れた！！！", "good");
+                game.log("マイホームを手に入れた！！！", "good");
             }
         }
         else if(act === 'marry_check') {
-            // 結婚判定
-            if(state.job !== 'regular') return alert("相手の親「正規社員じゃないと娘はやらん！」");
-            if(state.lv < 15) return alert("相手「もう少し頼りがい（Lv15以上）が欲しいわ」");
-            if((state.skills.mote || 0) < 3) return alert("相手「話がつまらないわ（モテスキルLv3必要）」");
-            if(state.money < 300000) return alert("結婚資金（30万円）が足りません！");
+            if(state.job !== 'regular') return alert("「正規社員じゃないと無理」");
+            if(state.lv < 15) return alert("「Lv15以上は欲しいわ」");
+            if((state.skills.mote || 0) < 3) return alert("「話がつまらないわ（モテLv3）」");
+            if(state.money < 300000) return alert("資金（30万円）不足！");
             
             if(confirm("30万円支払って結婚しますか？")) {
                 state.money -= 300000;
                 state.flags.married = true;
                 ui.flash('pink');
-                game.log("おめでとう！結婚しました！幸せな家庭を築こう。", "good");
+                game.log("結婚しました！", "good");
             }
         }
 
@@ -982,7 +1012,6 @@ const ui = {
     }
 };
 
-// スケーリング処理
 function fitScreen() {
     const gameBoy = document.getElementById('game-boy');
     const wrapper = document.getElementById('scaler');
@@ -993,7 +1022,6 @@ function fitScreen() {
 window.addEventListener('load', fitScreen);
 window.addEventListener('resize', fitScreen);
 
-// 操作
 window.addEventListener('keydown', (e) => {
     if(e.key === 'ArrowUp') game.move(0, -1);
     if(e.key === 'ArrowDown') game.move(0, 1);
