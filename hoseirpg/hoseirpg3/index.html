@@ -13,6 +13,9 @@
         --accent: #4caf50;
         --danger: #ff5252;
         --tile-size: 32px;
+        /* 画面サイズ定義 */
+        --view-w: 416px; /* 13 * 32 */
+        --view-h: 224px; /* 7 * 32 */
     }
     
     * { box-sizing: border-box; touch-action: manipulation; }
@@ -40,7 +43,7 @@
 
     #game-boy {
         width: 100%;
-        max-width: 450px;
+        max-width: 480px; /* 少し広げました */
         display: flex;
         flex-direction: column;
         background: #444;
@@ -48,7 +51,6 @@
         border-radius: 10px;
         padding: 10px;
         box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        height: auto;
     }
 
     #screen-area {
@@ -71,8 +73,10 @@
         justify-content: space-between;
         z-index: 10;
         border-bottom: 2px solid #000;
+        flex-shrink: 0;
     }
 
+    /* ここを修正：高さを強制的に確保 */
     #viewport {
         position: relative;
         overflow: hidden;
@@ -80,10 +84,14 @@
         display: flex;
         justify-content: center;
         align-items: center;
+        width: 100%;
+        height: var(--view-h); /* 高さ固定 */
     }
 
     #map-container {
         position: relative;
+        width: var(--view-w);
+        height: var(--view-h);
     }
 
     .tile {
@@ -108,6 +116,7 @@
         align-items: center;
         line-height: 1;
         text-shadow: 0 0 5px white;
+        transition: top 0.1s, left 0.1s; /* 滑らか移動 */
     }
 
     #log-window {
@@ -118,6 +127,7 @@
         padding: 5px;
         overflow-y: auto;
         border-top: 2px solid #fff;
+        flex-shrink: 0;
     }
     .log-sys { color: #aaa; }
     .log-warn { color: #ffeb3b; }
@@ -129,6 +139,7 @@
         grid-template-columns: 1fr 1fr;
         gap: 10px;
         padding: 5px;
+        flex-shrink: 0;
     }
 
     .d-pad {
@@ -177,6 +188,7 @@
         box-shadow: 0 3px 0 #222;
         -webkit-tap-highlight-color: transparent;
     }
+    .menu-btn:active { transform: translateY(3px); box-shadow: none; }
 
     /* モーダル */
     .modal {
@@ -638,6 +650,43 @@ const game = {
     loadGame: function() {
         let d = localStorage.getItem('houseiRPG35_save');
         if(d) { state = JSON.parse(d); game.generateMap(); game.renderMap(); ui.update(); ui.closeAll(); alert("ロード完了"); }
+    },
+
+    renderMap: function() {
+        const layer = document.getElementById('map-layer');
+        layer.innerHTML = '';
+        
+        let startX = state.x - Math.floor(VIEW_W/2);
+        let startY = state.y - Math.floor(VIEW_H/2);
+
+        for(let y=0; y<VIEW_H; y++) {
+            for(let x=0; x<VIEW_W; x++) {
+                let mapX = startX + x;
+                let mapY = startY + y;
+                let tile = this.getTile(mapX, mapY);
+                let div = document.createElement('div');
+                div.className = 'tile';
+                div.style.left = (x * TILE_SIZE) + 'px';
+                div.style.top = (y * TILE_SIZE) + 'px';
+                div.innerText = tile.icon;
+                div.style.backgroundColor = tile.bg;
+                layer.appendChild(div);
+            }
+        }
+        
+        let face = "😐";
+        if(state.job === 'host') face = "😎";
+        if(state.job === 'yamibaito' || state.job === 'scammer' || state.job === 'fighter') face = "🕶️";
+        if(state.job === 'apology') face = "🙇";
+        if(state.job === 'regular') face = "👔";
+        if(state.stress > 80) face = "😱";
+        if(state.hp < 20) face = "🤢";
+        if(state.flags.married && state.stress < 20) face = "🥰";
+
+        const sprite = document.getElementById('player-sprite');
+        sprite.innerText = face;
+        sprite.style.left = (Math.floor(VIEW_W/2) * TILE_SIZE) + 'px';
+        sprite.style.top = (Math.floor(VIEW_H/2) * TILE_SIZE) + 'px';
     }
 };
 
