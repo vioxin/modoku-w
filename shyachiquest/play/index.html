@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>社畜クエスト 〜ブラック企業からの脱出〜</title>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
+
+    :root { --bg-color: #222; --win-bg: rgba(10, 20, 30, 0.95); --win-border: #ccc; }
+
+    body {
+        background: var(--bg-color); margin: 0; height: 100vh; width: 100vw; overflow: hidden;
+        font-family: 'DotGothic16', sans-serif; color: white;
+        display: flex; justify-content: center; align-items: center; touch-action: none;
+        user-select: none; -webkit-user-select: none;
+    }
+
+    #game-wrapper {
+        position: relative; width: 100%; height: 100%; max-width: 800px;
+        display: flex; justify-content: center; align-items: center; background: #111; overflow: hidden;
+    }
+
+    canvas { display: block; image-rendering: pixelated; max-width: 100%; max-height: 100%; }
+
+    /* ウィンドウ共通 */
+    .rpg-window {
+        background: var(--win-bg); border: 3px solid var(--win-border); border-radius: 2px;
+        box-shadow: inset 0 0 0 2px #000, 4px 4px 0 rgba(0,0,0,0.5); padding: 10px; z-index: 10;
+    }
+    .btn {
+        background: #333; border: 2px solid #ccc; color: #fff; font-family: inherit; font-size: 16px;
+        padding: 8px 12px; cursor: pointer; transition: 0.1s;
+    }
+    .btn:active { background: #fff; color: #000; }
+    .btn:disabled { border-color: #555; color: #555; background: #111; pointer-events: none; }
+
+    /* タイトル・キャリア選択 */
+    #title-screen {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111;
+        display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100;
+    }
+    .title-logo { font-size: 36px; color: #fff; text-shadow: 2px 2px #555; margin-bottom: 30px; text-align: center; }
+    .job-cards { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; }
+    .job-card { width: 150px; display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; padding: 15px; }
+    .job-card:hover { border-color: #4df; background: rgba(0,50,100,0.8); }
+
+    /* UI Layer */
+    #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
+    .status-bar { position: absolute; top: 10px; left: 10px; display: flex; flex-wrap: wrap; gap: 10px; font-size: 16px; width: calc(100% - 100px); }
+    .status-bar span { background: rgba(0,0,0,0.5); padding: 2px 5px; border-radius: 3px; }
+    .menu-btn { position: absolute; top: 10px; right: 10px; pointer-events: auto; }
+
+    /* メッセージボックス */
+    .msg-box {
+        position: absolute; bottom: 170px; left: 50%; transform: translateX(-50%);
+        width: 85%; min-height: 80px; font-size: 18px; line-height: 1.5; display: none;
+        white-space: pre-wrap; pointer-events: auto;
+    }
+    .choices { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin-top: 10px; }
+
+    /* バトル画面 */
+    #battle-screen {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.95); display: none; flex-direction: column;
+        justify-content: center; align-items: center; pointer-events: auto; z-index: 50;
+    }
+    #enemy-sprite { transform: scale(5); margin-bottom: 40px; image-rendering: pixelated; }
+    #enemy-name { font-size: 24px; color: #ff5555; margin-bottom: 20px; border-bottom: 2px solid #555; padding-bottom: 5px; }
+    #battle-msg { width: 85%; height: 80px; margin-bottom: 20px; font-size: 18px; text-align: center; }
+    .battle-commands { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 90%; }
+
+    /* コントローラー */
+    #controls-layer {
+        position: absolute; bottom: 20px; left: 20px; right: 20px; height: 140px;
+        pointer-events: auto; display: flex; justify-content: space-between; align-items: flex-end; z-index: 20; display: none;
+    }
+    #joystick-zone { position: relative; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); touch-action: none; }
+    #joystick-knob { position: absolute; top: 50%; left: 50%; width: 40px; height: 40px; background: rgba(255,255,255,0.8); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+    .action-btn { width: 70px; height: 70px; background: rgba(100,150,255,0.6); border: 3px solid rgba(150,200,255,0.8); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; font-weight: bold; }
+    .action-btn:active { transform: scale(0.9); }
+
+    #fade-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: black; opacity: 0; pointer-events: none; transition: opacity 0.5s; z-index: 100; }
+</style>
+</head>
+<body>
+
+<div id="game-wrapper">
+    <div id="title-screen">
+        <div class="title-logo">社畜クエスト<br><span style="font-size:18px; color:#aaa;">〜ブラック企業からの脱出〜</span></div>
+        <p>あなたのキャリア（職業）を選択してください</p>
+        <div class="job-cards">
+            <div class="rpg-window job-card" onclick="startGame('shinsotsu')">
+                <h3 style="color:#5cf; margin:0;">新入社員</h3>
+                <span style="font-size:12px; text-align:center;">体力・メンタル共に標準。<br>スキル: 愛想笑い</span>
+            </div>
+            <div class="rpg-window job-card" onclick="startGame('veteran')">
+                <h3 style="color:#f55; margin:0;">ベテラン社畜</h3>
+                <span style="font-size:12px; text-align:center;">体力無限だがメンタルはボロボロ。<br>スキル: 責任転嫁</span>
+            </div>
+            <div class="rpg-window job-card" onclick="startGame('freelance')">
+                <h3 style="color:#5f5; margin:0;">フリーランス</h3>
+                <span style="font-size:12px; text-align:center;">攻撃力(稼ぎ)は高いが防御が紙。<br>スキル: 徹夜作業</span>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    
+    <div id="ui-layer">
+        <div class="status-bar">
+            <span>💻 ｽｷﾙ <span id="ui-lv">1</span></span>
+            <span style="color:#f88;">❤ 体力 <span id="ui-hp">20</span></span>
+            <span style="color:#8df;">💧 ﾒﾝﾀﾙ <span id="ui-mp">10</span></span>
+            <span style="color:#fe3;">¥ 資産 <span id="ui-gold">0</span></span>
+        </div>
+        <button class="rpg-window menu-btn btn" onclick="toggleStatus()">詳細</button>
+
+        <div id="msg-box" class="rpg-window msg-box">
+            <div id="msg-text"></div>
+            <div id="msg-choices" class="choices"></div>
+        </div>
+
+        <div id="status-modal" class="rpg-window" style="position:absolute; top:15%; left:50%; transform:translateX(-50%); width:260px; display:none; flex-direction:column; gap:10px; pointer-events:auto;">
+            <h2 style="margin:0; text-align:center; color:#fff;" id="st-jobname">履歴書</h2>
+            <div style="display:flex; justify-content:space-between;"><span>業務スキル(Lv)</span><span id="st-lv">1</span></div>
+            <div style="display:flex; justify-content:space-between;"><span>体力(HP)</span><span id="st-hp">20/20</span></div>
+            <div style="display:flex; justify-content:space-between;"><span>ﾒﾝﾀﾙ(MP)</span><span id="st-mp">10/10</span></div>
+            <div style="display:flex; justify-content:space-between;"><span>処理能力(ATK)</span><span id="st-atk">5</span></div>
+            <div style="display:flex; justify-content:space-between;"><span>スルースキル(DEF)</span><span id="st-def">2</span></div>
+            <div style="display:flex; justify-content:space-between;"><span>評価(EXP)</span><span id="st-exp">0 / 10</span></div>
+            <div style="color:#aef; font-size:14px; border-top:1px solid #555; padding-top:5px;">株価: <span id="st-stock-price">1000</span>円 / 保有: <span id="st-shares">0</span>株</div>
+            <div style="color:#ccc; font-size:14px;">装備: <span id="st-wpn" style="color:#fe3;">安物のスーツ</span></div>
+            <button class="btn" style="width:100%; margin-top:5px;" onclick="toggleStatus()">閉じる</button>
+        </div>
+    </div>
+
+    <div id="battle-screen">
+        <h2 id="enemy-name">納期</h2>
+        <canvas id="enemy-sprite" width="48" height="48"></canvas>
+        <div id="battle-msg" class="rpg-window"></div>
+        <div class="battle-commands" id="battle-cmds"></div>
+    </div>
+
+    <div id="controls-layer">
+        <div id="joystick-zone"><div id="joystick-knob"></div></div>
+        <div class="action-btn" onpointerdown="input.setAction()" onpointerup="input.stopAction()">💻</div>
+    </div>
+    <div id="fade-layer"></div>
+</div>
+
+<script>
+/* 社畜クエスト 〜ブラック企業からの脱出〜 (株・副業実装版) */
+const CFG = { TILE_SIZE: 48, SCREEN_W: 800, SCREEN_H: 600, SPEED: 5, ENCOUNTER_RATE: 0.02 };
+
+// 現代風タイル
+const T = {
+    ROAD:  { id: 0, walk: true }, WALL: { id: 1, walk: false }, FLOOR: { id: 2, walk: true },
+    BED:   { id: 10, walk: false }, PC: { id: 11, walk: false }, // 自宅
+    CONBINI: { id: 20, walk: false }, DOOR: { id: 21, walk: true }, // 街・出入り口
+    DESK:  { id: 30, walk: false }, BOSS_DESK: { id: 31, walk: false }, // オフィス
+    NPC_COWORKER: { id: 40, walk: false }
+};
+
+const JOBS = {
+    shinsotsu: { name: '新入社員', hp: 30, mp: 30, atk: 5, def: 3, skills: [{id:'work', name:'業務をこなす', mp:0}, {id:'smile', name:'愛想笑い(防御/MP2)', mp:2}] },
+    veteran:   { name: 'ベテラン', hp: 50, mp: 10, atk: 7, def: 5, skills: [{id:'work', name:'業務をこなす', mp:0}, {id:'blame', name:'責任転嫁(大ダメ/MP3)', mp:3}] },
+    freelance: { name: 'ﾌﾘｰﾗﾝｽ', hp: 20, mp: 40, atk: 9, def: 1, skills: [{id:'work', name:'納品する', mp:0}, {id:'allnight', name:'徹夜(超ダメ・自傷/MP5)', mp:5}] }
+};
+
+const Sprites = {};
+function createPixelSprite(key, w, h, pal, data) {
+    const c = document.createElement('canvas'); c.width = w * 4; c.height = h * 4;
+    const ctx = c.getContext('2d');
+    for(let y=0; y<h; y++) for(let x=0; x<w; x++) if(data[y][x]!=='0') { ctx.fillStyle = pal[parseInt(data[y][x], 16)]; ctx.fillRect(x*4, y*4, 4, 4); }
+    Sprites[key] = c;
+}
+
+function initGraphics() {
+    const pal = [null,'#111','#fca','#333','#888','#248','#fff','#d33','#642','#4a4','#fd3','#5cf','#f8a'];
+    createPixelSprite('player', 12, 12, pal, ["000000000000","000011110000","000111111000","000122221000","000212212000","000161161000","000117711000","001111111100","001111111100","000333333000","000330033000","001110011100"]);
+    createPixelSprite('npc', 12, 12, pal, ["000000000000","000088880000","000888888000","000822228000","000212212000","000464464000","00044B444000","004444444400","004444444400","000111111000","000110011000","008880088800"]);
+    createPixelSprite('boss', 12, 12, pal, ["000000000000","000100001000","000110011000","000122221000","000212212000","001116611100","001117711100","011111111110","011111111110","000333333000","000330033000","001110011100"]);
+    createPixelSprite('floor', 12,12,pal, ["444444444444","464646464646","444444444444","646464646464","444444444444","464646464646","444444444444","646464646464","444444444444","464646464646","444444444444","646464646464"]);
+    createPixelSprite('road', 12,12,pal, ["333333333333","333333333333","333333333333","333333333333","333333333333","666666666666","333333333333","333333333333","333333333333","333333333333","333333333333","333333333333"]);
+    createPixelSprite('wall', 12,12,pal, ["444444444444","411141111114","411141111114","444444444444","411111141114","411111141114","444444444444","411141111114","411141111114","444444444444","444444444444","444444444444"]);
+    createPixelSprite('bed', 12,12,pal, ["000000000000","000000000000","000000000000","066666666660","06B666666B60","06BBBBBBBB60","06BBBBBBBB60","06BBBBBBBB60","066666666660","080000000080","080000000080","000000000000"]);
+    createPixelSprite('desk', 12,12,pal, ["000000000000","000000000000","000000000000","044444444440","041144411440","041144411440","044444444440","088888888880","088000000880","088000000880","088000000880","000000000000"]);
+    createPixelSprite('conbini', 12,12,pal, ["000000000000","055555555550","099999999990","077777777770","066666666660","06B6B6B6B660","066666666660","06C66666A660","066666666660","06B6B6B6B660","066666666660","000000000000"]);
+    createPixelSprite('deadline', 12,12,pal, ["000000000000","000011110000","000166661000","001661666100","001661666100","001661166100","001666666100","000166661000","000011110000","000000000000","000000000000","000000000000"]);
+    createPixelSprite('doc', 12,12,pal, ["000000000000","000666660000","000611160000","000666660000","000611160000","000666660000","000611160000","000666660000","000000000000","000000000000","000000000000","000000000000"]);
+}
+
+// --- ステート ---
+const state = {
+    mapId: 'home', job: null, wpnName: '安物のスーツ',
+    marketPrice: 1000, // 初期株価
+    p: { x:0, y:0, dir:2, moving:false, anim:0, lv:1, hp:0, maxHp:0, mp:0, maxMp:0, atk:0, def:0, gold:0, shares:0, exp:0, nextExp:15 },
+    cam: { x:0, y:0 }, msgActive: false, battleActive: false
+};
+
+const maps = {
+    home: { w:8, h:8, data:[] }, city: { w:20, h:15, data:[] }, office: { w:15, h:20, data:[] }
+};
+
+function startGame(jobId) {
+    state.job = JOBS[jobId]; Object.assign(state.p, state.job); state.p.maxHp = state.p.hp; state.p.maxMp = state.p.mp;
+    
+    document.getElementById('title-screen').style.display = 'none';
+    document.getElementById('ui-layer').style.display = 'block';
+    document.getElementById('controls-layer').style.display = 'flex';
+    document.getElementById('st-jobname').innerText = state.job.name;
+    
+    const cmdBox = document.getElementById('battle-cmds');
+    state.job.skills.forEach(sk => {
+        let btn = document.createElement('button'); btn.className = 'btn'; btn.innerText = sk.name; btn.onclick = () => battleAction(sk);
+        cmdBox.appendChild(btn);
+    });
+    let runBtn = document.createElement('button'); runBtn.className = 'btn'; runBtn.innerText = 'トイレに逃げる'; runBtn.onclick = () => battleAction({id:'run'}); cmdBox.appendChild(runBtn);
+
+    generateMaps(); updateUI();
+    showMsg(`【${state.job.name}】として社会に出た！\nまずは出社して稼ぐか、\nPCで「副業」や「株」に手を出そう！`);
+}
+
+function generateMaps() {
+    for(let y=0; y<8; y++) { let row=[]; for(let x=0; x<8; x++) { if(x===0||x===7||y===0||y===7) row.push(T.WALL.id); else row.push(T.FLOOR.id); } maps.home.data.push(row); }
+    maps.home.data[7][3] = maps.home.data[7][4] = T.DOOR.id; maps.home.data[2][2] = T.BED.id; maps.home.data[2][5] = T.PC.id;
+
+    for(let y=0; y<15; y++) { let row=[]; for(let x=0; x<20; x++) { if(y<3||y>11||x<2||x>17) row.push(T.WALL.id); else row.push(T.ROAD.id); } maps.city.data.push(row); }
+    maps.city.data[3][10] = T.DOOR.id; maps.city.data[6][5] = T.CONBINI.id; maps.city.data[11][15] = T.DOOR.id;
+
+    for(let y=0; y<20; y++) { let row=[]; for(let x=0; x<15; x++) { if(x===0||x===14||y===0||y===19) row.push(T.WALL.id); else row.push(T.FLOOR.id); } maps.office.data.push(row); }
+    maps.office.data[19][7] = T.DOOR.id;
+    for(let y=5; y<15; y+=3) { for(let x=3; x<12; x+=4) { maps.office.data[y][x] = T.DESK.id; maps.office.data[y][x+1] = T.DESK.id; } }
+    maps.office.data[8][5] = T.NPC_COWORKER.id; maps.office.data[2][7] = T.BOSS_DESK.id;
+
+    state.p.x = 4 * CFG.TILE_SIZE; state.p.y = 4 * CFG.TILE_SIZE;
+}
+
+const input = {
+    dir: -1, action: false,
+    setDir: function(d) { if(!state.msgActive && !state.battleActive) this.dir = d; }, stopDir: function() { this.dir = -1; },
+    setAction: function() { if(state.battleActive) return; if(state.msgActive) { closeMsg(); return; } this.action = true; }, stopAction: function() { this.action = false; }
+};
+const joy = {
+    z: document.getElementById('joystick-zone'), k: document.getElementById('joystick-knob'), act: false, ox: 0, oy: 0,
+    init: function() {
+        this.z.addEventListener('pointerdown', e => { this.act = true; this.ox = e.clientX; this.oy = e.clientY; this.k.style.transition = 'none'; this.z.setPointerCapture(e.pointerId); });
+        this.z.addEventListener('pointermove', e => {
+            if(!this.act) return;
+            const dx = e.clientX - this.ox, dy = e.clientY - this.oy; const dist = Math.sqrt(dx*dx + dy*dy);
+            const mx = dist > 35 ? (dx/dist)*35 : dx, my = dist > 35 ? (dy/dist)*35 : dy;
+            this.k.style.transform = `translate(calc(-50% + ${mx}px), calc(-50% + ${my}px))`;
+            if(dist > 15) { const a = Math.atan2(dy, dx) * 180 / Math.PI; if(a >= -45 && a < 45) input.setDir(1); else if(a >= 45 && a < 135) input.setDir(2); else if(a >= -135 && a < -45) input.setDir(0); else input.setDir(3); } else input.stopDir();
+        });
+        const stop = () => { this.act = false; this.k.style.transition = '0.2s'; this.k.style.transform = 'translate(-50%, -50%)'; input.stopDir(); };
+        this.z.addEventListener('pointerup', stop); this.z.addEventListener('pointercancel', stop);
+    }
+}; joy.init();
+
+window.addEventListener('keydown', e => { if(['ArrowUp','w'].includes(e.key)) input.setDir(0); if(['ArrowDown','s'].includes(e.key)) input.setDir(2); if(['ArrowLeft','a'].includes(e.key)) input.setDir(3); if(['ArrowRight','d'].includes(e.key)) input.setDir(1); if(e.key==='z' || e.key==='Enter') input.setAction(); });
+window.addEventListener('keyup', e => { if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'].includes(e.key)) input.stopDir(); if(e.key==='z' || e.key==='Enter') input.stopAction(); });
+
+function updateUI() { document.getElementById('ui-lv').innerText = state.p.lv; document.getElementById('ui-hp').innerText = state.p.hp; document.getElementById('ui-mp').innerText = state.p.mp; document.getElementById('ui-gold').innerText = state.p.gold; }
+
+function toggleStatus() {
+    const m = document.getElementById('status-modal');
+    if (m.style.display === 'flex') m.style.display = 'none';
+    else { document.getElementById('st-lv').innerText = state.p.lv; document.getElementById('st-hp').innerText = state.p.hp + '/' + state.p.maxHp; document.getElementById('st-mp').innerText = state.p.mp + '/' + state.p.maxMp; document.getElementById('st-atk').innerText = state.p.atk; document.getElementById('st-def').innerText = state.p.def; document.getElementById('st-exp').innerText = state.p.exp + ' / ' + state.p.nextExp; document.getElementById('st-stock-price').innerText = state.marketPrice; document.getElementById('st-shares').innerText = state.p.shares; document.getElementById('st-wpn').innerText = state.wpnName; m.style.display = 'flex'; }
+}
+
+let msgCallback = null;
+function showMsg(text, choices = null) {
+    document.getElementById('msg-text').innerText = text; const cbox = document.getElementById('msg-choices'); cbox.innerHTML = '';
+    if(choices) { choices.forEach(c => { let btn = document.createElement('button'); btn.className = 'btn'; btn.innerText = c.text; btn.onclick = (e) => { e.stopPropagation(); closeMsg(); c.cb(); }; cbox.appendChild(btn); }); }
+    else msgCallback = null;
+    document.getElementById('msg-box').style.display = 'block'; state.msgActive = true; input.stopDir();
+}
+function closeMsg() { if(!state.msgActive || document.getElementById('msg-choices').innerHTML !== '') return; document.getElementById('msg-box').style.display = 'none'; state.msgActive = false; input.action = false; if(msgCallback) { let cb = msgCallback; msgCallback = null; cb(); } }
+
+function fadeTransition(cb) { const fade = document.getElementById('fade-layer'); fade.style.opacity = 1; setTimeout(() => { cb(); updateUI(); fade.style.opacity = 0; }, 500); }
+
+function checkEvents() {
+    const map = maps[state.mapId], tx = Math.floor((state.p.x + 24) / CFG.TILE_SIZE), ty = Math.floor((state.p.y + 36) / CFG.TILE_SIZE);
+    if(map.data[ty] !== undefined) {
+        const id = map.data[ty][tx];
+        if(id === T.DOOR.id) {
+            if(state.mapId === 'home') fadeTransition(() => { state.mapId = 'city'; state.p.x = 10*48; state.p.y = 4*48; });
+            else if(state.mapId === 'city' && ty < 5) fadeTransition(() => { state.mapId = 'home'; state.p.x = 4*48; state.p.y = 6*48; }); // 帰宅
+            else if(state.mapId === 'city' && ty > 10) fadeTransition(() => { state.mapId = 'office'; state.p.x = 7*48; state.p.y = 18*48; }); // 出社
+            else if(state.mapId === 'office') fadeTransition(() => { state.mapId = 'city'; state.p.x = 15*48; state.p.y = 10*48; }); // 退社
+        }
+    }
+}
+
+// --- 副業・株システム ---
+function openPCMenu() {
+    showMsg("PCを立ち上げた。何をする？\n（株価は移動するたびに変動します）", [
+        { text: "副業サイト", cb: () => openSideJobMenu() },
+        { text: "株取引アプリ", cb: () => openStockMenu() },
+        { text: "やめる", cb: () => {} }
+    ]);
+}
+function openSideJobMenu() {
+    showMsg(`【副業マッチング】\n自分の体力とメンタルを削って稼ごう。\n現在HP:${state.p.hp} MP:${state.p.mp}`, [
+        { text: "記事執筆(HP/MP-5)", cb: () => doSideJob('writer') },
+        { text: "動画編集(HP/MP-15)", cb: () => doSideJob('video') },
+        { text: "戻る", cb: () => openPCMenu() }
+    ]);
+}
+function doSideJob(type) {
+    let cost = type === 'writer' ? 5 : 15;
+    let reward = type === 'writer' ? 500 + Math.floor(Math.random()*800) : 2000 + Math.floor(Math.random()*2000);
+    if(state.p.hp <= cost || state.p.mp <= cost) { showMsg("体力がメンタルが限界だ……。\nこれ以上無理すると倒れてしまう。"); return; }
+    state.p.hp -= cost; state.p.mp -= cost; state.p.gold += reward; updateUI();
+    showMsg(`休日の時間を削って副業をこなした！\n報酬 ${reward}円 を得たが、\n心身に疲労が蓄積した……。`);
+}
+function openStockMenu() {
+    showMsg(`証券アプリ『DABO』\n銘柄: オワリ・ホールディングス\n現在株価: ${state.marketPrice}円 / 保有: ${state.p.shares}株`, [
+        { text: "1株買う", cb: () => { if(state.p.gold >= state.marketPrice) { state.p.gold -= state.marketPrice; state.p.shares++; updateUI(); openStockMenu(); } else showMsg("資金が足りません。"); } },
+        { text: "全部売る", cb: () => { if(state.p.shares > 0) { let rev = state.marketPrice * state.p.shares; state.p.gold += rev; let amt = state.p.shares; state.p.shares = 0; updateUI(); showMsg(`${amt}株を売却し、\n${rev}円の現金を得た！`); } else showMsg("売る株を持っていません。"); } },
+        { text: "戻る", cb: () => openPCMenu() }
+    ]);
+}
+
+function interact() {
+    const p = state.p; let tx = Math.floor((p.x + 24) / CFG.TILE_SIZE), ty = Math.floor((p.y + 24) / CFG.TILE_SIZE);
+    if(p.dir===0) ty--; else if(p.dir===2) ty++; else if(p.dir===3) tx--; else if(p.dir===1) tx++;
+    const map = maps[state.mapId]; if(ty<0||ty>=map.h||tx<0||tx>=map.w) return;
+    const id = map.data[ty][tx];
+    
+    if(id === T.BED.id) {
+        showMsg("ベッドで眠りますか？\n（体力とメンタルが全回復します）", [
+            { text: '寝る', cb: () => { p.hp = p.maxHp; p.mp = p.maxMp; updateUI(); showMsg("泥のように眠った……。明日も労働だ。"); } }, { text: 'やめる', cb: () => {} }
+        ]);
+    } else if(id === T.PC.id) { openPCMenu(); }
+    else if(id === T.CONBINI.id) {
+        showMsg("コンビニ『不夜城マート』", [
+            { text: 'ｴﾅﾄﾞﾘ(¥500)', cb: () => { if(p.gold>=500) { p.gold-=500; p.hp=Math.min(p.maxHp, p.hp+20); updateUI(); showMsg("体力が20回復した！\n将来の寿命を前借りしている気がする。"); } else showMsg("残高不足です。"); } },
+            { text: 'ｽﾄﾛﾝｸﾞ缶(¥200)', cb: () => { if(p.gold>=200) { p.gold-=200; p.mp=Math.min(p.maxMp, p.mp+15); p.hp=Math.max(1, p.hp-5); updateUI(); showMsg("メンタルが15回復した！\n代償として少し体調が悪くなった。"); } else showMsg("残高不足です。"); } },
+            { text: '出る', cb: () => {} }
+        ]);
+    } else if(id === T.NPC_COWORKER.id) { showMsg("同僚「あ、おはよう……。\nおれ、この株が上がったら会社辞めるんだ……」"); }
+    else if(id === T.BOSS_DESK.id) {
+        showMsg("ブラック企業社長\n「おい君！あの案件どうなってる！\n気合と根性で見せてみろ！！」", null);
+        setTimeout(()=> { closeMsg(); startBattle({ name: 'ブラック社長', hp: 150, maxHp: 150, atk: 15, def: 8, exp: 999, gold: 5000, sprite: 'boss', isBoss: true }); }, 2000);
+    } else if(id === T.DESK.id) { showMsg("誰かの散らかったデスクだ。\n飲みかけのコーヒーが放置されている。"); }
+}
+
+// --- バトル (業務) ---
+let curEnemy = null;
+function startRandomEncounter() {
+    if(state.mapId !== 'office') return;
+    let e = {};
+    if(Math.random() < 0.5) { e.name = '絶対今日中の納期'; e.hp = 20; e.maxHp=20; e.atk = 8; e.def = 2; e.exp = 5; e.gold = 300; e.sprite = 'deadline'; }
+    else { e.name = '理不尽な仕様変更'; e.hp = 35; e.maxHp=35; e.atk = 12; e.def = 4; e.exp = 8; e.gold = 500; e.sprite = 'doc'; }
+    startBattle(e);
+}
+
+function startBattle(enemy) {
+    input.stopDir(); state.battleActive = true; curEnemy = enemy;
+    document.getElementById('battle-screen').style.display = 'flex';
+    document.getElementById('enemy-name').innerText = `【急募】${enemy.name} が発生！`;
+    const c = document.getElementById('enemy-sprite'), ctx = c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); ctx.drawImage(Sprites[enemy.sprite], 0, 0, 48, 48);
+    setBattleMsg("どう対応する？");
+}
+function setBattleMsg(txt) { document.getElementById('battle-msg').innerText = txt; }
+function toggleBattleBtns(enable) { document.querySelectorAll('#battle-cmds .btn').forEach(b => b.disabled = !enable); }
+
+function battleAction(cmd) {
+    if(!state.battleActive) return; toggleBattleBtns(false);
+    if(cmd.id === 'run') {
+        if(curEnemy.isBoss) { setBattleMsg("社長室からは逃げられない！"); setTimeout(enemyTurn, 1500); }
+        else { setBattleMsg("トイレの個室に逃げ込んだ！\nやり過ごした……。"); setTimeout(endBattle, 1500); } return;
+    }
+    if(state.p.mp < cmd.mp) { setBattleMsg("メンタルが限界だ！スキルが使えない！"); setTimeout(()=>toggleBattleBtns(true), 1000); return; }
+    state.p.mp -= cmd.mp; updateUI();
+
+    let dmg = 0, msg = "";
+    if(cmd.id === 'work') { dmg = Math.max(1, state.p.atk - curEnemy.def + Math.floor(Math.random()*3)); msg = `必死にキーボードを叩いた！\n${dmg} の進捗を生んだ！`; }
+    else if(cmd.id === 'smile') { dmg = 2; state.p.hp = Math.min(state.p.maxHp, state.p.hp + 5); msg = `愛想笑いでごまかした！\nタスクを少しこなしつつ、体力を温存した。`; }
+    else if(cmd.id === 'blame') { dmg = Math.max(5, state.p.atk * 2 - curEnemy.def); msg = `「それは私の管轄外ですね」\n責任を回避し、${dmg} の大ダメージ！`; }
+    else if(cmd.id === 'allnight') { dmg = state.p.atk * 3; state.p.hp -= 10; msg = `徹夜で強引に終わらせた！\n${dmg} の凄まじい進捗！\nしかし自分の命を10削った……。`; if(state.p.hp<=0) state.p.hp=1; updateUI(); }
+
+    curEnemy.hp -= dmg;
+    const scr = document.getElementById('battle-screen'); scr.style.transform = 'translate(10px, 10px)'; setTimeout(()=> scr.style.transform = 'translate(-10px, -10px)', 50); setTimeout(()=> scr.style.transform = 'translate(0, 0)', 100);
+    setBattleMsg(msg);
+
+    if(curEnemy.hp <= 0) {
+        setTimeout(() => {
+            setBattleMsg(`タスク『${curEnemy.name}』を完了した！\n評価が ${curEnemy.exp} 上がり、給料 ${curEnemy.gold}円 が振り込まれた！`);
+            state.p.exp += curEnemy.exp; state.p.gold += curEnemy.gold; updateUI();
+            if(curEnemy.isBoss) { setTimeout(() => { showMsg("社長「ば、ばかな……私が論破されるとは……！」\n\n見事、退職届を叩きつけた！\n自由な生活の始まりだ！\n〜 祝・退職(GAME CLEAR) 〜"); endBattle(); }, 2000); }
+            else { setTimeout(() => { if(state.p.exp >= state.p.nextExp) { levelUp(); setTimeout(endBattle, 2000); } else endBattle(); }, 2500); }
+        }, 1500);
+    } else setTimeout(enemyTurn, 1500);
+}
+
+function enemyTurn() {
+    let dmg = Math.max(1, curEnemy.atk - state.p.def + Math.floor(Math.random()*3)); state.p.hp -= dmg; updateUI();
+    const wrp = document.getElementById('game-wrapper'); wrp.style.transform = 'translate(5px, 0)'; setTimeout(()=> wrp.style.transform = 'translate(-5px, 0)', 50); setTimeout(()=> wrp.style.transform = 'translate(0, 0)', 100);
+    setBattleMsg(`${curEnemy.name} の理不尽な圧迫！\n精神と肉体に ${dmg} のダメージ！`);
+    if(state.p.hp <= 0) {
+        setTimeout(() => {
+            setBattleMsg("過労で倒れてしまった……。");
+            setTimeout(() => {
+                state.p.hp = state.p.maxHp; state.p.mp = state.p.maxMp; state.p.gold = Math.floor(state.p.gold / 2); // 医療費
+                endBattle(); fadeTransition(() => { state.mapId = 'home'; state.p.x = 4*48; state.p.y = 6*48; showMsg("病院のベッドで目を覚ました。\n医療費として資産が半分飛んだ……。"); });
+            }, 2000);
+        }, 1500);
+    } else setTimeout(() => { setBattleMsg("どう対応する？"); toggleBattleBtns(true); }, 1500);
+}
+function endBattle() { state.battleActive = false; document.getElementById('battle-screen').style.display = 'none'; toggleBattleBtns(true); }
+
+function levelUp() {
+    state.p.lv++; state.p.maxHp += 5; state.p.maxMp += 5; state.p.hp = state.p.maxHp; state.p.mp = state.p.maxMp; state.p.atk += 2; state.p.def += 1; state.p.nextExp = Math.floor(state.p.nextExp * 1.5);
+    updateUI(); showMsg(`業務スキルが Lv${state.p.lv} に上がった！\n体力とメンタルが全回復した！`);
+}
+
+function update() {
+    if(state.msgActive || state.battleActive || !state.job) return; if(document.getElementById('status-modal').style.display === 'flex') return;
+    const p = state.p, map = maps[state.mapId]; let dx = 0, dy = 0;
+    if (input.dir !== -1) { p.dir = input.dir; if(p.dir===0) dy=-CFG.SPEED; if(p.dir===2) dy=CFG.SPEED; if(p.dir===3) dx=-CFG.SPEED; if(p.dir===1) dx=CFG.SPEED; p.moving = true; } else { p.moving = false; p.anim = 0; }
+    if (dx !== 0 || dy !== 0) {
+        const nx = p.x + dx, ny = p.y + dy, ftX = nx + 16, ftR = nx + 32, ftY = ny + 24, ftB = ny + 46;
+        const check = (x, y) => { let tx = Math.floor(x / CFG.TILE_SIZE), ty = Math.floor(y / CFG.TILE_SIZE); if(tx<0||tx>=map.w||ty<0||ty>=map.h) return false; return Object.values(T).find(t=>t.id===map.data[ty][tx]).walk; };
+        if (check(ftX, ftY) && check(ftR, ftY) && check(ftX, ftB) && check(ftR, ftB)) {
+            p.x = nx; p.y = ny; if(Math.floor(Date.now()/100)%2===0) p.anim = (p.anim === 0) ? 1 : 0;
+            
+            // 株価の変動ロジック (歩くたびにランダム変動)
+            if(Math.random() < 0.05) {
+                let fluctuation = 1 + (Math.random() * 0.2 - 0.1); // -10% 〜 +10%
+                state.marketPrice = Math.max(10, Math.floor(state.marketPrice * fluctuation));
+            }
+
+            if(state.mapId === 'office' && Math.random() < CFG.ENCOUNTER_RATE) startRandomEncounter();
+        }
+    }
+    checkEvents(); if(input.action) { interact(); input.action = false; }
+    state.cam.x = Math.max(0, Math.min(p.x - CFG.SCREEN_W/2 + 24, map.w * CFG.TILE_SIZE - CFG.SCREEN_W)); state.cam.y = Math.max(0, Math.min(p.y - CFG.SCREEN_H/2 + 24, map.h * CFG.TILE_SIZE - CFG.SCREEN_H));
+    if(map.w * CFG.TILE_SIZE < CFG.SCREEN_W) state.cam.x = -(CFG.SCREEN_W - map.w * CFG.TILE_SIZE)/2; if(map.h * CFG.TILE_SIZE < CFG.SCREEN_H) state.cam.y = -(CFG.SCREEN_H - map.h * CFG.TILE_SIZE)/2;
+}
+
+const ctx = document.getElementById('gameCanvas').getContext('2d'); ctx.imageSmoothingEnabled = false;
+function draw() {
+    if(!state.job) return; ctx.fillStyle = state.mapId==='city'?'#333':'#111'; ctx.fillRect(0,0,CFG.SCREEN_W, CFG.SCREEN_H);
+    const map = maps[state.mapId], sx = Math.max(0, Math.floor(state.cam.x/CFG.TILE_SIZE)), ex = Math.min(map.w-1, sx+(CFG.SCREEN_W/CFG.TILE_SIZE)+1), sy = Math.max(0, Math.floor(state.cam.y/CFG.TILE_SIZE)), ey = Math.min(map.h-1, sy+(CFG.SCREEN_H/CFG.TILE_SIZE)+1);
+    for(let y=sy; y<=ey; y++) {
+        for(let x=sx; x<=ex; x++) {
+            let id = map.data[y][x], px = x * CFG.TILE_SIZE - state.cam.x, py = y * CFG.TILE_SIZE - state.cam.y;
+            if(id === T.ROAD.id) ctx.drawImage(Sprites.road, px, py, 48, 48);
+            if(id === T.FLOOR.id) ctx.drawImage(Sprites.floor, px, py, 48, 48);
+            if(id === T.WALL.id) ctx.drawImage(Sprites.wall, px, py, 48, 48);
+            if(id === T.BED.id) ctx.drawImage(Sprites.bed, px, py, 48, 48);
+            if(id === T.PC.id) ctx.drawImage(Sprites.desk, px, py, 48, 48);
+            if(id === T.DESK.id || id === T.BOSS_DESK.id) ctx.drawImage(Sprites.desk, px, py, 48, 48);
+            if(id === T.CONBINI.id) ctx.drawImage(Sprites.conbini, px, py, 48, 48);
+            if(id === T.NPC_COWORKER.id) ctx.drawImage(Sprites.npc, px, py, 48, 48);
+            if(id === T.BOSS_DESK.id) ctx.drawImage(Sprites.boss, px, py-10, 48, 48);
+            if(id === T.DOOR.id) { ctx.fillStyle = 'rgba(100,200,255,0.3)'; ctx.fillRect(px,py,48,48); }
+        }
+    }
+    const px = state.p.x - state.cam.x, py = state.p.y - state.cam.y, bob = state.p.anim === 1 ? -2 : 0;
+    ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.ellipse(px+24, py+40, 16, 6, 0, 0, Math.PI*2); ctx.fill();
+    ctx.drawImage(Sprites.player, px, py+bob, 48, 48);
+}
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+window.onload = function() { initGraphics(); loop(); };
+</script>
+</body>
+</html>
