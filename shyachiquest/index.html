@@ -1,1 +1,226 @@
 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>社畜クエスト 〜ブラック企業からの脱出〜 | 公式サイト</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --bg-color: #0d0d12;
+        --text-main: #e0e0e0;
+        --neon-blue: #00f0ff;
+        --neon-pink: #ff0055;
+        --neon-green: #00ff66;
+        --card-bg: rgba(20, 20, 30, 0.7);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        background-color: var(--bg-color);
+        color: var(--text-main);
+        font-family: 'Noto Sans JP', sans-serif;
+        line-height: 1.6;
+        overflow-x: hidden;
+        background-image: 
+            linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+        background-size: 30px 30px;
+    }
+
+    .pixel-font { font-family: 'DotGothic16', sans-serif; }
+
+    /* Header */
+    header {
+        position: fixed; top: 0; width: 100%; padding: 20px 40px;
+        display: flex; justify-content: space-between; align-items: center;
+        background: rgba(13, 13, 18, 0.9);
+        backdrop-filter: blur(10px); z-index: 1000;
+        border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+    }
+    .logo { font-weight: 900; font-size: 1.5rem; color: var(--neon-blue); text-shadow: 0 0 10px rgba(0,240,255,0.5); }
+    nav ul { list-style: none; display: flex; gap: 30px; }
+    nav a { color: #fff; text-decoration: none; font-weight: 700; transition: color 0.3s; }
+    nav a:hover { color: var(--neon-pink); text-shadow: 0 0 8px var(--neon-pink); }
+
+    /* Hero Section */
+    .hero {
+        height: 100vh; display: flex; flex-direction: column;
+        justify-content: center; align-items: center; text-align: center;
+        position: relative; padding: 0 20px;
+    }
+    .hero::before {
+        content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: radial-gradient(circle at center, transparent 0%, var(--bg-color) 80%);
+        pointer-events: none;
+    }
+    .catchphrase { font-size: 1.2rem; font-weight: 700; letter-spacing: 5px; color: var(--neon-pink); margin-bottom: 20px; z-index: 1; }
+    .title {
+        font-size: 5rem; font-weight: 900; line-height: 1.1; margin-bottom: 10px; z-index: 1;
+        background: linear-gradient(45deg, #fff, var(--neon-blue));
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 20px rgba(0,240,255,0.4));
+    }
+    .subtitle { font-size: 2rem; color: #aaa; margin-bottom: 50px; z-index: 1; }
+    
+    .btn-play {
+        position: relative; z-index: 1; padding: 15px 40px; font-size: 1.5rem; font-weight: 900;
+        color: #000; background: var(--neon-blue); border: none; cursor: pointer;
+        text-transform: uppercase; letter-spacing: 2px;
+        clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+        transition: 0.3s; box-shadow: 0 0 20px rgba(0,240,255,0.4);
+    }
+    .btn-play:hover { background: var(--neon-pink); color: #fff; box-shadow: 0 0 30px rgba(255,0,85,0.6); transform: translateY(-3px); }
+
+    /* Section Common */
+    section { padding: 100px 20px; max-width: 1200px; margin: 0 auto; }
+    .sec-title {
+        text-align: center; font-size: 2.5rem; font-weight: 900; margin-bottom: 60px;
+        color: #fff; position: relative;
+    }
+    .sec-title::after {
+        content: ''; display: block; width: 60px; height: 4px;
+        background: var(--neon-pink); margin: 15px auto 0;
+    }
+
+    /* About Section */
+    .about-content {
+        display: flex; align-items: center; gap: 50px; background: var(--card-bg);
+        padding: 40px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .about-text h3 { font-size: 2rem; margin-bottom: 20px; color: var(--neon-blue); }
+    .about-text p { font-size: 1.1rem; margin-bottom: 15px; color: #bbb; }
+    .mockup {
+        width: 100%; max-width: 400px; border: 4px solid #333; border-radius: 10px;
+        background: #000; padding: 10px; position: relative;
+    }
+    .mockup-screen {
+        width: 100%; aspect-ratio: 4/3; background: #111; border: 2px solid #555;
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        color: var(--neon-green); text-align: center;
+    }
+
+    /* Features Section */
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
+    .feature-card {
+        background: var(--card-bg); padding: 30px; border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.05); transition: 0.3s;
+        position: relative; overflow: hidden;
+    }
+    .feature-card::before {
+        content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+        background: var(--neon-blue); transition: 0.3s;
+    }
+    .feature-card:hover { transform: translateY(-10px); border-color: rgba(0,240,255,0.3); background: rgba(30,30,45,0.9); }
+    .feature-card:hover::before { width: 100%; opacity: 0.1; }
+    .feature-icon { font-size: 3rem; margin-bottom: 20px; }
+    .feature-card h3 { font-size: 1.5rem; margin-bottom: 15px; color: #fff; }
+    .feature-card p { color: #aaa; font-size: 0.95rem; }
+
+    /* Footer */
+    footer { text-align: center; padding: 40px; border-top: 1px solid #333; margin-top: 50px; color: #666; }
+
+    /* Animations */
+    @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-15px); } 100% { transform: translateY(0px); } }
+    .floating { animation: float 6s ease-in-out infinite; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .title { font-size: 3rem; }
+        .subtitle { font-size: 1.2rem; }
+        .about-content { flex-direction: column; }
+        header { padding: 15px 20px; }
+        nav ul { display: none; } /* スマホではナビ省略 */
+    }
+</style>
+</head>
+<body>
+
+<header>
+    <div class="logo pixel-font">社畜QUEST</div>
+    <nav>
+        <ul>
+            <li><a href="#about">ABOUT</a></li>
+            <li><a href="#features">SYSTEM</a></li>
+            <li><a href="#play">PLAY</a></li>
+        </ul>
+    </nav>
+</header>
+
+<main>
+    <section class="hero">
+        <div class="catchphrase">本業の給与だけじゃ、生き残れない。</div>
+        <h1 class="title">社畜クエスト</h1>
+        <h2 class="subtitle pixel-font">〜ブラック企業からの脱出〜</h2>
+        <a href="game.html" style="text-decoration: none;">
+          <button class="btn-play pixel-font">Game Start</button>
+        </a>
+    </section>
+
+    <section id="about" class="about">
+        <h2 class="sec-title">ABOUT</h2>
+        <div class="about-content">
+            <div class="about-text">
+                <h3>理不尽に立ち向かえ。<br>現代社会を生き抜くサバイバルRPG。</h3>
+                <p>あなたはしがない一人の労働者。「絶対今日中の納期」「理不尽な仕様変更」そして「ブラック社長の圧迫」。容赦なく襲い来る業務（モンスター）を前に、あなたの体力とメンタルは削られていく。</p>
+                <p>給与だけでは足りない生活費。あなたは自宅のPCを開き、休日の時間を削って副業をこなし、変動し続ける株価の波に身を投じることになる。</p>
+                <p style="color: var(--neon-pink); font-weight: bold; margin-top: 20px;">退職届を叩きつけ、真の自由を手に入れることができるか？</p>
+            </div>
+            <div class="mockup floating">
+                <div class="mockup-screen pixel-font">
+                    <span style="font-size: 3rem; margin-bottom:10px;">👾</span>
+                    【急募】絶対今日中の納期<br>が現れた！<br><br>
+                    ▶ 業務をこなす<br>
+                    　 愛想笑い<br>
+                    　 トイレに逃げる
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="features">
+        <h2 class="sec-title">SYSTEM</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">👔</div>
+                <h3>過酷な3つのキャリア</h3>
+                <p>標準的な「新入社員」、メンタルが削られきった「ベテラン」、防御力が紙の「フリーランス」。それぞれの特性と固有スキル（愛想笑い、責任転嫁など）を駆使して理不尽なタスクを片付けろ。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💻</div>
+                <h3>副業で身を削る</h3>
+                <p>休日にベッドで休む暇などない。自宅のPCから「記事執筆」や「動画編集」の副業を受注し、HPとMPを代償に現金を稼ぎ出せ。過労で倒れれば高額な医療費が飛んでいく。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📈</div>
+                <h3>欲望のランダムウォーク</h3>
+                <p>一歩歩くごとに乱高下する「オワリ・ホールディングス」の株。底値で買い集め、出社中に高騰したタイミングで売り抜ける。一攫千金を狙うか、破滅するかはあなた次第。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔋</div>
+                <h3>ドーピングで命をつなぐ</h3>
+                <p>街の『不夜城マート』で「エナドリ」と「ストロング缶」を買い込め。将来の寿命を前借りして体力を回復し、悪酔いと引き換えにメンタルを強制回復させろ。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💢</div>
+                <h3>立ちはだかるブラック社長</h3>
+                <p>オフィスの最奥に鎮座する絶対君主。圧倒的なHPと攻撃力を持つ社長を論破し、退職届を叩きつけることがこのゲームの最終目標だ。十分な資産とレベルを上げて挑め。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💰</div>
+                <h3 style="color: var(--neon-green);">【UPDATE 予定】資産の使い道</h3>
+                <p>稼いだ現金の使い道として「タワマンへの引っ越し（全回復ボーナス）」「高級スーツ（防御力UP）」「最新型Mac（攻撃力UP）」などの成長要素を現在開発中！</p>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <p class="pixel-font">© 2026 社畜QUEST. ALL RIGHTS RESERVED.<br>※このゲームはフィクションであり、実在のブラック企業や株価の暴落とは一切関係ありません。</p>
+</footer>
+
+</body>
+</html>
