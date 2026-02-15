@@ -44,8 +44,12 @@ async def send_kill_command(event):
 
     try:
         # バックエンドが別PCの場合は、localhostをそのPCのローカルIP（例: 192.168.1.5）に変更してください
+        # 変更前
+        # response = await pyfetch("http://localhost:8000/api/command", ...
+        
+        # 変更後（ngrokのURLに書き換える）
         response = await pyfetch(
-            "http://localhost:8000/api/command",
+            "https://roxane-cytogenetical-cira.ngrok-free.dev",
             method="POST",
             headers={"Content-Type": "application/json"},
             body=json.dumps(payload)
