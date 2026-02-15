@@ -2,29 +2,27 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>PyScript リモートコントローラー</title>
+    <title>リモート・プロセスキラー</title>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #2c3e50; color: white; }
-        .card { background: #34495e; padding: 20px; border-radius: 8px; width: 300px; }
-        input, button { width: 100%; padding: 10px; margin-bottom: 10px; box-sizing: border-box; }
-        button { background: #e74c3c; color: white; border: none; font-weight: bold; cursor: pointer; }
-        button:hover { background: #c0392b; }
-        #response { color: #2ecc71; font-weight: bold; }
+        body { font-family: sans-serif; padding: 20px; background: #1e1e1e; color: white; }
+        .card { background: #2d2d2d; padding: 20px; border-radius: 8px; width: 350px; }
+        button { width: 100%; padding: 15px; background: #d32f2f; color: white; border: none; font-size: 16px; font-weight: bold; cursor: pointer; border-radius: 5px; }
+        button:hover { background: #b71c1c; }
+        button:disabled { background: #555; }
+        #response { margin-top: 15px; color: #4caf50; font-weight: bold; min-height: 20px;}
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>⚡ コントロールパネル</h2>
-    <label>指令内容:</label>
-    <input type="text" id="instruction-input" value="システム再起動">
+    <h2>🎯 リモート管理パネル</h2>
+    <p>バックエンドPCのEdgeブラウザを強制終了させます。</p>
     
-    <button id="send-btn">指令を送信 (EXECUTE)</button>
+    <button id="kill-btn">Edgeを強制終了 (KILL)</button>
 
-    <p>サーバーからの応答:</p>
-    <div id="response">待機中...</div>
+    <div id="response"></div>
 </div>
 
 <script type="py">
@@ -33,23 +31,19 @@ from pyodide.ffi import create_proxy
 from pyodide.http import pyfetch
 from js import document
 
-async def send_command(event):
-    btn = document.getElementById("send-btn")
+async def send_kill_command(event):
+    btn = document.getElementById("kill-btn")
     res_div = document.getElementById("response")
-    instruction_text = document.getElementById("instruction-input").value
     
     btn.disabled = True
-    res_div.innerText = "送信中..."
+    res_div.innerText = "実行中..."
+    res_div.style.color = "#ffeb3b"
 
-    # 送信するデータを辞書で作る（PythonバックエンドのCommandクラスと合わせる）
-    payload = {
-        "instruction": instruction_text,
-        "target_id": 1
-    }
+    # バックエンドに送る指令
+    payload = {"instruction": "kill_edge"}
 
     try:
-        # バックエンド (FastAPI) に対してPOSTリクエストを送信
-        # ※バックエンドが別のPCにある場合は、localhostをそのPCのIPアドレスに変える
+        # バックエンドが別PCの場合は、localhostをそのPCのローカルIP（例: 192.168.1.5）に変更してください
         response = await pyfetch(
             "http://localhost:8000/api/command",
             method="POST",
@@ -60,20 +54,20 @@ async def send_command(event):
         if response.ok:
             data = await response.json()
             res_div.innerText = data["message"]
+            res_div.style.color = "#4caf50"
         else:
             res_div.innerText = f"通信エラー: {response.status}"
-            res_div.style.color = "#e74c3c"
+            res_div.style.color = "#f44336"
             
     except Exception as e:
-        res_div.innerText = "エラー: サーバーに接続できません。\n(サーバーが起動しているか確認してください)"
-        res_div.style.color = "#e74c3c"
+        res_div.innerText = "エラー: サーバーに接続できません。"
+        res_div.style.color = "#f44336"
         print(e)
         
     finally:
         btn.disabled = False
 
-# ボタンにイベントを登録
-document.getElementById("send-btn").addEventListener("click", create_proxy(send_command))
+document.getElementById("kill-btn").addEventListener("click", create_proxy(send_kill_command))
 </script>
 
 </body>
