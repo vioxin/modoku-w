@@ -39,7 +39,8 @@
 
 <script type="py">
 from pyodide.ffi import create_proxy
-from js import window, document, AudioContext, navigator
+# JSON をインポートに追加します
+from js import window, document, AudioContext, navigator, JSON
 
 # グローバル変数
 audio_ctx = None
@@ -56,8 +57,10 @@ async def start_audio(event):
         # AudioContextの初期化
         audio_ctx = AudioContext.new()
         
-        # マイクへのアクセス
-        stream = await navigator.mediaDevices.getUserMedia({"audio": True})
+        # 【修正箇所】JSON.parseを使って確実なJSオブジェクトを生成する
+        constraints = JSON.parse('{"audio": true}')
+        stream = await navigator.mediaDevices.getUserMedia(constraints)
+        
         source = audio_ctx.createMediaStreamSource(stream)
 
         # 1. フィルタノード (ハウリング防止用ハイパス)
