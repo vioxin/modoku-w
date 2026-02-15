@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyScript Real-time Voice Amp</title>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding-top: 50px; background: #f0f2f5; }
+        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 350px; }
+        .slider-label { display: flex; justify-content: space-between; margin-top: 1rem; }
+        input[type="range"] { width: 100%; margin: 10px 0; }
+        .status { margin-top: 1rem; font-size: 0.9rem; color: #666; }
+        button { width: 100%; padding: 10px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
+        button:disabled { background: #ccc; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Voice Amplifier</h2>
+    <button id="start-btn">録音・再生開始</button>
+    
+    <div class="slider-label">
+        <span>増幅倍率 (Gain)</span>
+        <span id="gain-val">1.0</span>
+    </div>
+    <input type="range" id="gain-slider" min="0" max="5" step="0.1" value="1">
+
+    <div class="slider-label">
+        <span>ハウリング抑制 (HPF)</span>
+        <span id="filter-val">300Hz</span>
+    </div>
+    <input type="range" id="filter-slider" min="100" max="1000" step="50" value="300">
+
+    <div class="status" id="status">Status: Ready (イヤホン推奨)</div>
+</div>
+
+<script type="py">
+from pyodide.ffi import create_proxy
+from js import window, document, AudioContext, navigator
+
+# グローバル変数
+audio_ctx = None
+gain_node = None
+filter_node = None
+
+async def start_audio(event):
+    global audio_ctx, gain_node, filter_node
+    
+    status_el = document.getElementById("status")
+    btn = document.getElementById("start-btn")
+    
+    try:
+        # AudioContextの初期化
+        audio_ctx = AudioContext.new()
+        
+        # マイクへのアクセス
+        stream = await navigator.mediaDevices.getUserMedia({"audio": True})
+        source = audio_ctx.createMediaStreamSource(stream)
+
+        # 1. フィルタノード (ハウリング防止用ハイパス)
+        filter_node = audio_ctx.createBiquadFilter()
+        filter_node.type = "highpass"
+        filter_node.frequency.value = float(document.getElementById("filter-slider").value)
+
+        # 2. ゲインノード (増幅用)
+        gain_node = audio_ctx.createGain()
+        gain_node.gain.value = float(document.getElementById("gain-slider").value)
+
+        # 接続: マイク -> フィルタ -> ゲイン -> スピーカー
+        source.connect(filter_node)
+        filter_node.connect(gain_node)
+        gain_node.connect(audio_ctx.destination)
+
+        status_el.innerText = "Status: Running..."
+        btn.disabled = True
+        
+    except Exception as e:
+        status_el.innerText = f"Error: {str(e)}"
+
+def update_gain(event):
+    val = event.target.value
+    document.getElementById("gain-val").innerText = val
+    if gain_node:
+        gain_node.gain.value = float(val)
+
+def update_filter(event):
+    val = event.target.value
+    document.getElementById("filter-val").innerText = f"{val}Hz"
+    if filter_node:
+        filter_node.frequency.value = float(val)
+
+# イベントリスナーの登録
+document.getElementById("start-btn").addEventListener("click", create_proxy(start_audio))
+document.getElementById("gain-slider").addEventListener("input", create_proxy(update_gain))
+document.getElementById("filter-slider").addEventListener("input", create_proxy(update_filter))
+</script>
+
+</body>
+</html>
