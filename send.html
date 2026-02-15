@@ -49,7 +49,7 @@ async def send_kill_command(event):
         
         # 変更後（ngrokのURLに書き換える）
         response = await pyfetch(
-            "https://roxane-cytogenetical-cira.ngrok-free.dev",
+            "https://roxane-cytogenetical-cira.ngrok-free.dev/api/command",
             method="POST",
             headers={"Content-Type": "application/json"},
             body=json.dumps(payload)
