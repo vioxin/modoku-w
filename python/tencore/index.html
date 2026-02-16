@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyScriptの魅力 10選</title>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f9; color: #333; padding: 20px; max-width: 900px; margin: 0 auto; }
+        h1 { color: #3776ab; text-align: center; }
+        .description { text-align: center; margin-bottom: 30px; }
+        .grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-left: 5px solid #3776ab; }
+        .card h2 { margin-top: 0; color: #2c3e50; font-size: 1.2rem; }
+        .output { background: #eef2f5; padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 10px; min-height: 20px; word-break: break-all; white-space: pre-wrap; }
+        button { background-color: #3776ab; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 10px; font-size: 0.9rem; }
+        button:hover { background-color: #2b5b84; }
+        #loading { text-align: center; font-size: 1.1rem; font-weight: bold; color: #e74c3c; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>ブラウザでPython！PyScriptならではの10のこと</h1>
+    <p class="description">
+        バックエンドサーバー不要。Pythonの強力な標準ライブラリやデータサイエンス・エコシステムを、フロントエンドで直接実行するデモです。
+    </p>
+
+    <div id="loading">🐍 Python環境をブラウザに構築中です。初回は少し時間がかかります...</div>
+
+    <div class="grid">
+        <div class="card">
+            <h2>1. f-stringとリスト内包表記</h2>
+            <p>Python特有の簡潔で美しい記法を使ってデータを生成・整形します。</p>
+            <div id="out1" class="output"></div>
+        </div>
+
+        <div class="card">
+            <h2>2. サーバーレスでNumPyの行列演算</h2>
+            <p>通常はバックエンドが必要なデータサイエンスの処理を、ブラウザ上で完結させます。</p>
+            <div id="out2" class="output"></div>
+        </div>
+
+        <div class="card">
+            <h2>3. サーバーレスでMatplotlibのグラフ描画</h2>
+            <p>ブラウザ上で直接Pythonを使ってグラフを生成し、HTML内に描画します。</p>
+            <div id="out3" class="output" style="text-align: center; overflow: hidden; background: white;"></div>
+        </div>
+
+        <div class="card">
+            <h2>4. itertoolsを使った順列・組み合わせ計算</h2>
+            <p>JavaScriptではアルゴリズムを書くのが面倒な順列計算も、標準ライブラリで一発です。</p>
+            <div id="out4" class="output"></div>
+        </div>
+
+        <div class="card">
+            <h2>5. statisticsモジュールによる統計処理</h2>
+            <p>平均、中央値、最頻値、標準偏差などをサクッと計算します。</p>
+            <div id="out5" class="output"></div>
+        </div>
+
+        <div class="card">
+            <h2>6. datetimeによる高度な日付計算</h2>
+            <p>JSのDateオブジェクトの面倒さを避け、Pythonの直感的な日付・時間操作を実現します。</p>
+            <div id="out6" class="output"></div>
+        </div>
+
+        <div class="card">
+            <h2>7. random.sampleによる重複のないランダム抽出</h2>
+            <p>リストから指定した数の要素を「重複なし」で抽出します。（JSだと少し手間です）</p>
+            <button id="btn7">おみくじを引く</button>
+            <div id="out7" class="output"></div>
+        </div>
+
+        <div class="card">
+            <h2>8. collections.Counterによる要素の集計</h2>
+            <p>テキスト内の単語の出現回数などを一瞬で集計・辞書化します。</p>
+            <div id="out8" class="output"></div>
+        </div>
+
+        <div class="card">
+            <h2>9. Pythonのクラス（オブジェクト指向）の利用</h2>
+            <p>Pythonのクラスを定義し、そのインスタンスメソッドからHTML要素を操作します。</p>
+            <div id="out9" class="output"></div>
+        </div>
+
+        <div class="card">
+            <h2>10. PythonコードによるDOMイベントのバインド</h2>
+            <p>@when デコレータを使って、Python関数を直接HTMLボタンのクリックイベントに紐付けます。</p>
+            <button id="btn10">Python関数を実行</button>
+            <div id="out10" class="output"></div>
+        </div>
+    </div>
+
+    <py-config>
+        packages = ["numpy", "matplotlib"]
+    </py-config>
+
+    <script type="py">
+        from pyscript import document, display, when
+        import itertools
+        import statistics
+        import datetime
+        import random
+        import collections
+        import numpy as np
+        import matplotlib.pyplot as plt
+
+        # ロード完了時にローディング表記を消す
+        document.getElementById("loading").style.display = "none"
+
+        # DOMにテキストを書き込むヘルパー関数
+        def write_out(id_str, text):
+            document.getElementById(id_str).innerText = text
+
+        # 1. f-stringとリスト内包表記
+        squares = [x**2 for x in range(1, 11)]
+        write_out("out1", f"1から10の平方数:\n{squares}")
+
+        # 2. NumPy
+        matrix = np.array([[1, 2], [3, 4]])
+        inverse = np.linalg.inv(matrix)
+        write_out("out2", f"元の行列:\n{matrix}\n\n逆行列:\n{inverse}")
+
+        # 3. Matplotlib
+        fig, ax = plt.subplots(figsize=(5, 3))
+        x = np.linspace(0, 2 * np.pi, 100)
+        y = np.sin(x)
+        ax.plot(x, y, color='#3776ab', linewidth=2)
+        ax.set_title("Sine Wave Generated by Python")
+        ax.grid(True)
+        # targetにIDを指定して描画
+        display(fig, target="out3")
+
+        # 4. itertools
+        items = ['A', 'B', 'C']
+        perms = list(itertools.permutations(items, 2))
+        write_out("out4", f"['A', 'B', 'C']から2つ選ぶ順列:\n{perms}")
+
+        # 5. statistics
+        data = [10, 20, 20, 30, 40, 50, 50, 50, 60]
+        mean_val = statistics.mean(data)
+        stdev_val = statistics.stdev(data)
+        mode_val = statistics.mode(data)
+        write_out("out5", f"データ: {data}\n平均: {mean_val:.2f}, 最頻値: {mode_val}, 標準偏差: {stdev_val:.2f}")
+
+        # 6. datetime
+        now = datetime.datetime.now()
+        future = now + datetime.timedelta(days=100)
+        write_out("out6", f"現在: {now.strftime('%Y-%m-%d %H:%M:%S')}\n100日後: {future.strftime('%Y-%m-%d')}")
+
+        # 7. random.sample (ボタンイベント付き)
+        @when("click", "#btn7")
+        def draw_omikuji(event):
+            fortunes = ["大吉", "中吉", "小吉", "吉", "末吉", "凶", "大凶"]
+            result = random.sample(fortunes, 3) # 重複なしで3つ抽出
+            write_out("out7", f"今日の運勢トップ3:\n{result}")
+        
+        draw_omikuji(None) # 初回実行
+
+        # 8. collections.Counter
+        text = "apple banana apple orange banana apple grape"
+        counter = collections.Counter(text.split())
+        write_out("out8", f"単語の集計結果:\n{dict(counter)}")
+
+        # 9. クラスの利用
+        class Greeter:
+            def __init__(self, name):
+                self.name = name
+            def greet(self):
+                return f"Hello, {self.name}! \n(Pythonのクラスから生成された文字列です)"
+        
+        my_greeter = Greeter("PyScript User")
+        write_out("out9", my_greeter.greet())
+
+        # 10. イベントのバインド
+        click_count = 0
+        @when("click", "#btn10")
+        def on_click(event):
+            global click_count
+            click_count += 1
+            write_out("out10", f"Pythonの関数が {click_count} 回呼び出されました！")
+    </script>
+</body>
+</html>
