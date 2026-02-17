@@ -181,7 +181,6 @@ function initGraphics() {
 // --- ステート・マップ管理 ---
 let state = {
     mapId: 'home', job: null, wpnName: '安物のスーツ', marketPrice: 1000,
-    // 追加: stepsOutside(外での歩数), walkDist(距離ピクセル蓄積)
     p: { x:4*48, y:4*48, dir:2, moving:false, anim:0, lv:1, hp:0, maxHp:0, mp:0, maxMp:0, atk:0, def:0, gold:0, shares:0, exp:0, nextExp:15, stepsOutside: 0, walkDist: 0 },
     cam: { x:0, y:0 }, msgActive: false, battleActive: false
 };
@@ -209,7 +208,7 @@ function showJobSelect() { document.getElementById('lp-screen').style.opacity = 
 
 function startGame(jobId) {
     state.job = JOBS[jobId]; Object.assign(state.p, state.job); state.p.maxHp = state.p.hp; state.p.maxMp = state.p.mp;
-    state.p.stepsOutside = 0; state.p.walkDist = 0; // 初期化
+    state.p.stepsOutside = 0; state.p.walkDist = 0; 
     setupGameUI();
     showMsg(`【${state.job.name}】として社会に出た！\nまずは出社して稼ぐか、\nPCで「副業」や「株」に手を出そう！`);
 }
@@ -225,7 +224,6 @@ function loadGame() {
     const data = JSON.parse(localStorage.getItem('shachiku_save'));
     if(!data) return;
     state.p = data.p; state.job = data.job; state.marketPrice = data.marketPrice; state.wpnName = data.wpnName; state.mapId = data.mapId;
-    // 古いセーブデータ対策
     state.p.stepsOutside = state.p.stepsOutside || 0; state.p.walkDist = state.p.walkDist || 0; 
     
     document.getElementById('lp-screen').style.opacity = 0;
@@ -404,15 +402,17 @@ function interact() {
             { text: '出る', cb: () => {} }
         ]);
     } else if(id === T.NPC_COWORKER.id) { showMsg("同僚「あ、おはよう……。\nおれ、この株が上がったら会社辞めるんだ……」"); }
-    else if(id === T.BOSS_DESK.id) { showMsg("ブラック社長「おい君！気合と根性で見せてみろ！」", null); setTimeout(()=> { closeMsg(); startBattle({ name: 'ブラック社長', hp: 300, maxHp: 300, atk: 30, def: 20, exp: 999, gold: 50000, sprite: 'boss', isBoss: true }); }, 2000); }
+    // ▼ボス弱体化 (HP300->150, ATK30->15, DEF20->10)
+    else if(id === T.BOSS_DESK.id) { showMsg("ブラック社長「おい君！気合と根性で見せてみろ！」", null); setTimeout(()=> { closeMsg(); startBattle({ name: 'ブラック社長', hp: 150, maxHp: 150, atk: 15, def: 10, exp: 999, gold: 50000, sprite: 'boss', isBoss: true }); }, 2000); }
 }
 
 // --- バトル ---
 let curEnemy = null;
 function startRandomEncounter() {
     if(state.mapId !== 'office') return; let e = {};
-    if(Math.random() < 0.5) { e.name = '絶対今日中の納期'; e.hp = 25+state.p.lv*3; e.maxHp=e.hp; e.atk = 10+state.p.lv*2; e.def = 3+Math.floor(state.p.lv/2); e.exp = 5; e.gold = 300; e.sprite = 'deadline'; }
-    else { e.name = '理不尽な仕様変更'; e.hp = 40+state.p.lv*3; e.maxHp=e.hp; e.atk = 15+state.p.lv*2; e.def = 5+Math.floor(state.p.lv/2); e.exp = 8; e.gold = 500; e.sprite = 'doc'; }
+    // ▼敵の基礎ステータス・レベル補正を弱体化
+    if(Math.random() < 0.5) { e.name = '絶対今日中の納期'; e.hp = 15+state.p.lv*2; e.maxHp=e.hp; e.atk = 5+state.p.lv*1; e.def = 2+Math.floor(state.p.lv/3); e.exp = 5; e.gold = 300; e.sprite = 'deadline'; }
+    else { e.name = '理不尽な仕様変更'; e.hp = 25+state.p.lv*2; e.maxHp=e.hp; e.atk = 8+state.p.lv*1; e.def = 3+Math.floor(state.p.lv/3); e.exp = 8; e.gold = 500; e.sprite = 'doc'; }
     startBattle(e);
 }
 function startBattle(enemy) {
@@ -468,60 +468,59 @@ function update() {
         if (check(ftX, ftY) && check(ftR, ftY) && check(ftX, ftB) && check(ftR, ftB)) {
             p.x = nx; p.y = ny; if(Math.floor(Date.now()/100)%2===0) p.anim = (p.anim === 0) ? 1 : 0;
             
-            // --- サボり監視システム (強制出勤イベント) ---
+            // --- サボり監視システム ---
             if (state.mapId !== 'office') {
-                p.walkDist += Math.abs(dx) + Math.abs(dy); // 移動距離を蓄積
+                p.walkDist += Math.abs(dx) + Math.abs(dy);
                 if (p.walkDist >= CFG.TILE_SIZE) {
                     p.walkDist -= CFG.TILE_SIZE;
                     p.stepsOutside++;
                     
-                    if (p.stepsOutside >= 50) { // 50歩外を歩いたら発動
+                    if (p.stepsOutside >= 50) {
                         p.stepsOutside = 0;
                         input.stopDir();
                         showMsg("ブラック社長\n「おい！！！いつまでサボっている！！\nお前の代わりなんていくらでもいるんだぞ！！\n今すぐ出社しろ！！」", [
                             { text: 'ひぃぃ！はい！', cb: () => {
                                 fadeTransition(() => {
                                     state.mapId = 'office';
-                                    state.p.x = 7 * 48;  // オフィスの入り口付近にワープ
+                                    state.p.x = 7 * 48;
                                     state.p.y = 18 * 48;
-                                    state.p.hp = Math.max(1, state.p.hp - 5); // 恐怖でHP減少
-                                    state.p.mp = Math.max(1, state.p.mp - 5); // 恐怖でMP減少
+                                    state.p.hp = Math.max(1, state.p.hp - 5);
+                                    state.p.mp = Math.max(1, state.p.mp - 5);
                                     updateUI();
                                     showMsg("首根っこを掴まれ、強制的に出社させられた。\n極度の恐怖で体力とメンタルが削られた…\n(HP/MP -5)");
                                 });
                             }}
                         ]);
-                        return; // 移動処理を抜ける
+                        return;
                     }
                 }
             } else {
-                p.stepsOutside = 0; // オフィスにいる時はヘイトが下がる
+                p.stepsOutside = 0;
                 p.walkDist = 0;
             }
-            // ------------------------------------------
-
-            // 株価の変動イベント
+            
+            // ▼株価の変動イベント (発生率を 1/6 に激減、変動幅もマイルドに)
             if(Math.random() < 0.05) { 
                 let decay = (1000 - state.marketPrice) * 0.01; 
                 state.marketPrice = Math.max(10, Math.floor(state.marketPrice * (1 + (Math.random() * 0.2 - 0.1)) + decay)); 
             }
-            if(Math.random() < 0.003) { 
+            if(Math.random() < 0.0005) {  // 0.003 -> 0.0005 に緩和
                 let rnd = Math.random();
-                if(rnd < 0.5) { 
-                    state.marketPrice = Math.floor(state.marketPrice * 0.2); 
-                    showMsg("【号外速報】\nオワリHDに粉飾決算の疑い！\n株価が大暴落しました！！"); 
+                if(rnd < 0.3) {  // 暴落確率を 50% -> 30% に低下
+                    state.marketPrice = Math.max(10, Math.floor(state.marketPrice * 0.5)); // 0.2倍 -> 0.5倍 に緩和
+                    showMsg("【ニュース】\nオワリHDの業績悪化懸念。\n株価が下落しました。"); 
                 }
-                else if(rnd < 0.8) { 
+                else if(rnd < 0.95) { // 高騰確率を大幅増加
                     state.marketPrice = Math.floor(state.marketPrice * 1.5); 
                     showMsg("【号外速報】\nオワリHDが新サービス発表！\n株価が急騰しました！"); 
                 }
-                else { 
+                else { // 上場廃止（紙くず化）は極めて稀に
                     state.marketPrice = 10;
                     if(state.p.shares > 0) {
                         state.p.shares = 0; updateUI();
                         showMsg("【絶望】\nオワリHDが上場廃止！！\n保有していた株は全て紙くずになった…");
                     } else {
-                        showMsg("【号外速報】\nオワリHDが上場廃止！！\n株を持っていなくて助かった…。");
+                        showMsg("【ニュース】\nオワリHDが上場廃止！！\n株を持っていなくて助かった…。");
                     }
                 }
             }
