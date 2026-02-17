@@ -177,7 +177,7 @@ let state = {
     mapId: 'home', job: null, wpnName: '安物のスーツ', marketPrice: 1000,
     p: { x:4*48, y:4*48, dir:2, moving:false, anim:0, lv:1, hp:0, maxHp:0, mp:0, maxMp:0, atk:0, def:0, gold:0, shares:0, exp:0, nextExp:15, stepsOutside:0, walkDist:0, sp:0, items:{enadori:0, bento:0} },
     cam: { x:0, y:0 }, msgActive: false, battleActive: false,
-    trial: { active: false, phase: 'menu', turn: 0, maxTurn: 3, danmakuTimer: 0, bullets: [], heart: {x:400,y:300,size:20,speed:5}, box: {x:200,y:200,w:400,h:200}, lastHitTime: 0 }
+    trial: { active: false, phase: 'none', turn: 0, maxTurn: 3, danmakuTimer: 0, bullets: [], heart: {x:400,y:300,size:20,speed:5}, box: {x:200,y:200,w:400,h:200}, lastHitTime: 0 }
 };
 const maps = { home: {w:8,h:8,data:[]}, city: {w:20,h:15,data:[]}, office: {w:15,h:20,data:[]} };
 
@@ -231,11 +231,23 @@ function setupGameUI() {
     requestAnimationFrame(loop);
 }
 
+// --- 入力制御 (バグ修正版) ---
 const input = {
     dir: -1, action: false,
-    setDir: function(d) { if(!state.msgActive && !state.battleActive && state.trial.phase !== 'menu') this.dir = d; }, stopDir: function() { this.dir = -1; },
-    setAction: function() { if(state.battleActive || state.trial.phase === 'danmaku') return; if(state.msgActive) { closeMsg(); return; } this.action = true; }, stopAction: function() { this.action = false; }
+    setDir: function(d) { 
+        if (state.msgActive || state.battleActive) return;
+        if (state.trial.active && state.trial.phase !== 'danmaku') return; // 弾幕中以外は移動不可
+        this.dir = d; 
+    }, 
+    stopDir: function() { this.dir = -1; },
+    setAction: function() { 
+        if (state.battleActive || (state.trial.active && state.trial.phase === 'danmaku')) return; // 戦闘中や弾幕中はアクションボタン無効
+        if (state.msgActive) { closeMsg(); return; } 
+        this.action = true; 
+    }, 
+    stopAction: function() { this.action = false; }
 };
+
 const joy = {
     z: document.getElementById('joystick-zone'), k: document.getElementById('joystick-knob'), act: false, ox: 0, oy: 0,
     init: function() {
@@ -293,6 +305,7 @@ function renderStatus() {
     document.getElementById('st-lv-m').innerText = state.p.lv;
     document.getElementById('st-sp').innerText = state.p.sp;
     
+    // SPが1以上なら＋ボタンを表示
     const mkBtn = (stat, cost, up) => state.p.sp >= cost ? `<button class="sp-btn" onclick="addStat('${stat}', ${cost}, ${up})">+</button>` : '';
     
     document.getElementById('st-hp-box').innerHTML = `${state.p.hp}/${state.p.maxHp} ${mkBtn('maxHp', 1, 5)}`;
@@ -308,7 +321,8 @@ function renderStatus() {
 window.addStat = function(stat, cost, up) {
     if(state.p.sp >= cost) {
         state.p.sp -= cost; state.p[stat] += up;
-        if(stat === 'maxHp') state.p.hp += up; if(stat === 'maxMp') state.p.mp += up;
+        if(stat === 'maxHp') state.p.hp += up; 
+        if(stat === 'maxMp') state.p.mp += up;
         renderStatus(); updateUI();
     }
 }
@@ -469,7 +483,9 @@ function enemyTurn() {
 }
 
 function levelUp() {
-    state.p.lv++; state.p.maxHp += 2; state.p.maxMp += 2; state.p.hp = state.p.maxHp; state.p.mp = state.p.maxMp; state.p.atk += 1; state.p.sp += 5; state.p.nextExp = Math.floor(state.p.nextExp * 1.5);
+    // 基礎上昇を減らし、SPを5付与する
+    state.p.lv++; state.p.maxHp += 2; state.p.maxMp += 2; state.p.hp = state.p.maxHp; state.p.mp = state.p.maxMp; state.p.atk += 1; 
+    state.p.sp += 5; state.p.nextExp = Math.floor(state.p.nextExp * 1.5);
     updateUI(); showMsg(`業務スキルが Lv${state.p.lv} に上がった！\nSPを 5 獲得した！\n(詳細画面から割り振り可能)`);
 }
 
@@ -494,7 +510,7 @@ function trialAttack() {
         ]);
         state.trial.turn++;
     } else {
-        // 最終ターン
+        // 最終ターン（社長の疲労）
         showMsg("社長は 決定的な証拠を突きつけられ\n言い逃れできなくなった！\n9999 ダメージ！！", [
             { text: '次へ', cb: () => {
                 state.trial.active = false; state.p.gold += 10000000; updateUI();
@@ -516,12 +532,13 @@ function updateTrial(dt) {
     let dx = 0, dy = 0;
     if (input.dir !== -1) { if(input.dir===0) dy=-t.heart.speed; if(input.dir===2) dy=t.heart.speed; if(input.dir===3) dx=-t.heart.speed; if(input.dir===1) dx=t.heart.speed; }
     t.heart.x += dx; t.heart.y += dy;
+    // 枠内に制限
     t.heart.x = Math.max(t.box.x + t.heart.size/2, Math.min(t.box.x + t.box.w - t.heart.size/2, t.heart.x));
     t.heart.y = Math.max(t.box.y + t.heart.size/2, Math.min(t.box.y + t.box.h - t.heart.size/2, t.heart.y));
 
-    // 弾生成
-    if(Math.random() < 0.15) {
-        t.bullets.push({ x: t.box.x + t.box.w, y: t.box.y + Math.random() * (t.box.h - 15), w: 20 + Math.random() * 30, h: 15, speed: 4 + Math.random() * 5 });
+    // 弾生成 (右から左へ飛んでくる書類)
+    if(Math.random() < 0.15 + (state.trial.turn * 0.05)) { // ターンが進むと弾幕が激しくなる
+        t.bullets.push({ x: t.box.x + t.box.w, y: t.box.y + Math.random() * (t.box.h - 15), w: 20 + Math.random() * 30, h: 15, speed: 4 + Math.random() * 5 + state.trial.turn });
     }
 
     const now = Date.now();
@@ -550,6 +567,7 @@ function update(dt) {
     if(state.msgActive || state.battleActive || !state.job) return; 
     if(document.getElementById('status-modal').style.display === 'flex') return;
     
+    // 裁判中は通常移動やエンカウントを無視
     if(state.trial.active) { updateTrial(dt); return; }
 
     const p = state.p, map = maps[state.mapId]; let dx = 0, dy = 0;
@@ -562,6 +580,7 @@ function update(dt) {
         if (check(ftX, ftY) && check(ftR, ftY) && check(ftX, ftB) && check(ftR, ftB)) {
             p.x = nx; p.y = ny; if(Math.floor(Date.now()/100)%2===0) p.anim = (p.anim === 0) ? 1 : 0;
             
+            // サボり監視システム
             if (state.mapId !== 'office') {
                 p.walkDist += Math.abs(dx) + Math.abs(dy);
                 if (p.walkDist >= CFG.TILE_SIZE) {
@@ -631,7 +650,7 @@ function draw() {
             ctx.fillStyle = 'yellow'; ctx.fillText(`残り: ${Math.ceil(t.danmakuTimer/1000)}秒`, t.box.x, t.box.y - 10);
             
             // 赤くフラッシュ（ダメージ時）
-            if(Date.now() - t.lastHitTime < 50) { ctx.fillStyle = 'rgba(255,0,0,0.3)'; ctx.fillRect(0,0,CFG.SCREEN_W,CFG.SCREEN_H); }
+            if(Date.now() - t.lastHitTime < 100) { ctx.fillStyle = 'rgba(255,0,0,0.3)'; ctx.fillRect(0,0,CFG.SCREEN_W,CFG.SCREEN_H); }
         }
     }
 }
