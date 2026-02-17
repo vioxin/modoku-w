@@ -7,54 +7,46 @@
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
     :root { --bg-color: #0d0d12; --neon-blue: #00f0ff; --neon-pink: #ff0055; --win-bg: rgba(10, 20, 30, 0.95); --win-border: #ccc; }
-    
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background-color: var(--bg-color); color: #e0e0e0; font-family: 'Noto Sans JP', sans-serif; overflow-x: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
     .pixel-font { font-family: 'DotGothic16', sans-serif; }
 
-    /* --- ランディングページ (LP) 領域 --- */
     #lp-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow-y: auto; background-image: linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px); background-size: 30px 30px; z-index: 200; transition: opacity 0.5s; }
     .hero { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; }
-    .title { font-size: 5rem; font-weight: 900; line-height: 1.1; margin-bottom: 10px; background: linear-gradient(45deg, #fff, var(--neon-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 20px rgba(0,240,255,0.4)); }
-    .subtitle { font-size: 2rem; color: #aaa; margin-bottom: 40px; }
+    .title { font-size: 4rem; font-weight: 900; line-height: 1.1; margin-bottom: 10px; background: linear-gradient(45deg, #fff, var(--neon-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 20px rgba(0,240,255,0.4)); }
+    .subtitle { font-size: 1.5rem; color: #aaa; margin-bottom: 40px; }
     .btn-play { padding: 15px 40px; font-size: 1.5rem; font-weight: 900; color: #000; background: var(--neon-blue); border: none; cursor: pointer; text-transform: uppercase; clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%); transition: 0.3s; box-shadow: 0 0 20px rgba(0,240,255,0.4); margin: 10px; }
     .btn-play:hover { background: var(--neon-pink); color: #fff; box-shadow: 0 0 30px rgba(255,0,85,0.6); transform: translateY(-3px); }
     .btn-continue { background: #ffaa00; box-shadow: 0 0 20px rgba(255,170,0,0.4); display: none; }
-    .btn-continue:hover { background: #fff; color: #ffaa00; box-shadow: 0 0 30px rgba(255,170,0,0.6); }
+    .btn-continue:hover { background: #fff; color: #ffaa00; }
 
-    /* --- ゲーム本編 領域 --- */
     #game-wrapper { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: none; justify-content: center; align-items: center; background: #111; overflow: hidden; }
     canvas { display: block; image-rendering: pixelated; max-width: 100%; max-height: 100%; object-fit: contain; }
 
-    /* ウィンドウ・UI */
     .rpg-window { background: var(--win-bg); border: 3px solid var(--win-border); border-radius: 2px; box-shadow: inset 0 0 0 2px #000, 4px 4px 0 rgba(0,0,0,0.5); padding: 10px; z-index: 10; font-family: 'DotGothic16', sans-serif; }
     .btn { background: #333; border: 2px solid #ccc; color: #fff; font-family: 'DotGothic16', sans-serif; font-size: 16px; padding: 8px 12px; cursor: pointer; transition: 0.1s; }
     .btn:active { background: #fff; color: #000; }
     .btn:disabled { border-color: #555; color: #555; background: #111; pointer-events: none; }
 
-    /* キャリア選択 */
     #job-select { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 150; font-family: 'DotGothic16', sans-serif;}
     .job-cards { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; margin-top: 20px; }
     .job-card { width: 160px; display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; padding: 15px; }
     .job-card:hover { border-color: var(--neon-blue); background: rgba(0,50,100,0.8); }
 
-    /* ステータスバー・メッセージ */
     #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; font-family: 'DotGothic16', sans-serif;}
     .status-bar { position: absolute; top: 10px; left: 10px; display: flex; flex-wrap: wrap; gap: 10px; font-size: 16px; width: calc(100% - 100px); text-shadow: 1px 1px 0 #000; }
     .status-bar span { background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 3px; border: 1px solid #555; }
     .menu-btn { position: absolute; top: 10px; right: 10px; pointer-events: auto; }
 
-    .msg-box { position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 600px; min-height: 80px; font-size: 18px; line-height: 1.5; display: none; white-space: pre-wrap; pointer-events: auto; }
+    .msg-box { position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 600px; min-height: 80px; font-size: 18px; line-height: 1.5; display: none; white-space: pre-wrap; pointer-events: auto; }
     .choices { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin-top: 15px; }
 
-    /* バトル画面 */
     #battle-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: none; flex-direction: column; justify-content: center; align-items: center; pointer-events: auto; z-index: 50; font-family: 'DotGothic16', sans-serif;}
     #enemy-sprite { transform: scale(5); margin-bottom: 40px; image-rendering: pixelated; }
     #enemy-name { font-size: 24px; color: #ff5555; margin-bottom: 20px; border-bottom: 2px solid #555; padding-bottom: 5px; }
     #battle-msg { width: 90%; max-width: 500px; height: 100px; margin-bottom: 20px; font-size: 18px; text-align: center; }
     .battle-commands { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 90%; }
 
-    /* コントローラー */
     #controls-layer { position: absolute; bottom: 20px; left: 20px; right: 20px; height: 140px; pointer-events: auto; display: none; justify-content: space-between; align-items: flex-end; z-index: 20; max-width: 800px; margin: 0 auto; }
     #joystick-zone { position: relative; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); touch-action: none; }
     #joystick-knob { position: absolute; top: 50%; left: 50%; width: 50px; height: 50px; background: rgba(255,255,255,0.8); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
@@ -63,7 +55,10 @@
 
     #fade-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: black; opacity: 0; pointer-events: none; transition: opacity 0.5s; z-index: 100; }
     
-    @media (max-width: 768px) { .title { font-size: 3rem; } .status-bar { font-size: 12px; gap: 5px; } .btn { font-size: 14px; padding: 6px 10px; } }
+    .sp-btn { background: #148; border: 1px solid #4cf; color: white; border-radius: 3px; cursor: pointer; padding: 2px 6px; margin-left: 10px; font-size: 12px; }
+    .sp-btn:hover { background: #4cf; color: #000; }
+
+    @media (max-width: 768px) { .title { font-size: 2.5rem; } .status-bar { font-size: 12px; gap: 5px; } .btn { font-size: 14px; padding: 6px 10px; } }
 </style>
 </head>
 <body>
@@ -76,7 +71,7 @@
             <button class="btn-play pixel-font" onclick="showJobSelect()">New Game</button>
             <button id="btn-load" class="btn-play btn-continue pixel-font" onclick="loadGame()">Continue</button>
         </div>
-        <p style="margin-top: 30px; font-size: 0.9rem; color: #888;">歩行：画面左下をスワイプ / PC操作・調べる：右下ボタン</p>
+        <p style="margin-top: 30px; font-size: 0.9rem; color: #888;">歩行：画面左下スワイプ or WASDキー / アクション：右下ボタン or Zキー</p>
     </section>
 </div>
 
@@ -108,20 +103,21 @@
             <span style="color:#8df;">💧 MP <span id="ui-mp">10</span></span>
             <span style="color:#fe3;">¥ <span id="ui-gold">0</span></span>
         </div>
-        <button class="rpg-window menu-btn btn" onclick="toggleStatus()">詳細/設定</button>
+        <button class="rpg-window menu-btn btn" onclick="openMainMenu()">詳細/設定</button>
 
         <div id="msg-box" class="rpg-window msg-box">
             <div id="msg-text"></div>
             <div id="msg-choices" class="choices"></div>
         </div>
 
-        <div id="status-modal" class="rpg-window" style="position:absolute; top:10%; left:50%; transform:translateX(-50%); width:280px; display:none; flex-direction:column; gap:8px; pointer-events:auto;">
+        <div id="status-modal" class="rpg-window" style="position:absolute; top:5%; left:50%; transform:translateX(-50%); width:320px; display:none; flex-direction:column; gap:8px; pointer-events:auto;">
             <h2 style="margin:0; text-align:center; color:#fff; border-bottom: 1px solid #555; padding-bottom:5px;" id="st-jobname">履歴書</h2>
-            <div style="display:flex; justify-content:space-between;"><span>業務スキル(Lv)</span><span id="st-lv">1</span></div>
-            <div style="display:flex; justify-content:space-between;"><span>体力(HP)</span><span id="st-hp">20/20</span></div>
-            <div style="display:flex; justify-content:space-between;"><span>ﾒﾝﾀﾙ(MP)</span><span id="st-mp">10/10</span></div>
-            <div style="display:flex; justify-content:space-between;"><span>処理能力(ATK)</span><span id="st-atk">5</span></div>
-            <div style="display:flex; justify-content:space-between;"><span>スルースキル(DEF)</span><span id="st-def">2</span></div>
+            <div style="display:flex; justify-content:space-between; color:#ffeb3b;"><span>残りSP (割振可能)</span><span id="st-sp">0</span></div>
+            <div style="display:flex; justify-content:space-between;"><span>業務スキル(Lv)</span><span id="st-lv-m">1</span></div>
+            <div style="display:flex; justify-content:space-between;"><span>体力(HP)</span><span id="st-hp-box">20/20</span></div>
+            <div style="display:flex; justify-content:space-between;"><span>ﾒﾝﾀﾙ(MP)</span><span id="st-mp-box">10/10</span></div>
+            <div style="display:flex; justify-content:space-between;"><span>処理能力(ATK)</span><span id="st-atk-box">5</span></div>
+            <div style="display:flex; justify-content:space-between;"><span>スルースキル(DEF)</span><span id="st-def-box">2</span></div>
             <div style="display:flex; justify-content:space-between;"><span>評価(EXP)</span><span id="st-exp">0 / 10</span></div>
             <div style="color:#aef; font-size:14px; border-top:1px dashed #555; padding-top:5px;">株価: <span id="st-stock-price">1000</span>円 / 保有: <span id="st-shares">0</span>株</div>
             <div style="color:#ccc; font-size:14px; border-bottom:1px solid #555; padding-bottom:5px;">装備: <span id="st-wpn" style="color:#fe3;">安物のスーツ</span></div>
@@ -147,7 +143,6 @@
 </div>
 
 <script>
-/* --- エンジン・グラフィック設定 --- */
 const CFG = { TILE_SIZE: 48, SCREEN_W: 800, SCREEN_H: 600, SPEED: 5, ENCOUNTER_RATE: 0.02 };
 const T = { ROAD: {id:0,walk:true}, WALL: {id:1,walk:false}, FLOOR: {id:2,walk:true}, BED: {id:10,walk:false}, PC: {id:11,walk:false}, CONBINI: {id:20,walk:false}, DOOR: {id:21,walk:true}, CASINO: {id:22,walk:false}, DESK: {id:30,walk:false}, BOSS_DESK: {id:31,walk:false}, NPC_COWORKER: {id:40,walk:false} };
 const JOBS = {
@@ -178,11 +173,11 @@ function initGraphics() {
     createPixelSprite('doc', 12,12,pal, ["000000000000","000666660000","000611160000","000666660000","000611160000","000666660000","000611160000","000666660000","000000000000","000000000000","000000000000","000000000000"]);
 }
 
-// --- ステート・マップ管理 ---
 let state = {
     mapId: 'home', job: null, wpnName: '安物のスーツ', marketPrice: 1000,
-    p: { x:4*48, y:4*48, dir:2, moving:false, anim:0, lv:1, hp:0, maxHp:0, mp:0, maxMp:0, atk:0, def:0, gold:0, shares:0, exp:0, nextExp:15, stepsOutside: 0, walkDist: 0 },
-    cam: { x:0, y:0 }, msgActive: false, battleActive: false
+    p: { x:4*48, y:4*48, dir:2, moving:false, anim:0, lv:1, hp:0, maxHp:0, mp:0, maxMp:0, atk:0, def:0, gold:0, shares:0, exp:0, nextExp:15, stepsOutside:0, walkDist:0, sp:0, items:{enadori:0, bento:0} },
+    cam: { x:0, y:0 }, msgActive: false, battleActive: false,
+    trial: { active: false, phase: 'menu', turn: 0, maxTurn: 3, danmakuTimer: 0, bullets: [], heart: {x:400,y:300,size:20,speed:5}, box: {x:200,y:200,w:400,h:200}, lastHitTime: 0 }
 };
 const maps = { home: {w:8,h:8,data:[]}, city: {w:20,h:15,data:[]}, office: {w:15,h:20,data:[]} };
 
@@ -190,15 +185,12 @@ function generateMaps() {
     for(let y=0; y<8; y++) { let row=[]; for(let x=0; x<8; x++) { if(x===0||x===7||y===0||y===7) row.push(T.WALL.id); else row.push(T.FLOOR.id); } maps.home.data.push(row); }
     maps.home.data[7][3] = maps.home.data[7][4] = T.DOOR.id; maps.home.data[2][2] = T.BED.id; maps.home.data[2][5] = T.PC.id;
     for(let y=0; y<15; y++) { let row=[]; for(let x=0; x<20; x++) { if(y<3||y>11||x<2||x>17) row.push(T.WALL.id); else row.push(T.ROAD.id); } maps.city.data.push(row); }
-    maps.city.data[3][10] = T.DOOR.id; maps.city.data[6][5] = T.CONBINI.id; maps.city.data[11][15] = T.DOOR.id;
-    maps.city.data[3][16] = T.CASINO.id; 
-    
+    maps.city.data[3][10] = T.DOOR.id; maps.city.data[6][5] = T.CONBINI.id; maps.city.data[11][15] = T.DOOR.id; maps.city.data[3][16] = T.CASINO.id; 
     for(let y=0; y<20; y++) { let row=[]; for(let x=0; x<15; x++) { if(x===0||x===14||y===0||y===19) row.push(T.WALL.id); else row.push(T.FLOOR.id); } maps.office.data.push(row); }
     maps.office.data[19][7] = T.DOOR.id; maps.office.data[8][5] = T.NPC_COWORKER.id; maps.office.data[2][7] = T.BOSS_DESK.id;
     for(let y=5; y<15; y+=3) { for(let x=3; x<12; x+=4) { maps.office.data[y][x] = T.DESK.id; maps.office.data[y][x+1] = T.DESK.id; } }
 }
 
-// --- システム (セーブ・ロード・LP遷移) ---
 window.addEventListener('DOMContentLoaded', () => {
     initGraphics(); generateMaps();
     if(localStorage.getItem('shachiku_save')) document.getElementById('btn-load').style.display = 'inline-block';
@@ -208,7 +200,7 @@ function showJobSelect() { document.getElementById('lp-screen').style.opacity = 
 
 function startGame(jobId) {
     state.job = JOBS[jobId]; Object.assign(state.p, state.job); state.p.maxHp = state.p.hp; state.p.maxMp = state.p.mp;
-    state.p.stepsOutside = 0; state.p.walkDist = 0; 
+    state.p.stepsOutside = 0; state.p.walkDist = 0; state.p.sp = 0; state.p.items = {enadori:0, bento:0};
     setupGameUI();
     showMsg(`【${state.job.name}】として社会に出た！\nまずは出社して稼ぐか、\nPCで「副業」や「株」に手を出そう！`);
 }
@@ -216,16 +208,14 @@ function startGame(jobId) {
 function saveGame() {
     const saveData = { p: state.p, job: state.job, marketPrice: state.marketPrice, wpnName: state.wpnName, mapId: state.mapId };
     localStorage.setItem('shachiku_save', JSON.stringify(saveData));
-    showMsg("進行状況をセーブしました。\n（※ブラウザに保存されます）");
-    updateUI();
+    showMsg("進行状況をセーブしました。\n（※ブラウザに保存されます）"); updateUI();
 }
 
 function loadGame() {
-    const data = JSON.parse(localStorage.getItem('shachiku_save'));
-    if(!data) return;
+    const data = JSON.parse(localStorage.getItem('shachiku_save')); if(!data) return;
     state.p = data.p; state.job = data.job; state.marketPrice = data.marketPrice; state.wpnName = data.wpnName; state.mapId = data.mapId;
     state.p.stepsOutside = state.p.stepsOutside || 0; state.p.walkDist = state.p.walkDist || 0; 
-    
+    state.p.sp = state.p.sp || 0; state.p.items = state.p.items || {enadori:0, bento:0};
     document.getElementById('lp-screen').style.opacity = 0;
     setTimeout(() => { document.getElementById('lp-screen').style.display = 'none'; document.getElementById('game-wrapper').style.display = 'flex'; setupGameUI(); showMsg("セーブデータをロードしました。\n労働を再開します。"); }, 500);
 }
@@ -236,14 +226,15 @@ function setupGameUI() {
     const cmdBox = document.getElementById('battle-cmds'); cmdBox.innerHTML = '';
     state.job.skills.forEach(sk => { let btn = document.createElement('button'); btn.className = 'btn'; btn.innerText = sk.name; btn.onclick = () => battleAction(sk); cmdBox.appendChild(btn); });
     let runBtn = document.createElement('button'); runBtn.className = 'btn'; runBtn.innerText = 'トイレに逃げる'; runBtn.onclick = () => battleAction({id:'run'}); cmdBox.appendChild(runBtn);
-    updateUI(); loop();
+    updateUI(); 
+    lastTime = performance.now();
+    requestAnimationFrame(loop);
 }
 
-// --- 入力・UI ---
 const input = {
     dir: -1, action: false,
-    setDir: function(d) { if(!state.msgActive && !state.battleActive) this.dir = d; }, stopDir: function() { this.dir = -1; },
-    setAction: function() { if(state.battleActive) return; if(state.msgActive) { closeMsg(); return; } this.action = true; }, stopAction: function() { this.action = false; }
+    setDir: function(d) { if(!state.msgActive && !state.battleActive && state.trial.phase !== 'menu') this.dir = d; }, stopDir: function() { this.dir = -1; },
+    setAction: function() { if(state.battleActive || state.trial.phase === 'danmaku') return; if(state.msgActive) { closeMsg(); return; } this.action = true; }, stopAction: function() { this.action = false; }
 };
 const joy = {
     z: document.getElementById('joystick-zone'), k: document.getElementById('joystick-knob'), act: false, ox: 0, oy: 0,
@@ -264,10 +255,62 @@ window.addEventListener('keyup', e => { if(['ArrowUp','ArrowDown','ArrowLeft','A
 
 function updateUI() { document.getElementById('ui-lv').innerText = state.p.lv; document.getElementById('ui-hp').innerText = state.p.hp; document.getElementById('ui-mp').innerText = state.p.mp; document.getElementById('ui-gold').innerText = state.p.gold; }
 
+function openMainMenu() {
+    showMsg(`【メニュー】\n現在HP:${state.p.hp} MP:${state.p.mp}`, [
+        { text: 'アイテム', cb: () => openItemMenu() },
+        { text: '履歴書(ｽﾃｰﾀｽ)', cb: () => toggleStatus() },
+        { text: '閉じる', cb: () => {} }
+    ]);
+}
+
+function openItemMenu(isTrial = false) {
+    showMsg(`【アイテム】\nエナドリ(HP20回復): ${state.p.items.enadori}個\n弁当(HP/MP30回復): ${state.p.items.bento}個`, [
+        { text: 'エナドリ使用', cb: () => useItem('enadori', isTrial) },
+        { text: '弁当使用', cb: () => useItem('bento', isTrial) },
+        { text: '戻る', cb: () => { if(isTrial) showTrialMenu(); else openMainMenu(); } }
+    ]);
+}
+
+function useItem(type, isTrial) {
+    let p = state.p;
+    if(p.items[type] > 0) {
+        p.items[type]--;
+        if(type === 'enadori') { p.hp = Math.min(p.maxHp, p.hp + 20); showMsg("エナドリを飲んだ！\nHPが20回復した！", [{text:'戻る', cb:()=>{if(isTrial)showTrialMenu(); else openItemMenu();} }]); }
+        if(type === 'bento') { p.hp = Math.min(p.maxHp, p.hp + 30); p.mp = Math.min(p.maxMp, p.mp + 30); showMsg("弁当を食べた！\nHPとMPが30回復した！", [{text:'戻る', cb:()=>{if(isTrial)showTrialMenu(); else openItemMenu();} }]); }
+        updateUI();
+    } else {
+        showMsg("持っていません！", [{text:'戻る', cb:()=>{openItemMenu(isTrial);}}]);
+    }
+}
+
 function toggleStatus() {
     const m = document.getElementById('status-modal');
-    if (m.style.display === 'flex') m.style.display = 'none';
-    else { document.getElementById('st-lv').innerText = state.p.lv; document.getElementById('st-hp').innerText = state.p.hp + '/' + state.p.maxHp; document.getElementById('st-mp').innerText = state.p.mp + '/' + state.p.maxMp; document.getElementById('st-atk').innerText = state.p.atk; document.getElementById('st-def').innerText = state.p.def; document.getElementById('st-exp').innerText = state.p.exp + ' / ' + state.p.nextExp; document.getElementById('st-stock-price').innerText = state.marketPrice; document.getElementById('st-shares').innerText = state.p.shares; document.getElementById('st-wpn').innerText = state.wpnName; m.style.display = 'flex'; }
+    if (m.style.display === 'flex') { m.style.display = 'none'; }
+    else { renderStatus(); m.style.display = 'flex'; }
+}
+
+function renderStatus() {
+    document.getElementById('st-lv-m').innerText = state.p.lv;
+    document.getElementById('st-sp').innerText = state.p.sp;
+    
+    const mkBtn = (stat, cost, up) => state.p.sp >= cost ? `<button class="sp-btn" onclick="addStat('${stat}', ${cost}, ${up})">+</button>` : '';
+    
+    document.getElementById('st-hp-box').innerHTML = `${state.p.hp}/${state.p.maxHp} ${mkBtn('maxHp', 1, 5)}`;
+    document.getElementById('st-mp-box').innerHTML = `${state.p.mp}/${state.p.maxMp} ${mkBtn('maxMp', 1, 5)}`;
+    document.getElementById('st-atk-box').innerHTML = `${state.p.atk} ${mkBtn('atk', 1, 1)}`;
+    document.getElementById('st-def-box').innerHTML = `${state.p.def} ${mkBtn('def', 1, 1)}`;
+    document.getElementById('st-exp').innerText = state.p.exp + ' / ' + state.p.nextExp;
+    document.getElementById('st-stock-price').innerText = state.marketPrice;
+    document.getElementById('st-shares').innerText = state.p.shares;
+    document.getElementById('st-wpn').innerText = state.wpnName;
+}
+
+window.addStat = function(stat, cost, up) {
+    if(state.p.sp >= cost) {
+        state.p.sp -= cost; state.p[stat] += up;
+        if(stat === 'maxHp') state.p.hp += up; if(stat === 'maxMp') state.p.mp += up;
+        renderStatus(); updateUI();
+    }
 }
 
 let msgCallback = null;
@@ -276,13 +319,7 @@ function showMsg(text, choices = null) {
     if(choices) { 
         choices.forEach(c => { 
             let btn = document.createElement('button'); btn.className = 'btn'; btn.innerText = c.text; 
-            btn.onclick = (e) => { 
-                e.stopPropagation(); 
-                document.getElementById('msg-box').style.display = 'none'; 
-                state.msgActive = false; input.action = false;
-                cbox.innerHTML = ''; 
-                c.cb(); 
-            }; 
+            btn.onclick = (e) => { e.stopPropagation(); document.getElementById('msg-box').style.display = 'none'; state.msgActive = false; input.action = false; cbox.innerHTML = ''; c.cb(); }; 
             cbox.appendChild(btn); 
         }); 
     } else msgCallback = null;
@@ -294,7 +331,9 @@ function closeMsg() {
     if(msgCallback) { let cb = msgCallback; msgCallback = null; cb(); } 
 }
 
-// --- PCメニュー・ネット通販 ---
+function fadeTransition(cb) { const fade = document.getElementById('fade-layer'); fade.style.opacity = 1; setTimeout(() => { cb(); updateUI(); fade.style.opacity = 0; }, 500); }
+
+// --- PCメニュー ---
 function openPCMenu() {
     showMsg("PCを立ち上げた。何をする？", [
         { text: "副業サイト", cb: () => openSideJobMenu() },
@@ -312,65 +351,23 @@ function openSideJobMenu() {
 }
 function doSideJob(type) {
     let cost = type === 'writer' ? 5 : 15, reward = type === 'writer' ? 300 + Math.floor(Math.random()*500) : 1000 + Math.floor(Math.random()*1500);
-    if(state.p.hp <= cost || state.p.mp <= cost) { showMsg("体力がメンタルが限界だ……。\nこれ以上無理すると倒れてしまう。"); return; }
+    if(state.p.hp <= cost || state.p.mp <= cost) { showMsg("体力が限界だ……。\nこれ以上無理すると倒れてしまう。"); return; }
     state.p.hp -= cost; state.p.mp -= cost; state.p.gold += reward; updateUI(); showMsg(`副業をこなし、${reward}円 を得たが、\n心身に疲労が蓄積した……。`);
 }
 function openStockMenu() {
-    showMsg(`『オワリ・ホールディングス』\n現在株価: ${state.marketPrice}円 / 保有: ${state.p.shares}株\n※売却時、税金20%が引かれます`, [
+    showMsg(`『オワリHD』\n現在株価: ${state.marketPrice}円 / 保有: ${state.p.shares}株\n※売却時、税金20%が引かれます`, [
         { text: "1株買う", cb: () => { if(state.p.gold >= state.marketPrice) { state.p.gold -= state.marketPrice; state.p.shares++; updateUI(); openStockMenu(); } else showMsg("資金が足りません。"); } },
-        { text: "全部売る", cb: () => { 
-            if(state.p.shares > 0) { 
-                let gross = state.marketPrice * state.p.shares; 
-                let tax = Math.floor(gross * 0.2); 
-                let rev = gross - tax;
-                state.p.gold += rev; 
-                let amt = state.p.shares; state.p.shares = 0; updateUI(); 
-                showMsg(`${amt}株を売却した！\nしかし税金として ${tax}円 引かれ、\n手取りは ${rev}円 になった……。`); 
-            } else showMsg("売る株を持っていません。"); 
-        } },
+        { text: "全部売る", cb: () => { if(state.p.shares > 0) { let gross = state.marketPrice * state.p.shares; let tax = Math.floor(gross * 0.2); let rev = gross - tax; state.p.gold += rev; let amt = state.p.shares; state.p.shares = 0; updateUI(); showMsg(`${amt}株を売却した！\n税金として ${tax}円 引かれ、\n手取りは ${rev}円 になった……。`); } else showMsg("売る株を持っていません。"); } },
         { text: "戻る", cb: () => openPCMenu() }
     ]);
 }
 function openOnlineShop() {
-    showMsg(`【闇の社畜通販 AmaZON】\n残高: ${state.p.gold}円`, [
-        { text: "ﾒｶﾆｶﾙｷｰﾎﾞｰﾄﾞ(¥5万/ATK+10)", cb: () => { if(state.p.gold>=50000){ state.p.gold-=50000; state.p.atk+=10; state.wpnName="メカニカルキーボード"; updateUI(); showMsg("打鍵音で周りを威嚇し、進捗を爆上げする！\n(攻撃力+10)"); } else showMsg("残高不足です。"); } },
-        { text: "高級スーツ(¥10万/DEF+10)", cb: () => { if(state.p.gold>=100000){ state.p.gold-=100000; state.p.def+=10; state.wpnName="高級オーダースーツ"; updateUI(); showMsg("上司の嫌味をスタイリッシュに弾く！\n(防御力+10)"); } else showMsg("残高不足です。"); } },
-        { text: "タワマン最上階(¥1000万/真クリア)", cb: () => { if(state.p.gold>=10000000){ state.p.gold-=10000000; state.p.maxHp+=999; state.p.maxMp+=999; state.p.hp=state.p.maxHp; state.p.mp=state.p.maxMp; state.wpnName="タワマンの権利書"; updateUI(); showMsg("【真の自由へ】\n圧倒的な資本を手に入れ、\n物理的にも社会的にも上の階層へ到達した。\nもう誰もあなたに逆らえない。\n\n〜 GAME CLEAR 〜"); } else showMsg("全然足りません。\n現実に帰って労働してください。"); } },
+    showMsg(`【闇の社畜通販】残高: ${state.p.gold}円`, [
+        { text: "ﾒｶﾆｶﾙｷｰﾎﾞｰﾄﾞ(¥5万/ATK+10)", cb: () => { if(state.p.gold>=50000){ state.p.gold-=50000; state.p.atk+=10; state.wpnName="ﾒｶﾆｶﾙｷｰﾎﾞｰﾄﾞ"; updateUI(); showMsg("打鍵音で周りを威嚇する！\n(攻撃力+10)"); } else showMsg("残高不足です。"); } },
+        { text: "高級スーツ(¥10万/DEF+10)", cb: () => { if(state.p.gold>=100000){ state.p.gold-=100000; state.p.def+=10; state.wpnName="高級スーツ"; updateUI(); showMsg("嫌味をスタイリッシュに弾く！\n(防御力+10)"); } else showMsg("残高不足です。"); } },
         { text: "戻る", cb: () => openPCMenu() }
     ]);
 }
-
-// --- カジノ ---
-function openCasinoMenu() {
-    showMsg(`【地下カジノ・欲望の沼】\n所持金: ${state.p.gold}円\n「丁（偶数）」か「半（奇数）」か……`, [
-        { text: "1万賭ける", cb: () => playGamble(10000) },
-        { text: "10万賭ける", cb: () => playGamble(100000) },
-        { text: "全額賭ける", cb: () => playGamble(state.p.gold) },
-        { text: "立ち去る", cb: () => {} }
-    ]);
-}
-function playGamble(bet) {
-    if(bet <= 0 || state.p.gold < bet) { showMsg("金が足りねえな。すっこんでろ。"); return; }
-    state.p.gold -= bet; updateUI();
-    showMsg(`賭け金 ${bet}円 を張った！\nサイコロが振られる……`, null);
-    
-    setTimeout(() => {
-        let dice = Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1;
-        let isWin = Math.random() < 0.45; 
-        
-        document.getElementById('msg-box').style.display = 'none'; state.msgActive = false; 
-        if(isWin) {
-            let winAmt = bet * 2;
-            state.p.gold += winAmt; updateUI();
-            showMsg(`出目は ${dice} ！\n見事的中し、${winAmt}円 に倍増した！\n脳汁が止まらない！`, [{ text: 'もう一勝負', cb: () => openCasinoMenu() }, { text: 'やめる', cb: () => {} }]);
-        } else {
-            updateUI();
-            showMsg(`出目は ${dice} ……。\n賭け金は闇に消えた。\n「ヒヒヒ、また来な」`, [{ text: 'もう一勝負', cb: () => openCasinoMenu() }, { text: 'やめる', cb: () => {} }]);
-        }
-    }, 2000);
-}
-
-function fadeTransition(cb) { const fade = document.getElementById('fade-layer'); fade.style.opacity = 1; setTimeout(() => { cb(); updateUI(); fade.style.opacity = 0; }, 500); }
 
 // --- フィールドイベント ---
 function checkEvents() {
@@ -394,23 +391,39 @@ function interact() {
     
     if(id === T.BED.id) { showMsg("泥のように眠りますか？", [{ text: '寝る', cb: () => { p.hp = p.maxHp; p.mp = p.maxMp; updateUI(); showMsg("全回復した。明日も労働だ。"); } }, { text: 'やめる', cb: () => {} }]); }
     else if(id === T.PC.id) { openPCMenu(); }
-    else if(id === T.CASINO.id) { openCasinoMenu(); }
+    else if(id === T.CASINO.id) { showMsg(`【地下カジノ】所持金: ${state.p.gold}円`, [{ text: "1万賭ける", cb: () => playGamble(10000) }, { text: "10万賭ける", cb: () => playGamble(100000) }, { text: "立ち去る", cb: () => {} }]); }
     else if(id === T.CONBINI.id) {
-        showMsg("『不夜城マート』", [
-            { text: 'ｴﾅﾄﾞﾘ(¥500/HP回復)', cb: () => { if(p.gold>=500) { p.gold-=500; p.hp=Math.min(p.maxHp, p.hp+20); updateUI(); showMsg("体力が20回復した！\n将来の寿命を前借りした。"); } else showMsg("残高不足です。"); } },
-            { text: 'ｽﾄﾛﾝｸﾞ缶(¥200/MP回復)', cb: () => { if(p.gold>=200) { p.gold-=200; p.mp=Math.min(p.maxMp, p.mp+20); p.hp=Math.max(1, p.hp-5); updateUI(); showMsg("メンタルが20回復した！\n代償として体調が悪くなった(HP-5)。"); } else showMsg("残高不足です。"); } },
+        showMsg("『不夜城マート』いらっしゃいませ！", [
+            { text: `ｴﾅﾄﾞﾘ買(¥500/所持:${p.items.enadori})`, cb: () => { if(p.gold>=500) { p.gold-=500; p.items.enadori++; updateUI(); showMsg("エナドリ(HP20回復)を買った。"); } else showMsg("残高不足です。"); } },
+            { text: `弁当買(¥1000/所持:${p.items.bento})`, cb: () => { if(p.gold>=1000) { p.gold-=1000; p.items.bento++; updateUI(); showMsg("弁当(HP/MP30回復)を買った。"); } else showMsg("残高不足です。"); } },
             { text: '出る', cb: () => {} }
         ]);
     } else if(id === T.NPC_COWORKER.id) { showMsg("同僚「あ、おはよう……。\nおれ、この株が上がったら会社辞めるんだ……」"); }
-    // ▼ボス弱体化 (HP300->150, ATK30->15, DEF20->10)
-    else if(id === T.BOSS_DESK.id) { showMsg("ブラック社長「おい君！気合と根性で見せてみろ！」", null); setTimeout(()=> { closeMsg(); startBattle({ name: 'ブラック社長', hp: 150, maxHp: 150, atk: 15, def: 10, exp: 999, gold: 50000, sprite: 'boss', isBoss: true }); }, 2000); }
+    else if(id === T.BOSS_DESK.id) { 
+        showMsg("ブラック社長「おい君！気合と根性で見せてみろ！」", [
+            { text: '通常の業務報告(通常戦)', cb: () => startBattle({ name: 'ブラック社長', hp: 150, maxHp: 150, atk: 15, def: 10, exp: 999, gold: 50000, sprite: 'boss', isBoss: true }) },
+            { text: '労基に通報(裁判戦へ)', cb: () => startTrial() },
+            { text: '戻る', cb: () => {} }
+        ]); 
+    }
+}
+function playGamble(bet) {
+    if(bet <= 0 || state.p.gold < bet) { showMsg("金が足りねえな。"); return; }
+    state.p.gold -= bet; updateUI();
+    showMsg(`賭け金 ${bet}円 を張った！\nサイコロが振られる……`, null);
+    setTimeout(() => {
+        let dice = Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1;
+        let isWin = Math.random() < 0.45; 
+        document.getElementById('msg-box').style.display = 'none'; state.msgActive = false; 
+        if(isWin) { let winAmt = bet * 2; state.p.gold += winAmt; updateUI(); showMsg(`出目は ${dice} ！\n見事的中し、${winAmt}円 に倍増した！`, [{ text: 'やめる', cb: () => {} }]); }
+        else { updateUI(); showMsg(`出目は ${dice} ……。\n賭け金は闇に消えた。`, [{ text: 'やめる', cb: () => {} }]); }
+    }, 2000);
 }
 
-// --- バトル ---
+// --- 通常バトル ---
 let curEnemy = null;
 function startRandomEncounter() {
     if(state.mapId !== 'office') return; let e = {};
-    // ▼敵の基礎ステータス・レベル補正を弱体化
     if(Math.random() < 0.5) { e.name = '絶対今日中の納期'; e.hp = 15+state.p.lv*2; e.maxHp=e.hp; e.atk = 5+state.p.lv*1; e.def = 2+Math.floor(state.p.lv/3); e.exp = 5; e.gold = 300; e.sprite = 'deadline'; }
     else { e.name = '理不尽な仕様変更'; e.hp = 25+state.p.lv*2; e.maxHp=e.hp; e.atk = 8+state.p.lv*1; e.def = 3+Math.floor(state.p.lv/3); e.exp = 8; e.gold = 500; e.sprite = 'doc'; }
     startBattle(e);
@@ -437,8 +450,8 @@ function battleAction(cmd) {
         setTimeout(() => {
             document.getElementById('battle-msg').innerText = `タスク完了！\n評価 ${curEnemy.exp} UP / 給料 ${curEnemy.gold}円 獲得！`;
             state.p.exp += curEnemy.exp; state.p.gold += curEnemy.gold; updateUI();
-            if(curEnemy.isBoss) { setTimeout(() => { showMsg("見事、退職届を叩きつけた！\n自由な生活の始まりだ！\n〜 祝・退職(一応クリア) 〜\n※真のクリアはタワマン購入です"); state.battleActive = false; document.getElementById('battle-screen').style.display = 'none'; }, 2000); }
-            else { setTimeout(() => { if(state.p.exp >= state.p.nextExp) { state.p.lv++; state.p.maxHp+=5; state.p.maxMp+=5; state.p.hp=state.p.maxHp; state.p.mp=state.p.maxMp; state.p.atk+=2; state.p.def+=1; state.p.nextExp=Math.floor(state.p.nextExp*1.5); updateUI(); showMsg(`Lv${state.p.lv} に上がった！全回復！`); } state.battleActive = false; document.getElementById('battle-screen').style.display = 'none'; }, 1500); }
+            if(curEnemy.isBoss) { setTimeout(() => { showMsg("見事、退職届を叩きつけた！\n自由な生活の始まりだ！\n〜 祝・退職(通常クリア) 〜\n※真のクリアは労基通報です"); state.battleActive = false; document.getElementById('battle-screen').style.display = 'none'; }, 2000); }
+            else { setTimeout(() => { if(state.p.exp >= state.p.nextExp) { levelUp(); setTimeout(()=>{state.battleActive = false; document.getElementById('battle-screen').style.display = 'none';}, 2000); } else {state.battleActive = false; document.getElementById('battle-screen').style.display = 'none';} }, 1500); }
         }, 1500);
     } else setTimeout(enemyTurn, 1500);
 }
@@ -455,9 +468,90 @@ function enemyTurn() {
     } else setTimeout(() => { document.getElementById('battle-msg').innerText = "どう対応する？"; document.querySelectorAll('#battle-cmds .btn').forEach(b => b.disabled = false); }, 1500);
 }
 
+function levelUp() {
+    state.p.lv++; state.p.maxHp += 2; state.p.maxMp += 2; state.p.hp = state.p.maxHp; state.p.mp = state.p.maxMp; state.p.atk += 1; state.p.sp += 5; state.p.nextExp = Math.floor(state.p.nextExp * 1.5);
+    updateUI(); showMsg(`業務スキルが Lv${state.p.lv} に上がった！\nSPを 5 獲得した！\n(詳細画面から割り振り可能)`);
+}
+
+// --- 裁判戦 (サンズ風 弾幕アクション) ---
+function startTrial() {
+    state.trial.active = true; state.trial.turn = 0; input.stopDir();
+    document.getElementById('controls-layer').style.display = 'flex'; // ジョイスティック維持
+    showTrialMenu();
+}
+function showTrialMenu() {
+    state.trial.phase = 'menu'; state.trial.bullets = [];
+    showMsg(`【労働審判】 ターン ${state.trial.turn + 1} / ${state.trial.maxTurn}\n社長「ワシに逆らうとはいい度胸だ。徹底的に潰してやる！」`, [
+        { text: '論破する(攻撃)', cb: () => trialAttack() },
+        { text: '証拠品(アイテム)', cb: () => openItemMenu(true) }
+    ]);
+}
+function trialAttack() {
+    closeMsg(); state.trial.phase = 'attack_anim';
+    if(state.trial.turn < state.trial.maxTurn - 1) {
+        showMsg("社長は 優秀な弁護士を盾にして\n華麗に 回避した！ MISS!!", [
+            { text: '敵のターンへ', cb: () => startTrialDanmaku() }
+        ]);
+        state.trial.turn++;
+    } else {
+        // 最終ターン
+        showMsg("社長は 決定的な証拠を突きつけられ\n言い逃れできなくなった！\n9999 ダメージ！！", [
+            { text: '次へ', cb: () => {
+                state.trial.active = false; state.p.gold += 10000000; updateUI();
+                showMsg("【真・GAME CLEAR】\n見事、社長を論破し、逮捕に追い込んだ！\n賠償金 1000万円 を獲得し、\nあなたは真の自由を手に入れた。");
+            }}
+        ]);
+    }
+}
+function startTrialDanmaku() {
+    closeMsg(); state.trial.phase = 'danmaku'; state.trial.danmakuTimer = 8000; state.trial.bullets = [];
+    state.trial.heart.x = state.trial.box.x + state.trial.box.w / 2; state.trial.heart.y = state.trial.box.y + state.trial.box.h / 2;
+}
+
+function updateTrial(dt) {
+    if(state.trial.phase !== 'danmaku') return;
+    let t = state.trial; t.danmakuTimer -= dt;
+    if(t.danmakuTimer <= 0) { showTrialMenu(); return; }
+
+    let dx = 0, dy = 0;
+    if (input.dir !== -1) { if(input.dir===0) dy=-t.heart.speed; if(input.dir===2) dy=t.heart.speed; if(input.dir===3) dx=-t.heart.speed; if(input.dir===1) dx=t.heart.speed; }
+    t.heart.x += dx; t.heart.y += dy;
+    t.heart.x = Math.max(t.box.x + t.heart.size/2, Math.min(t.box.x + t.box.w - t.heart.size/2, t.heart.x));
+    t.heart.y = Math.max(t.box.y + t.heart.size/2, Math.min(t.box.y + t.box.h - t.heart.size/2, t.heart.y));
+
+    // 弾生成
+    if(Math.random() < 0.15) {
+        t.bullets.push({ x: t.box.x + t.box.w, y: t.box.y + Math.random() * (t.box.h - 15), w: 20 + Math.random() * 30, h: 15, speed: 4 + Math.random() * 5 });
+    }
+
+    const now = Date.now();
+    for(let i = t.bullets.length - 1; i >= 0; i--) {
+        let b = t.bullets[i]; b.x -= b.speed;
+        let hx = t.heart.x - t.heart.size/2, hy = t.heart.y - t.heart.size/2, hs = t.heart.size;
+        
+        // 当たり判定 (0.1秒に1回ダメージ)
+        if(hx < b.x + b.w && hx + hs > b.x && hy < b.y + b.h && hy + hs > b.y) {
+            if(now - t.lastHitTime > 100) {
+                state.p.hp -= 1; t.lastHitTime = now; updateUI();
+                if(state.p.hp <= 0) {
+                    state.trial.active = false; state.p.hp = state.p.maxHp; state.p.gold = Math.floor(state.p.gold / 2); updateUI();
+                    fadeTransition(() => { state.mapId = 'home'; state.p.x = 4*48; state.p.y = 6*48; showMsg("裁判に敗訴し、過労で倒れた……。\n多額の裁判費用が飛んだ。"); });
+                    return;
+                }
+            }
+        }
+        if(b.x + b.w < t.box.x) t.bullets.splice(i, 1);
+    }
+}
+
 // --- メインループ ---
-function update() {
-    if(state.msgActive || state.battleActive || !state.job) return; if(document.getElementById('status-modal').style.display === 'flex') return;
+let lastTime = 0;
+function update(dt) {
+    if(state.msgActive || state.battleActive || !state.job) return; 
+    if(document.getElementById('status-modal').style.display === 'flex') return;
+    
+    if(state.trial.active) { updateTrial(dt); return; }
+
     const p = state.p, map = maps[state.mapId]; let dx = 0, dy = 0;
     if (input.dir !== -1) { p.dir = input.dir; if(p.dir===0) dy=-CFG.SPEED; if(p.dir===2) dy=CFG.SPEED; if(p.dir===3) dx=-CFG.SPEED; if(p.dir===1) dx=CFG.SPEED; p.moving = true; } else { p.moving = false; p.anim = 0; }
     
@@ -468,61 +562,24 @@ function update() {
         if (check(ftX, ftY) && check(ftR, ftY) && check(ftX, ftB) && check(ftR, ftB)) {
             p.x = nx; p.y = ny; if(Math.floor(Date.now()/100)%2===0) p.anim = (p.anim === 0) ? 1 : 0;
             
-            // --- サボり監視システム ---
             if (state.mapId !== 'office') {
                 p.walkDist += Math.abs(dx) + Math.abs(dy);
                 if (p.walkDist >= CFG.TILE_SIZE) {
-                    p.walkDist -= CFG.TILE_SIZE;
-                    p.stepsOutside++;
-                    
+                    p.walkDist -= CFG.TILE_SIZE; p.stepsOutside++;
                     if (p.stepsOutside >= 50) {
-                        p.stepsOutside = 0;
-                        input.stopDir();
+                        p.stepsOutside = 0; input.stopDir();
                         showMsg("ブラック社長\n「おい！！！いつまでサボっている！！\nお前の代わりなんていくらでもいるんだぞ！！\n今すぐ出社しろ！！」", [
-                            { text: 'ひぃぃ！はい！', cb: () => {
-                                fadeTransition(() => {
-                                    state.mapId = 'office';
-                                    state.p.x = 7 * 48;
-                                    state.p.y = 18 * 48;
-                                    state.p.hp = Math.max(1, state.p.hp - 5);
-                                    state.p.mp = Math.max(1, state.p.mp - 5);
-                                    updateUI();
-                                    showMsg("首根っこを掴まれ、強制的に出社させられた。\n極度の恐怖で体力とメンタルが削られた…\n(HP/MP -5)");
-                                });
-                            }}
-                        ]);
-                        return;
+                            { text: 'ひぃぃ！はい！', cb: () => { fadeTransition(() => { state.mapId = 'office'; state.p.x = 7 * 48; state.p.y = 18 * 48; state.p.hp = Math.max(1, state.p.hp - 5); updateUI(); showMsg("強制出社させられた。\n恐怖で体力が削られた…(HP-5)"); }); }}
+                        ]); return;
                     }
                 }
-            } else {
-                p.stepsOutside = 0;
-                p.walkDist = 0;
-            }
+            } else { p.stepsOutside = 0; p.walkDist = 0; }
             
-            // ▼株価の変動イベント (発生率を 1/6 に激減、変動幅もマイルドに)
-            if(Math.random() < 0.05) { 
-                let decay = (1000 - state.marketPrice) * 0.01; 
-                state.marketPrice = Math.max(10, Math.floor(state.marketPrice * (1 + (Math.random() * 0.2 - 0.1)) + decay)); 
-            }
-            if(Math.random() < 0.0005) {  // 0.003 -> 0.0005 に緩和
+            if(Math.random() < 0.05) { let decay = (1000 - state.marketPrice) * 0.01; state.marketPrice = Math.max(10, Math.floor(state.marketPrice * (1 + (Math.random() * 0.2 - 0.1)) + decay)); }
+            if(Math.random() < 0.0005) { 
                 let rnd = Math.random();
-                if(rnd < 0.3) {  // 暴落確率を 50% -> 30% に低下
-                    state.marketPrice = Math.max(10, Math.floor(state.marketPrice * 0.5)); // 0.2倍 -> 0.5倍 に緩和
-                    showMsg("【ニュース】\nオワリHDの業績悪化懸念。\n株価が下落しました。"); 
-                }
-                else if(rnd < 0.95) { // 高騰確率を大幅増加
-                    state.marketPrice = Math.floor(state.marketPrice * 1.5); 
-                    showMsg("【号外速報】\nオワリHDが新サービス発表！\n株価が急騰しました！"); 
-                }
-                else { // 上場廃止（紙くず化）は極めて稀に
-                    state.marketPrice = 10;
-                    if(state.p.shares > 0) {
-                        state.p.shares = 0; updateUI();
-                        showMsg("【絶望】\nオワリHDが上場廃止！！\n保有していた株は全て紙くずになった…");
-                    } else {
-                        showMsg("【ニュース】\nオワリHDが上場廃止！！\n株を持っていなくて助かった…。");
-                    }
-                }
+                if(rnd < 0.3) { state.marketPrice = Math.max(10, Math.floor(state.marketPrice * 0.5)); showMsg("【ニュース】\nオワリHDの業績悪化懸念。\n株価が下落しました。"); }
+                else if(rnd < 0.95) { state.marketPrice = Math.floor(state.marketPrice * 1.5); showMsg("【号外速報】\nオワリHDが新サービス発表！\n株価が急騰しました！"); }
             }
             if(state.mapId === 'office' && Math.random() < CFG.ENCOUNTER_RATE) startRandomEncounter();
         }
@@ -534,7 +591,10 @@ function update() {
 
 const ctx = document.getElementById('gameCanvas').getContext('2d'); ctx.imageSmoothingEnabled = false;
 function draw() {
-    if(!state.job) return; ctx.fillStyle = state.mapId==='city'?'#333':'#111'; ctx.fillRect(0,0,CFG.SCREEN_W, CFG.SCREEN_H);
+    if(!state.job) return; 
+    
+    // 通常描画
+    ctx.fillStyle = state.mapId==='city'?'#333':'#111'; ctx.fillRect(0,0,CFG.SCREEN_W, CFG.SCREEN_H);
     const map = maps[state.mapId], sx = Math.max(0, Math.floor(state.cam.x/CFG.TILE_SIZE)), ex = Math.min(map.w-1, sx+(CFG.SCREEN_W/CFG.TILE_SIZE)+1), sy = Math.max(0, Math.floor(state.cam.y/CFG.TILE_SIZE)), ey = Math.min(map.h-1, sy+(CFG.SCREEN_H/CFG.TILE_SIZE)+1);
     for(let y=sy; y<=ey; y++) {
         for(let x=sx; x<=ex; x++) {
@@ -554,8 +614,31 @@ function draw() {
     const px = state.p.x - state.cam.x, py = state.p.y - state.cam.y, bob = state.p.anim === 1 ? -2 : 0;
     ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.ellipse(px+24, py+40, 16, 6, 0, 0, Math.PI*2); ctx.fill();
     ctx.drawImage(Sprites.player, px, py+bob, 48, 48);
+
+    // 裁判戦専用オーバーレイ描画
+    if(state.trial.active) {
+        ctx.fillStyle = 'rgba(0,0,0,0.9)'; ctx.fillRect(0,0,CFG.SCREEN_W, CFG.SCREEN_H);
+        ctx.drawImage(Sprites.boss, CFG.SCREEN_W/2 - 48, 50, 96, 96);
+        ctx.fillStyle = '#ff5555'; ctx.font = '24px DotGothic16'; ctx.textAlign='center';
+        ctx.fillText('ブラック社長', CFG.SCREEN_W/2, 180);
+        ctx.fillText('HP: 1', CFG.SCREEN_W/2, 210); ctx.textAlign='left';
+
+        if(state.trial.phase === 'danmaku') {
+            let t = state.trial;
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.strokeRect(t.box.x, t.box.y, t.box.w, t.box.h);
+            ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(t.heart.x, t.heart.y, t.heart.size/2, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#fff'; t.bullets.forEach(b => ctx.fillRect(b.x, b.y, b.w, b.h));
+            ctx.fillStyle = 'yellow'; ctx.fillText(`残り: ${Math.ceil(t.danmakuTimer/1000)}秒`, t.box.x, t.box.y - 10);
+            
+            // 赤くフラッシュ（ダメージ時）
+            if(Date.now() - t.lastHitTime < 50) { ctx.fillStyle = 'rgba(255,0,0,0.3)'; ctx.fillRect(0,0,CFG.SCREEN_W,CFG.SCREEN_H); }
+        }
+    }
 }
-function loop() { update(); draw(); requestAnimationFrame(loop); }
+function loop(time) { 
+    let dt = time - lastTime; lastTime = time;
+    update(dt); draw(); requestAnimationFrame(loop); 
+}
 </script>
 </body>
 </html>
