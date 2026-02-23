@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Discord リアルタイム通信</title>
+    <style>
+        body { font-family: sans-serif; background: #2c2f33; color: white; padding: 20px; }
+        #chat-box { background: #23272a; padding: 15px; height: 300px; overflow-y: scroll; border-radius: 8px; margin-bottom: 15px;}
+        .message { margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 5px; }
+        .author { font-weight: bold; color: #7289da; }
+        input[type="text"] { width: 70%; padding: 10px; border-radius: 5px; border: none; }
+        button { padding: 10px 20px; background: #7289da; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #5b6eae; }
+    </style>
+</head>
+<body>
+
+    <h2>🌐 Discord ⇔ Web リアルタイムチャット</h2>
+    
+    <div id="chat-box">読み込み中...</div>
+
+    <div>
+        <input type="text" id="msg-input" placeholder="Discordにメッセージを送信...">
+        <button onclick="sendMessage()">送信する</button>
+    </div>
+
+    <script>
+        // ⚠️ 超重要：ここにあなたのRenderのURLを貼ってください！
+        // 例: "https://my-discord-bot.onrender.com" (最後の / は不要です)
+        const SERVER_URL = "https://kankun-app.onrender.com/";
+
+        // 1. Discordの会話履歴を取得して表示する関数
+        async function fetchMessages() {
+            try {
+                const response = await fetch(`${SERVER_URL}/api/messages`);
+                const messages = await response.json();
+                
+                const chatBox = document.getElementById('chat-box');
+                chatBox.innerHTML = ''; // 一度空にする
+                
+                messages.forEach(msg => {
+                    chatBox.innerHTML += `
+                        <div class="message">
+                            <span class="author">${msg.author}:</span> 
+                            <span>${msg.content}</span>
+                        </div>
+                    `;
+                });
+                
+                // 一番下にスクロール
+                chatBox.scrollTop = chatBox.scrollHeight;
+            } catch (error) {
+                console.error("メッセージ取得エラー:", error);
+            }
+        }
+
+        // 2. WebサイトからDiscordへメッセージを送る関数
+        async function sendMessage() {
+            const input = document.getElementById('msg-input');
+            const text = input.value;
+            if (!text) return;
+
+            try {
+                await fetch(`${SERVER_URL}/api/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+                input.value = ''; // 送信したら入力欄を空にする
+                fetchMessages(); // すぐに履歴を更新
+            } catch (error) {
+                alert("送信に失敗しました！サーバーのURLが合っているか確認してください。");
+            }
+        }
+
+        // 3. 定期的に（2秒ごとに）Discordの新しい会話がないかチェックする
+        setInterval(fetchMessages, 2000);
+        // 最初の1回目を即座に実行
+        fetchMessages();
+    </script>
+</body>
+</html>
