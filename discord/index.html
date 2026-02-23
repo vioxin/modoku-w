@@ -49,6 +49,9 @@
         // ⚠️ ここはあなたのRenderのURLを入れてください！
         const SERVER_URL = "https://kankun-app.onrender.com/";
 
+        // 💡 追加：前回の表示内容を記憶しておく変数
+        let lastHtml = '';
+
         async function fetchMessages() {
             try {
                 const response = await fetch(`${SERVER_URL}/api/messages`);
@@ -56,13 +59,10 @@
                 
                 const chatBox = document.getElementById('chat-box');
 
-                // 💡 【修正ポイント1】更新前のスクロール状態を記憶しておく
-                // 一番下付近にいるかどうかをチェック（50pxの誤差を許容）
                 const isScrolledToBottom = chatBox.scrollHeight - chatBox.clientHeight <= chatBox.scrollTop + 50;
-                // 現在のスクロール位置を記憶
                 const previousScrollTop = chatBox.scrollTop;
                 
-                let newHtml = ''; // 画面のチラつきを防ぐため、HTMLを一旦変数にまとめる
+                let newHtml = '';
                 
                 if (messages.length === 0) {
                     newHtml = '<div class="empty-msg">まだメッセージがありません。<br>Discordで何か発言するとここに表示されます！</div>';
@@ -70,23 +70,19 @@
                     messages.forEach(msg => {
                         let html = `<div class="message">`;
                         
-                        // インタラクション (コマンド実行者)
                         if (msg.interaction) {
                             html += `<div class="interaction">
                                         <span>${msg.interaction.user} さんが <strong>/${msg.interaction.name}</strong> を使用しました</span>
                                      </div>`;
                         }
                         
-                        // 発言者
                         let botTag = msg.is_bot ? `<span class="bot-tag">アプリ</span>` : '';
                         html += `<div><span class="author">${msg.author}</span>${botTag}</div>`;
                         
-                        // テキスト
                         if (msg.content) {
                             html += `<div style="margin-top: 5px;">${msg.content}</div>`;
                         }
                         
-                        // 埋め込み (Embed)
                         if (msg.embeds && msg.embeds.length > 0) {
                             msg.embeds.forEach(embed => {
                                 html += `<div class="embed">`;
@@ -102,21 +98,30 @@
                     });
                 }
 
-                // 一気に画面を書き換え
+                // 💡 【超重要】新着メッセージがなく、前回と全く同じ内容ならここでストップ！（画面を書き換えない）
+                if (newHtml === lastHtml) {
+                    return; 
+                }
+
+                // 新しい内容だった場合のみ、画面を書き換えて記録を更新する
+                lastHtml = newHtml;
                 chatBox.innerHTML = newHtml;
                 
-                // 💡 【修正ポイント2】スクロール位置の復元
+                // スクロール位置の復元
                 if (isScrolledToBottom) {
-                    // 最新の会話を追っている場合は一番下へ自動スクロール
                     chatBox.scrollTop = chatBox.scrollHeight;
                 } else {
-                    // 過去ログを遡って読んでいる場合は、元のスクロール位置をキープ
                     chatBox.scrollTop = previousScrollTop;
                 }
 
             } catch (error) {
                 console.error("メッセージ取得エラー:", error);
-                document.getElementById('chat-box').innerHTML = '<div class="empty-msg" style="color: #f04747;">サーバーと通信できません。<br>Renderが起動しているか確認してください。</div>';
+                const errorHtml = '<div class="empty-msg" style="color: #f04747;">サーバーと通信できません。<br>Renderが起動しているか確認してください。</div>';
+                // エラー時もチラつきを防止
+                if (lastHtml !== errorHtml) {
+                    document.getElementById('chat-box').innerHTML = errorHtml;
+                    lastHtml = errorHtml;
+                }
             }
         }
 
