@@ -5,39 +5,60 @@
     <title>Discord リアルタイム通信</title>
     <style>
         body { font-family: sans-serif; background: #2c2f33; color: white; padding: 20px; }
-        #chat-box { background: #23272a; padding: 15px; height: 300px; overflow-y: scroll; border-radius: 8px; margin-bottom: 15px;}
+        #chat-box { background: #23272a; padding: 15px; height: 300px; overflow-y: auto; border-radius: 8px; margin-bottom: 15px;}
         .message { margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 5px; }
         .author { font-weight: bold; color: #7289da; }
-        input[type="text"] { width: 70%; padding: 10px; border-radius: 5px; border: none; }
-        button { padding: 10px 20px; background: #7289da; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        button:hover { background: #5b6eae; }
+        /* 入力欄とボタンを横並びにするレイアウト */
+        .controls { margin-bottom: 15px; display: flex; gap: 10px; }
+        input[type="text"] { flex-grow: 1; padding: 10px; border-radius: 5px; border: none; }
+        button { padding: 10px 15px; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        
+        /* 送信ボタン（青色） */
+        .send-btn { background: #7289da; }
+        .send-btn:hover { background: #5b6eae; }
+        
+        /* リロードボタン（緑色） */
+        .reload-btn { background: #43b581; } 
+        .reload-btn:hover { background: #3ca374; }
+        
+        /* メッセージがない時の薄い文字 */
+        .empty-msg { color: #99aab5; font-style: italic; text-align: center; padding-top: 50px; }
     </style>
 </head>
 <body>
 
     <h2>🌐 Discord ⇔ Web リアルタイムチャット</h2>
     
-    <div id="chat-box">読み込み中...</div>
+    <div class="controls">
+        <button class="reload-btn" onclick="fetchMessages()">🔄 最新の履歴を手動で読み込む</button>
+    </div>
 
-    <div>
+    <div id="chat-box">通信中...</div>
+
+    <div class="controls">
         <input type="text" id="msg-input" placeholder="Discordにメッセージを送信...">
-        <button onclick="sendMessage()">送信する</button>
+        <button class="send-btn" onclick="sendMessage()">送信する</button>
     </div>
 
     <script>
-        // ⚠️ 超重要：ここにあなたのRenderのURLを貼ってください！
-        // 例: "https://my-discord-bot.onrender.com" (最後の / は不要です)
-        const SERVER_URL = "https://kankun-app.onrender.com/";
+        // ⚠️ ここはあなたのRenderのURLを入れてください！（末尾の / は不要です）
+        const SERVER_URL = "https://ここに_あなたの_RENDERの_URL_を入れる";
 
-        // 1. Discordの会話履歴を取得して表示する関数
+        // メッセージを取得する関数
         async function fetchMessages() {
             try {
                 const response = await fetch(`${SERVER_URL}/api/messages`);
                 const messages = await response.json();
                 
                 const chatBox = document.getElementById('chat-box');
-                chatBox.innerHTML = ''; // 一度空にする
+                chatBox.innerHTML = ''; 
                 
+                // 💡 追加：履歴が空っぽの時の処理
+                if (messages.length === 0) {
+                    chatBox.innerHTML = '<div class="empty-msg">まだメッセージがありません。<br>Discordで何か発言するとここに表示されます！</div>';
+                    return;
+                }
+
                 messages.forEach(msg => {
                     chatBox.innerHTML += `
                         <div class="message">
@@ -47,14 +68,15 @@
                     `;
                 });
                 
-                // 一番下にスクロール
+                // 一番下に自動スクロール
                 chatBox.scrollTop = chatBox.scrollHeight;
             } catch (error) {
                 console.error("メッセージ取得エラー:", error);
+                document.getElementById('chat-box').innerHTML = '<div class="empty-msg" style="color: #f04747;">サーバーと通信できません。<br>Renderが起動しているか確認してください。</div>';
             }
         }
 
-        // 2. WebサイトからDiscordへメッセージを送る関数
+        // メッセージを送信する関数
         async function sendMessage() {
             const input = document.getElementById('msg-input');
             const text = input.value;
@@ -66,16 +88,15 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ text: text })
                 });
-                input.value = ''; // 送信したら入力欄を空にする
-                fetchMessages(); // すぐに履歴を更新
+                input.value = ''; 
+                fetchMessages(); // 送信後すぐに履歴を更新
             } catch (error) {
-                alert("送信に失敗しました！サーバーのURLが合っているか確認してください。");
+                alert("送信に失敗しました！");
             }
         }
 
-        // 3. 定期的に（2秒ごとに）Discordの新しい会話がないかチェックする
+        // 2秒ごとに自動更新（リロードボタンがあっても、一応自動更新も残しておきます）
         setInterval(fetchMessages, 2000);
-        // 最初の1回目を即座に実行
         fetchMessages();
     </script>
 </body>
