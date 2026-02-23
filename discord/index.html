@@ -5,23 +5,28 @@
     <title>Discord リアルタイム通信</title>
     <style>
         body { font-family: sans-serif; background: #2c2f33; color: white; padding: 20px; }
-        #chat-box { background: #23272a; padding: 15px; height: 300px; overflow-y: auto; border-radius: 8px; margin-bottom: 15px;}
-        .message { margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 5px; }
+        #chat-box { background: #36393f; padding: 15px; height: 400px; overflow-y: auto; border-radius: 8px; margin-bottom: 15px;}
+        .message { margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 10px; }
         .author { font-weight: bold; color: #7289da; }
-        /* 入力欄とボタンを横並びにするレイアウト */
+        .bot-tag { background: #5865f2; color: white; font-size: 0.7em; padding: 2px 5px; border-radius: 3px; margin-left: 5px; vertical-align: middle;}
+        
+        /* コマンド実行者の表示スタイル */
+        .interaction { font-size: 0.85em; color: #b9bbbe; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+        .interaction strong { color: #7289da; cursor: pointer; }
+        
+        /* 埋め込み(Embed)の表示スタイル */
+        .embed { border-left: 4px solid #202225; background: #2f3136; padding: 10px; margin-top: 5px; border-radius: 4px; max-width: 400px; }
+        .embed-title { font-weight: bold; margin-bottom: 5px; }
+        .embed-desc { font-size: 0.9em; margin-bottom: 5px; white-space: pre-wrap; }
+        .embed-image img { max-width: 100%; border-radius: 4px; margin-top: 5px; }
+
         .controls { margin-bottom: 15px; display: flex; gap: 10px; }
-        input[type="text"] { flex-grow: 1; padding: 10px; border-radius: 5px; border: none; }
+        input[type="text"] { flex-grow: 1; padding: 10px; border-radius: 5px; border: none; background: #40444b; color: white; }
         button { padding: 10px 15px; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        
-        /* 送信ボタン（青色） */
-        .send-btn { background: #7289da; }
-        .send-btn:hover { background: #5b6eae; }
-        
-        /* リロードボタン（緑色） */
+        .send-btn { background: #5865f2; }
+        .send-btn:hover { background: #4752c4; }
         .reload-btn { background: #43b581; } 
         .reload-btn:hover { background: #3ca374; }
-        
-        /* メッセージがない時の薄い文字 */
         .empty-msg { color: #99aab5; font-style: italic; text-align: center; padding-top: 50px; }
     </style>
 </head>
@@ -41,9 +46,9 @@
     </div>
 
     <script>
+        // ⚠️ ここはあなたのRenderのURLを入れてください！
         const SERVER_URL = "https://kankun-app.onrender.com/";
 
-        // メッセージを取得する関数
         async function fetchMessages() {
             try {
                 const response = await fetch(`${SERVER_URL}/api/messages`);
@@ -52,22 +57,45 @@
                 const chatBox = document.getElementById('chat-box');
                 chatBox.innerHTML = ''; 
                 
-                // 💡 追加：履歴が空っぽの時の処理
                 if (messages.length === 0) {
                     chatBox.innerHTML = '<div class="empty-msg">まだメッセージがありません。<br>Discordで何か発言するとここに表示されます！</div>';
                     return;
                 }
 
                 messages.forEach(msg => {
-                    chatBox.innerHTML += `
-                        <div class="message">
-                            <span class="author">${msg.author}:</span> 
-                            <span>${msg.content}</span>
-                        </div>
-                    `;
+                    let html = `<div class="message">`;
+                    
+                    // 1. コマンド実行者の表示 (インタラクション)
+                    if (msg.interaction) {
+                        html += `<div class="interaction">
+                                    <span>${msg.interaction.user} さんが <strong>/${msg.interaction.name}</strong> を使用しました</span>
+                                 </div>`;
+                    }
+                    
+                    // 2. 発言者の名前 (Botなら[アプリ]タグをつける)
+                    let botTag = msg.is_bot ? `<span class="bot-tag">アプリ</span>` : '';
+                    html += `<div><span class="author">${msg.author}</span>${botTag}</div>`;
+                    
+                    // 3. 通常のテキストメッセージ
+                    if (msg.content) {
+                        html += `<div style="margin-top: 5px;">${msg.content}</div>`;
+                    }
+                    
+                    // 4. 埋め込み(Embed)の表示
+                    if (msg.embeds && msg.embeds.length > 0) {
+                        msg.embeds.forEach(embed => {
+                            html += `<div class="embed">`;
+                            if (embed.title) html += `<div class="embed-title">${embed.title}</div>`;
+                            if (embed.description) html += `<div class="embed-desc">${embed.description}</div>`;
+                            if (embed.image) html += `<div class="embed-image"><img src="${embed.image}" alt="埋め込み画像"></div>`;
+                            html += `</div>`;
+                        });
+                    }
+                    
+                    html += `</div>`;
+                    chatBox.innerHTML += html;
                 });
                 
-                // 一番下に自動スクロール
                 chatBox.scrollTop = chatBox.scrollHeight;
             } catch (error) {
                 console.error("メッセージ取得エラー:", error);
@@ -75,7 +103,6 @@
             }
         }
 
-        // メッセージを送信する関数
         async function sendMessage() {
             const input = document.getElementById('msg-input');
             const text = input.value;
@@ -88,13 +115,12 @@
                     body: JSON.stringify({ text: text })
                 });
                 input.value = ''; 
-                fetchMessages(); // 送信後すぐに履歴を更新
+                fetchMessages(); 
             } catch (error) {
                 alert("送信に失敗しました！");
             }
         }
 
-        // 2秒ごとに自動更新（リロードボタンがあっても、一応自動更新も残しておきます）
         setInterval(fetchMessages, 2000);
         fetchMessages();
     </script>
