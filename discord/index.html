@@ -41,6 +41,13 @@
     <div id="chat-box">通信中...</div>
 
     <div class="controls">
+        <select id="mention-select" style="padding: 10px; border-radius: 5px; background: #40444b; color: white; border: none;">
+            <option value="">メンションしない</option>
+        </select>
+        <input type="file" id="image-input" accept="image/*" style="color: white; padding: 10px;">
+    </div>
+
+    <div class="controls">
         <input type="text" id="msg-input" placeholder="Discordにメッセージを送信...">
         <button class="send-btn" onclick="sendMessage()">送信する</button>
     </div>
@@ -49,8 +56,24 @@
         // ⚠️ ここはあなたのRenderのURLを入れてください！
         const SERVER_URL = "https://kankun-app.onrender.com/";
 
-        // 💡 追加：前回の表示内容を記憶しておく変数
         let lastHtml = '';
+
+        // 🌟追加：Discordのメンバー一覧を取得してプルダウンに入れる
+        async function fetchMembers() {
+            try {
+                const response = await fetch(`${SERVER_URL}/api/members`);
+                const members = await response.json();
+                const select = document.getElementById('mention-select');
+                members.forEach(member => {
+                    const option = document.createElement('option');
+                    option.value = member.id;
+                    option.textContent = `@${member.name}`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error("メンバー取得エラー:", error);
+            }
+        }
 
         async function fetchMessages() {
             try {
@@ -58,7 +81,6 @@
                 const messages = await response.json();
                 
                 const chatBox = document.getElementById('chat-box');
-
                 const isScrolledToBottom = chatBox.scrollHeight - chatBox.clientHeight <= chatBox.scrollTop + 50;
                 const previousScrollTop = chatBox.scrollTop;
                 
@@ -98,45 +120,49 @@
                     });
                 }
 
-                // 💡 【超重要】新着メッセージがなく、前回と全く同じ内容ならここでストップ！（画面を書き換えない）
-                if (newHtml === lastHtml) {
-                    return; 
-                }
+                if (newHtml === lastHtml) return; 
 
-                // 新しい内容だった場合のみ、画面を書き換えて記録を更新する
                 lastHtml = newHtml;
                 chatBox.innerHTML = newHtml;
                 
-                // スクロール位置の復元
                 if (isScrolledToBottom) {
                     chatBox.scrollTop = chatBox.scrollHeight;
                 } else {
                     chatBox.scrollTop = previousScrollTop;
                 }
-
             } catch (error) {
                 console.error("メッセージ取得エラー:", error);
-                const errorHtml = '<div class="empty-msg" style="color: #f04747;">サーバーと通信できません。<br>Renderが起動しているか確認してください。</div>';
-                // エラー時もチラつきを防止
-                if (lastHtml !== errorHtml) {
-                    document.getElementById('chat-box').innerHTML = errorHtml;
-                    lastHtml = errorHtml;
-                }
             }
         }
 
+        // 🌟変更：テキスト・メンション・画像をまとめて送信する
         async function sendMessage() {
-            const input = document.getElementById('msg-input');
-            const text = input.value;
-            if (!text) return;
+            const textInput = document.getElementById('msg-input');
+            const text = textInput.value;
+            const mentionId = document.getElementById('mention-select').value;
+            const imageInput = document.getElementById('image-input');
+            const imageFile = imageInput.files[0];
+
+            if (!text && !imageFile) return;
+
+            // 画像などのファイルを含むデータを送るための特殊な箱 (FormData)
+            const formData = new FormData();
+            if (text) formData.append('text', text);
+            if (mentionId) formData.append('mention_id', mentionId);
+            if (imageFile) formData.append('image', imageFile);
 
             try {
+                // FormData を送るときは headers の Content-Type は書きません（自動で設定されます）
                 await fetch(`${SERVER_URL}/api/send`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: text })
+                    body: formData
                 });
-                input.value = ''; 
+                
+                // 送信後にリセットする
+                textInput.value = ''; 
+                document.getElementById('mention-select').value = '';
+                imageInput.value = ''; 
+                
                 fetchMessages(); 
             } catch (error) {
                 alert("送信に失敗しました！");
@@ -145,6 +171,7 @@
 
         setInterval(fetchMessages, 2000);
         fetchMessages();
+        fetchMembers(); // 🌟起動時にメンバー一覧を読み込む
     </script>
 </body>
 </html>
