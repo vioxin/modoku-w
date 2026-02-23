@@ -105,6 +105,7 @@
                             html += `<div style="margin-top: 5px;">${msg.content}</div>`;
                         }
                         
+                        // 埋め込み (Embed) の表示（これまでのコード）
                         if (msg.embeds && msg.embeds.length > 0) {
                             msg.embeds.forEach(embed => {
                                 html += `<div class="embed">`;
@@ -114,6 +115,23 @@
                                 html += `</div>`;
                             });
                         }
+                        
+                        // 🌟 ここから追加：添付ファイル(Attachments)の表示
+                        if (msg.attachments && msg.attachments.length > 0) {
+                            msg.attachments.forEach(att => {
+                                // もしファイルが「画像 (image)」だったら
+                                if (att.content_type && att.content_type.startsWith('image/')) {
+                                    html += `<div class="embed-image"><img src="${att.url}" alt="${att.filename}" style="max-width: 100%; border-radius: 4px; margin-top: 5px;"></div>`;
+                                } 
+                                // 画像以外の普通のファイル (PDF、zip、txtなど) だったら
+                                else {
+                                    html += `<div style="margin-top: 5px; background: #2f3136; padding: 10px; border-radius: 5px; display: inline-block;">
+                                                📎 <a href="${att.url}" target="_blank" style="color: #00b0f4; text-decoration: none; font-weight: bold;">${att.filename}</a>
+                                             </div>`;
+                                }
+                            });
+                        }
+                        // 🌟 追加ここまで
                         
                         html += `</div>`;
                         newHtml += html;
