@@ -55,48 +55,65 @@
                 const messages = await response.json();
                 
                 const chatBox = document.getElementById('chat-box');
-                chatBox.innerHTML = ''; 
+
+                // 💡 【修正ポイント1】更新前のスクロール状態を記憶しておく
+                // 一番下付近にいるかどうかをチェック（50pxの誤差を許容）
+                const isScrolledToBottom = chatBox.scrollHeight - chatBox.clientHeight <= chatBox.scrollTop + 50;
+                // 現在のスクロール位置を記憶
+                const previousScrollTop = chatBox.scrollTop;
+                
+                let newHtml = ''; // 画面のチラつきを防ぐため、HTMLを一旦変数にまとめる
                 
                 if (messages.length === 0) {
-                    chatBox.innerHTML = '<div class="empty-msg">まだメッセージがありません。<br>Discordで何か発言するとここに表示されます！</div>';
-                    return;
+                    newHtml = '<div class="empty-msg">まだメッセージがありません。<br>Discordで何か発言するとここに表示されます！</div>';
+                } else {
+                    messages.forEach(msg => {
+                        let html = `<div class="message">`;
+                        
+                        // インタラクション (コマンド実行者)
+                        if (msg.interaction) {
+                            html += `<div class="interaction">
+                                        <span>${msg.interaction.user} さんが <strong>/${msg.interaction.name}</strong> を使用しました</span>
+                                     </div>`;
+                        }
+                        
+                        // 発言者
+                        let botTag = msg.is_bot ? `<span class="bot-tag">アプリ</span>` : '';
+                        html += `<div><span class="author">${msg.author}</span>${botTag}</div>`;
+                        
+                        // テキスト
+                        if (msg.content) {
+                            html += `<div style="margin-top: 5px;">${msg.content}</div>`;
+                        }
+                        
+                        // 埋め込み (Embed)
+                        if (msg.embeds && msg.embeds.length > 0) {
+                            msg.embeds.forEach(embed => {
+                                html += `<div class="embed">`;
+                                if (embed.title) html += `<div class="embed-title">${embed.title}</div>`;
+                                if (embed.description) html += `<div class="embed-desc">${embed.description}</div>`;
+                                if (embed.image) html += `<div class="embed-image"><img src="${embed.image}" alt="埋め込み画像"></div>`;
+                                html += `</div>`;
+                            });
+                        }
+                        
+                        html += `</div>`;
+                        newHtml += html;
+                    });
                 }
 
-                messages.forEach(msg => {
-                    let html = `<div class="message">`;
-                    
-                    // 1. コマンド実行者の表示 (インタラクション)
-                    if (msg.interaction) {
-                        html += `<div class="interaction">
-                                    <span>${msg.interaction.user} さんが <strong>/${msg.interaction.name}</strong> を使用しました</span>
-                                 </div>`;
-                    }
-                    
-                    // 2. 発言者の名前 (Botなら[アプリ]タグをつける)
-                    let botTag = msg.is_bot ? `<span class="bot-tag">アプリ</span>` : '';
-                    html += `<div><span class="author">${msg.author}</span>${botTag}</div>`;
-                    
-                    // 3. 通常のテキストメッセージ
-                    if (msg.content) {
-                        html += `<div style="margin-top: 5px;">${msg.content}</div>`;
-                    }
-                    
-                    // 4. 埋め込み(Embed)の表示
-                    if (msg.embeds && msg.embeds.length > 0) {
-                        msg.embeds.forEach(embed => {
-                            html += `<div class="embed">`;
-                            if (embed.title) html += `<div class="embed-title">${embed.title}</div>`;
-                            if (embed.description) html += `<div class="embed-desc">${embed.description}</div>`;
-                            if (embed.image) html += `<div class="embed-image"><img src="${embed.image}" alt="埋め込み画像"></div>`;
-                            html += `</div>`;
-                        });
-                    }
-                    
-                    html += `</div>`;
-                    chatBox.innerHTML += html;
-                });
+                // 一気に画面を書き換え
+                chatBox.innerHTML = newHtml;
                 
-                chatBox.scrollTop = chatBox.scrollHeight;
+                // 💡 【修正ポイント2】スクロール位置の復元
+                if (isScrolledToBottom) {
+                    // 最新の会話を追っている場合は一番下へ自動スクロール
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                } else {
+                    // 過去ログを遡って読んでいる場合は、元のスクロール位置をキープ
+                    chatBox.scrollTop = previousScrollTop;
+                }
+
             } catch (error) {
                 console.error("メッセージ取得エラー:", error);
                 document.getElementById('chat-box').innerHTML = '<div class="empty-msg" style="color: #f04747;">サーバーと通信できません。<br>Renderが起動しているか確認してください。</div>';
