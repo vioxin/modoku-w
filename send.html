@@ -6,12 +6,15 @@
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #1e1e1e; color: white; }
-        .card { background: #2d2d2d; padding: 20px; border-radius: 8px; width: 350px; }
-        button { width: 100%; padding: 15px; background: #d32f2f; color: white; border: none; font-size: 16px; font-weight: bold; cursor: pointer; border-radius: 5px; }
+        body { font-family: sans-serif; padding: 20px; background: #1e1e1e; color: white; display: flex; justify-content: center;}
+        .card { background: #2d2d2d; padding: 25px; border-radius: 8px; width: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .input-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; font-size: 0.9em; color: #aaa; }
+        input[type="text"] { width: 100%; padding: 10px; background: #121212; border: 1px solid #444; color: #00ff00; font-family: monospace; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #d32f2f; color: white; border: none; font-size: 16px; font-weight: bold; cursor: pointer; border-radius: 5px; transition: background 0.2s; }
         button:hover { background: #b71c1c; }
-        button:disabled { background: #555; }
-        #response { margin-top: 15px; color: #4caf50; font-weight: bold; min-height: 20px;}
+        button:disabled { background: #555; cursor: not-allowed; }
+        #response { margin-top: 15px; color: #4caf50; font-weight: bold; min-height: 40px; word-break: break-all; }
     </style>
 </head>
 <body>
@@ -20,9 +23,14 @@
     <h2>🎯 リモート管理パネル</h2>
     <p>バックエンドPCのEdgeブラウザを強制終了させます。</p>
     
+    <div class="input-group">
+        <label for="url-input">接続先URL (ngrok または localhost)</label>
+        <input type="text" id="url-input" value="http://localhost:8000/api/command" placeholder="https://xxxx.ngrok-free.app">
+    </div>
+
     <button id="kill-btn">Edgeを強制終了 (KILL)</button>
 
-    <div id="response"></div>
+    <div id="response">準備完了。</div>
 </div>
 
 <script type="py">
@@ -34,22 +42,33 @@ from js import document
 async def send_kill_command(event):
     btn = document.getElementById("kill-btn")
     res_div = document.getElementById("response")
+    url_input = document.getElementById("url-input").value.strip()
     
+    # URLが空の場合はエラー
+    if not url_input:
+        res_div.innerText = "エラー: URLを入力してください。"
+        res_div.style.color = "#f44336"
+        return
+
+    # 【親切機能】末尾に /api/command が無ければ自動で付ける
+    if not url_input.endswith("/api/command"):
+        if url_input.endswith("/"):
+            url_input += "api/command"
+        else:
+            url_input += "/api/command"
+        
+        # UIの表示も書き換えてあげる
+        document.getElementById("url-input").value = url_input
+
     btn.disabled = True
-    res_div.innerText = "実行中..."
+    res_div.innerText = f"送信中...\n宛先: {url_input}"
     res_div.style.color = "#ffeb3b"
 
-    # バックエンドに送る指令
     payload = {"instruction": "kill_edge"}
 
     try:
-        # バックエンドが別PCの場合は、localhostをそのPCのローカルIP（例: 192.168.1.5）に変更してください
-        # 変更前
-        # response = await pyfetch("http://localhost:8000/api/command", ...
-        
-        # 変更後（ngrokのURLに書き換える）
         response = await pyfetch(
-            "https://roxane-cytogenetical-cira.ngrok-free.dev/api/command",
+            url_input,
             method="POST",
             headers={"Content-Type": "application/json"},
             body=json.dumps(payload)
@@ -60,11 +79,11 @@ async def send_kill_command(event):
             res_div.innerText = data["message"]
             res_div.style.color = "#4caf50"
         else:
-            res_div.innerText = f"通信エラー: {response.status}"
+            res_div.innerText = f"通信エラー: {response.status}\nURLが間違っているか、サーバーが動いていません。"
             res_div.style.color = "#f44336"
             
     except Exception as e:
-        res_div.innerText = "エラー: サーバーに接続できません。"
+        res_div.innerText = f"接続エラー: サーバーに到達できません。\n(ngrokのURLや起動状態を確認してください)"
         res_div.style.color = "#f44336"
         print(e)
         
