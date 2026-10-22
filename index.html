@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <link rel="stylesheet" href="https://use.typekit.net/etu8ort.css" id="adobe-typekit-fonts">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CYBER MODOKU-W</title>
   <style>
@@ -289,8 +290,9 @@
       80% { clip: rect(54px, 9999px, 21px, 0); } 100% { clip: rect(2px, 9999px, 90px, 0); }
     }
   </style>
+    <link rel="stylesheet" href="halloween.css">
 </head>
-<body>
+<body class="halloween-home">
 
 <canvas id="canvas-bg"></canvas>
 
@@ -306,6 +308,7 @@
     <ul>
       <li><a href="index.html">ホーム</a></li>
       <li><a href="news.html">お知らせ</a></li>
+      <li><a href="sns.html">🎃 modoku SNS</a></li>
       <li><a href="threads.html">その他の掲示板</a></li>
       <li><a href="gallery.html">画像掲示板</a></li>
       <li><a href="hoseirpg/hoseirpg3">ほうせいRPG3</a></li>
@@ -391,7 +394,7 @@ class Particle {
     draw() {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
-        ctx.fillStyle = '#00f3ff';
+        ctx.fillStyle = '#ff873e';
         ctx.fill();
     }
     update() {
@@ -726,6 +729,27 @@ async function deleteMyPost(rowNumber) {
         alert("NETWORK ERROR");
     }
 }
+</script>
+<script id="halloween-font-activation">
+(function () {
+  const applyAdobeFont = () => {
+    try {
+      const faces = Array.from(document.fonts || []);
+      const ignored = /^(Arial|Helvetica|Helvetica Neue|Times New Roman|Courier New|serif|sans-serif|monospace|DotGothic16|Noto Sans JP)$/i;
+      const family = faces.map(face => String(face.family || '').replace(/^['\"]|['\"]$/g, '').trim())
+        .find(name => name && !ignored.test(name));
+      if (family) {
+        const safe = family.replace(/[\"\\]/g, '');
+        document.documentElement.style.setProperty('--brand-font', '"' + safe + '", "Yu Gothic UI", "Meiryo", sans-serif');
+      }
+    } catch (_) { /* The CSS fallback remains available if the font kit cannot be inspected. */ }
+  };
+  const kit = document.getElementById('adobe-typekit-fonts');
+  if (kit) kit.addEventListener('load', applyAdobeFont, { once: true });
+  if (document.readyState === 'complete') applyAdobeFont();
+  else window.addEventListener('load', applyAdobeFont, { once: true });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(applyAdobeFont);
+})();
 </script>
 </body>
 </html>

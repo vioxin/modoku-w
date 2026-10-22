@@ -1,0 +1,233 @@
+/* modoku-w — Halloween Night redesign
+   Seasonal presentation layer. Existing page structure and app scripts are preserved. */
+:root {
+  color-scheme: dark;
+  --main-bg: #100b17;
+  --text-color: #f8f1fb;
+  --primary: #ff873e;
+  --secondary: #b99aff;
+  --accent-color: #b99aff;
+  --glass-bg: rgba(28, 18, 38, .78);
+  --post-bg: rgba(34, 22, 43, .76);
+  --name-color: #ffc08b;
+  --input-bg: rgba(12, 8, 20, .88);
+  --input-text: #fff2e7;
+  --anchor-color: #eda7ff;
+  --border-color: rgba(255, 135, 62, .34);
+  --post-border: rgba(208, 180, 255, .16);
+  --date-color: #b2a5bc;
+  --font-main: var(--brand-font, "Yu Gothic UI", "Meiryo", sans-serif);
+  --halloween-orange: #ff873e;
+  --halloween-lilac: #b99aff;
+  --halloween-ink: #100b17;
+}
+
+html { scroll-behavior: smooth; scrollbar-color: #8855a8 #140d1d; }
+body {
+  color: var(--text-color) !important;
+  background-color: var(--main-bg) !important;
+  background-image:
+    radial-gradient(ellipse at 12% 0%, rgba(116, 56, 147, .22), transparent 38%),
+    radial-gradient(ellipse at 92% 12%, rgba(255, 112, 43, .13), transparent 30%),
+    linear-gradient(180deg, #100b17 0%, #130d1b 52%, #0c0912 100%);
+  font-family: var(--brand-font, "Yu Gothic UI", "Meiryo", sans-serif) !important;
+  line-height: 1.7;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Keep the custom font across ordinary UI while leaving code-like output readable. */
+body p, body h1, body h2, body h3, body h4, body h5, body h6,
+body label, body a, body button, body input, body textarea, body select,
+body option, body summary, body blockquote, body li, body .menu-btn,
+body .close-btn, body .side-menu a, body .btn, body .action-btn,
+body .btn-primary, body .btn-refresh, body .back-btn, body .nav-btn,
+body .card h3, body .card h2, body .cyber-card h2,
+body .post-name, body .thread-item b {
+  font-family: var(--brand-font, "Yu Gothic UI", "Meiryo", sans-serif) !important;
+}
+
+::selection { background: rgba(255, 135, 62, .34); color: #fffaf4; }
+:focus-visible { outline: 2px solid var(--halloween-lilac) !important; outline-offset: 3px; }
+a { color: #ffc08b; text-decoration-color: rgba(255, 192, 139, .45); text-underline-offset: 3px; transition: color .2s ease, text-shadow .2s ease; }
+a:hover { color: #f4dfff; text-shadow: 0 0 16px rgba(185, 154, 255, .35); }
+
+h1, h2, h3, h4 { text-wrap: balance; }
+h2 { color: var(--secondary); }
+hr { border: 0; border-top: 1px solid rgba(185, 154, 255, .25); }
+
+/* Shared surfaces */
+.card, .cyber-card, .post-item, .post-card, .thread-item, .gallery-item,
+.plan-status-box, .embed, .job-card, .rpg-window, .panel, .container-card,
+#chat-box, #messageList, .form-area, .discord-area {
+  border-color: rgba(185, 154, 255, .25);
+}
+.card, .cyber-card, .post-item, .post-card, .thread-item, .gallery-item,
+.plan-status-box, .embed, .panel, .container-card {
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .22), inset 0 1px 0 rgba(255, 255, 255, .025);
+}
+.card, .cyber-card, .post-item, .post-card, .thread-item, .gallery-item {
+  background-color: rgba(30, 20, 41, .72) !important;
+  border-color: rgba(185, 154, 255, .22) !important;
+  border-radius: 18px;
+  backdrop-filter: blur(10px);
+}
+.card:hover, .cyber-card:hover, .post-item:hover, .post-card:hover, .thread-item:hover, .gallery-item:hover {
+  border-color: rgba(255, 135, 62, .64) !important;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, .3), 0 0 28px rgba(255, 135, 62, .07);
+}
+
+/* Main site navigation and page headers */
+body > header,
+.container > header,
+.main-content > header,
+body > .main-content > header {
+  border-color: rgba(255, 135, 62, .28) !important;
+}
+.side-menu {
+  background: rgba(18, 11, 27, .97) !important;
+  border-color: rgba(255, 135, 62, .54) !important;
+  box-shadow: 16px 0 50px rgba(0, 0, 0, .25);
+}
+.side-menu a { color: #f6edf9 !important; border-bottom-color: rgba(255, 255, 255, .075) !important; }
+.side-menu a:hover { background: rgba(255, 135, 62, .16) !important; color: #ffd1b1 !important; padding-left: 35px; }
+.menu-btn, .close-btn { color: var(--halloween-orange) !important; text-shadow: 0 0 18px rgba(255, 135, 62, .25) !important; }
+
+/* Inputs */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+textarea, select {
+  color: #fff3e9 !important;
+  background: rgba(12, 8, 20, .82) !important;
+  border: 1px solid rgba(185, 154, 255, .34) !important;
+  border-radius: 12px !important;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, .22);
+  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+input::placeholder, textarea::placeholder { color: #988ba4 !important; opacity: 1; }
+input:focus, textarea:focus, select:focus {
+  border-color: var(--halloween-orange) !important;
+  box-shadow: 0 0 0 3px rgba(255, 135, 62, .13), 0 0 22px rgba(255, 135, 62, .08) !important;
+  outline: none;
+}
+
+/* Buttons share a warm candlelit accent but retain their original actions. */
+button, input[type="button"], input[type="submit"], input[type="reset"],
+.btn-primary, .action-btn, .btn-play, .btn-refresh, .back-btn, .reload-btn,
+.send-btn, .nav-btn, .sp-btn {
+  font-weight: 700;
+  border-radius: 12px !important;
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease, background .18s ease;
+}
+button:not(:disabled):hover, input[type="button"]:hover, input[type="submit"]:hover,
+input[type="reset"]:hover, .btn-primary:hover, .action-btn:hover, .btn-play:hover,
+.btn-refresh:hover, .back-btn:hover, .reload-btn:hover, .send-btn:hover, .nav-btn:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .28), 0 0 20px rgba(255, 135, 62, .13);
+}
+button:disabled { opacity: .52; cursor: not-allowed; transform: none !important; }
+
+.btn-primary, .action-btn, .btn-play, .send-btn {
+  background: linear-gradient(115deg, #ff873e 0%, #ffad69 48%, #b99aff 100%) !important;
+  color: #1a1020 !important;
+  border: 1px solid rgba(255, 232, 217, .22) !important;
+  box-shadow: 0 8px 25px rgba(255, 106, 45, .12);
+}
+.btn-refresh, .back-btn, .nav-btn, .reload-btn, .sp-btn {
+  background: rgba(185, 154, 255, .07) !important;
+  color: #e7d9ff !important;
+  border: 1px solid rgba(185, 154, 255, .48) !important;
+}
+
+/* Loader */
+#loader { background: radial-gradient(circle at center, #21132c 0%, #100b17 58%, #08060c 100%) !important; }
+.loader-circle { border-top-color: var(--halloween-orange) !important; }
+.loader-circle:before { border-top-color: var(--halloween-lilac) !important; }
+
+/* Home page: haunted moon / seasonal masthead */
+body.halloween-home > header {
+  isolation: isolate;
+  padding: clamp(92px, 12vh, 132px) 20px 76px !important;
+  border-bottom: 1px solid rgba(255, 135, 62, .32) !important;
+  background:
+    radial-gradient(ellipse at 50% 110%, rgba(126, 69, 153, .19), transparent 58%),
+    linear-gradient(180deg, rgba(20, 12, 29, .94), rgba(16, 11, 23, .55)) !important;
+}
+body.halloween-home > header::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: clamp(180px, 27vw, 360px);
+  aspect-ratio: 1;
+  right: max(4vw, calc((100vw - 1100px) / 2));
+  top: 2%;
+  border-radius: 50%;
+  opacity: .55;
+  background: radial-gradient(circle at 34% 30%, #ffe0a0 0%, #ffb75f 12%, #ff873e 42%, rgba(255, 135, 62, .12) 65%, transparent 72%);
+  filter: blur(.4px);
+  box-shadow: 0 0 75px rgba(255, 125, 57, .10);
+  pointer-events: none;
+}
+body.halloween-home > header::after {
+  content: "✦     🦇     ✦     🕸";
+  position: absolute;
+  right: max(4vw, calc((100vw - 1100px) / 2));
+  bottom: 18px;
+  color: rgba(226, 206, 255, .62);
+  font-size: clamp(14px, 2vw, 20px);
+  letter-spacing: .55em;
+  pointer-events: none;
+}
+body.halloween-home .glitch-wrapper { z-index: 1; }
+body.halloween-home .glitch-wrapper::after {
+  content: "HALLOWEEN EDITION  /  2026";
+  display: block;
+  margin: 23px auto 0;
+  width: fit-content;
+  padding: 7px 14px 6px;
+  border: 1px solid rgba(255, 135, 62, .42);
+  border-radius: 999px;
+  background: rgba(20, 12, 28, .72);
+  color: #ffc08b;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .24em;
+  line-height: 1.5;
+  box-shadow: 0 0 22px rgba(255, 135, 62, .07);
+}
+body.halloween-home h1 { text-shadow: 0 0 28px rgba(255, 135, 62, .16) !important; }
+body.halloween-home .form-area,
+body.halloween-home .discord-area { border-radius: 18px; }
+body.halloween-home .form-area h2,
+body.halloween-home .list-header h2 { letter-spacing: .04em; }
+body.halloween-home footer { background: rgba(9, 6, 14, .82) !important; }
+
+/* Lists and readable utility text */
+.post-name, .thread-item b { color: #ffc08b !important; text-shadow: none !important; }
+.res-num { color: #c9adff !important; text-shadow: none !important; }
+.anchor { color: #e0b4ff !important; border-bottom-color: rgba(224, 180, 255, .7) !important; }
+.sync-text, .refresh-status { color: #ffc08b !important; }
+footer { color: #a89bb2 !important; border-top-color: rgba(185, 154, 255, .2) !important; }
+table { border-color: rgba(185, 154, 255, .22); }
+th { background: rgba(185, 154, 255, .12); color: #ffe0c9; }
+td, th { border-color: rgba(185, 154, 255, .18); }
+
+/* Game views keep their own canvas/layout; only their surrounding controls are themed. */
+.rpg-window, .game-window, #game-ui, .status-bar span {
+  border-color: rgba(255, 135, 62, .5);
+}
+#chat-box { background: rgba(20, 13, 28, .96) !important; border: 1px solid rgba(185, 154, 255, .24); }
+.message { border-bottom-color: rgba(185, 154, 255, .16) !important; }
+.author, .bot-tag { color: #ffc08b; }
+
+@media (max-width: 700px) {
+  body.halloween-home > header { padding: 100px 16px 68px !important; }
+  body.halloween-home > header::before { right: -55px; top: 5%; opacity: .32; }
+  body.halloween-home > header::after { right: 12px; bottom: 10px; font-size: 13px; letter-spacing: .2em; }
+  body.halloween-home .glitch-wrapper::after { font-size: 9px; letter-spacing: .14em; margin-top: 18px; }
+  .card, .cyber-card, .post-item, .post-card, .thread-item, .gallery-item { border-radius: 14px; }
+  button, input[type="button"], input[type="submit"] { max-width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

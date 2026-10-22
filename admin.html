@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+  <link rel="stylesheet" href="https://use.typekit.net/etu8ort.css" id="adobe-typekit-fonts">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CYBER ADMIN PANEL - modoku-w</title>
     <style>
@@ -69,6 +70,7 @@
         .token-code { background: rgba(188, 19, 254, 0.2); padding: 5px 10px; color: var(--primary); font-family: monospace; border-radius: 5px; border: 1px solid var(--secondary); display: inline-block; }
         #newTokenDisplay { background: rgba(0, 243, 255, 0.1); padding: 20px; border-radius: 10px; border: 1px solid var(--primary); margin-bottom: 20px; }
     </style>
+    <link rel="stylesheet" href="halloween.css">
 </head>
 <body>
 <canvas id="canvas-bg"></canvas>
@@ -317,6 +319,27 @@
         const res = await fetch(url, { method: "POST", body: JSON.stringify(body) });
         if((await res.json()).success) loadAllData();
     }
+</script>
+<script id="halloween-font-activation">
+(function () {
+  const applyAdobeFont = () => {
+    try {
+      const faces = Array.from(document.fonts || []);
+      const ignored = /^(Arial|Helvetica|Helvetica Neue|Times New Roman|Courier New|serif|sans-serif|monospace|DotGothic16|Noto Sans JP)$/i;
+      const family = faces.map(face => String(face.family || '').replace(/^['\"]|['\"]$/g, '').trim())
+        .find(name => name && !ignored.test(name));
+      if (family) {
+        const safe = family.replace(/[\"\\]/g, '');
+        document.documentElement.style.setProperty('--brand-font', '"' + safe + '", "Yu Gothic UI", "Meiryo", sans-serif');
+      }
+    } catch (_) { /* The CSS fallback remains available if the font kit cannot be inspected. */ }
+  };
+  const kit = document.getElementById('adobe-typekit-fonts');
+  if (kit) kit.addEventListener('load', applyAdobeFont, { once: true });
+  if (document.readyState === 'complete') applyAdobeFont();
+  else window.addEventListener('load', applyAdobeFont, { once: true });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(applyAdobeFont);
+})();
 </script>
 </body>
 </html>
