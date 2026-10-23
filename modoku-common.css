@@ -58,9 +58,10 @@ pre, code { overflow-wrap: anywhere; }
   display: grid;
   place-items: center;
   padding: 24px;
-  background:
-    radial-gradient(circle at 50% 42%, rgba(90, 50, 116, .38), transparent 37%),
-    radial-gradient(circle at center, #21132c 0%, #100b17 58%, #08060c 100%);
+  /* Use a neutral translucent dimmer so the page remains visible behind the loader. */
+  background: rgba(0, 0, 0, .44);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   color: #fff8f0;
   z-index: 2147483647;
   opacity: 0;
@@ -84,7 +85,7 @@ pre, code { overflow-wrap: anywhere; }
   padding: 30px 24px;
   border: 1px solid rgba(185, 154, 255, .28);
   border-radius: 22px;
-  background: rgba(19, 12, 28, .78);
+  background: rgba(19, 12, 28, .70);
   box-shadow: 0 20px 90px rgba(0, 0, 0, .45), 0 0 30px rgba(255, 135, 62, .08);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);

@@ -14,6 +14,12 @@
 @media(max-width:1120px){.sns-shell{grid-template-columns:205px minmax(400px,1fr);max-width:950px}.right{display:none}.sns-left{top:10px}.center{min-height:calc(100vh - 20px)}}
 @media(max-width:700px){.sns-shell{display:block;padding:0}.sns-left{display:none}.center{border-radius:0;border:0;min-height:100vh}.page-head{padding:16px 15px}.compose{padding:14px 12px}.post{padding:14px 12px}.view-toolbar{padding:12px}.mobile-bar{display:flex;position:fixed;z-index:30;bottom:0;left:0;right:0;justify-content:space-around;gap:4px;padding:8px 5px calc(8px + env(safe-area-inset-bottom));background:#120b1cf2;backdrop-filter:blur(18px);border-top:1px solid var(--sns-line)}.mobile-bar button{background:transparent;border:0;color:#cfbfdc;font-size:20px;padding:7px 10px;border-radius:11px}.mobile-bar button.active{background:#b99aff20;color:#ffc08b}.center{padding-bottom:63px}.community-grid{grid-template-columns:1fr}.message-layout{grid-template-columns:120px minmax(0,1fr)}.conversation{padding:9px 7px}.conversation .avatar{display:none}.profile-head .avatar{width:70px;height:70px;flex-basis:70px}.post-media img{height:140px}.compose-tools{align-items:flex-start;flex-direction:column}.compose-bottom{width:100%;justify-content:space-between}.char-count{margin-left:auto}.only-mobile{display:block}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+.head-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto}
+.refresh-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid rgba(185,154,255,.45);background:rgba(185,154,255,.10);color:#f3e9ff;border-radius:999px;padding:7px 12px;font-size:12px;font-weight:800;white-space:nowrap;min-height:34px;transition:background .16s,border-color .16s}
+.refresh-btn:hover{background:rgba(255,135,62,.16);border-color:rgba(255,135,62,.7)}
+.refresh-btn:disabled{opacity:.65;cursor:wait}
+@media(max-width:700px){.page-head-row{align-items:flex-start}.head-actions{gap:5px;flex-wrap:wrap}.refresh-btn{padding:6px 9px;font-size:11px}.page-head h1{font-size:20px}.pill{font-size:10px;padding:5px 7px}}
 </style>
 
     <link rel="stylesheet" href="modoku-common.css">
@@ -39,7 +45,7 @@
   </aside>
 
   <main class="center">
-    <div class="page-head"><div class="page-head-row"><div><h1 id="pageTitle">ホーム</h1><div id="pageSubtitle" class="subline">夜のタイムラインへようこそ。</div></div><span id="connectionBadge" class="pill local">ローカルデモ</span></div></div>
+    <div class="page-head"><div class="page-head-row"><div><h1 id="pageTitle">ホーム</h1><div id="pageSubtitle" class="subline">夜のタイムラインへようこそ。</div></div><div class="head-actions"><button id="refreshBtn" class="refresh-btn" type="button" onclick="manualRefresh()" aria-label="最新情報に更新">↻ 更新</button><span id="connectionBadge" class="pill local">ローカルデモ</span></div></div></div>
     <section id="content" aria-live="polite"></section>
   </main>
 
@@ -172,7 +178,8 @@ default:throw Error('未対応の操作です: '+action)} }
 function toggleRelation(key,postId,type){data[key]=data[key]||[];const i=data[key].findIndex(x=>x.userId===currentUser.id&&x.postId===postId);if(i>=0)data[key].splice(i,1);else{data[key].unshift({id:uid(),userId:currentUser.id,postId,createdAt:now()});const p=data.posts.find(x=>x.id===postId);if(p&&type!=='bookmark')notify(p.userId,type,currentUser,postId,{like:'いいねしました',repost:'リポストしました'}[type]);}saveLocal();return {success:true,active:i<0}}
 function notifyMentions(post){const ids=[...post.text.matchAll(/@([\w.-]+)/g)].map(m=>m[1].toLowerCase());(data.posts||[]).forEach(p=>{if(ids.includes(String(p.userName||'').toLowerCase())||ids.includes(String(p.userId||'').toLowerCase()))notify(p.userId,'mention',currentUser,post.id,'投稿であなたに言及しました')})}
 async function doAction(action,payload={},silent=false){try{const result=await api(action,payload);if(result&&result.success===false)throw Error(result.message||'操作できませんでした');if(!silent)showToast(({createPost:'投稿しました',toggleLike:'いいねを更新しました',toggleRepost:'リポストを更新しました',toggleBookmark:'ブックマークを更新しました',follow:'フォロー状態を更新しました',sendMessage:'メッセージを送信しました',createList:'リストを作成しました',createCommunity:'コミュニティを作成しました',report:'通報を受け付けました',saveProfile:'プロフィールを保存しました'})[action]||'完了しました');await refresh();return result}catch(e){showToast(e.message||'操作に失敗しました');return null}}
-async function refresh(){try{data=serverMode?data:data||loadLocal();const snap=await api('snapshot',{mode:feedMode,profileId:profileTarget,dmWith:dmTarget,listId:activeListId,community:activeCommunityName});Object.assign(viewData,snap||{});render();}catch(e){showToast(e.message);if(!data||!data.posts)data=loadLocal();Object.assign(viewData,localSnapshot({mode:feedMode,profileId:profileTarget,dmWith:dmTarget}));render();}}
+async function refresh(){try{data=serverMode?data:data||loadLocal();const snap=await api('snapshot',{mode:feedMode,profileId:profileTarget,dmWith:dmTarget,listId:activeListId,community:activeCommunityName});Object.assign(viewData,snap||{});render();return true;}catch(e){showToast(e.message);if(!data||!data.posts)data=loadLocal();Object.assign(viewData,localSnapshot({mode:feedMode,profileId:profileTarget,dmWith:dmTarget}));render();return false;}}
+async function manualRefresh(){const button=$('refreshBtn');if(button&&button.disabled)return;if(button){button.disabled=true;button.textContent='↻ 更新中';}const ok=await refresh();if(button){button.disabled=false;button.textContent='↻ 更新';}if(ok)showToast('最新の情報に更新しました');}
 let viewData={};
 const viewsMeta={home:['ホーム','夜のタイムラインへようこそ。'],explore:['話題を検索','キーワード・人・ハッシュタグを見つけよう。'],notifications:['通知','あなたの投稿に関するアクティビティ。'],messages:['メッセージ','会話をプライベートに楽しもう。'],bookmarks:['ブックマーク','あとで読み返す投稿。'],lists:['リスト','興味に合わせてタイムラインを整理。'],communities:['コミュニティ','同じ興味を持つ人たちの場所。'],profile:['プロフィール','あなたの投稿と自己紹介。'],settings:['設定','アカウントとSNSの動作を管理。'],scheduled:['予約投稿・下書き','下書きを保存し、投稿を予約。']};
 function goView(v){const draftNow=captureComposer();if(draftNow)composerBuffer=draftNow;activeView=v;if(v==='profile')profileTarget=currentUser.id;document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===v));const m=viewsMeta[v]||['modoku SNS',''];$('pageTitle').textContent=m[0];$('pageSubtitle').textContent=m[1];refresh().then(()=>{window.scrollTo({top:0,behavior:'smooth'});});}
@@ -244,7 +251,7 @@ function renderTrends(){const trends=viewData.trends||[];$('trends').innerHTML=t
 function renderSuggestions(){const users=Object.values(viewData.users||{}).filter(u=>u.id!==currentUser.id).slice(0,5);const follows=new Set(viewData.followingIds||[]);$('suggestions').innerHTML=users.map(u=>`<div class="suggestion"><div class="avatar small">${esc(initials(u.name))}</div><div class="suggestion-name"><strong>${esc(u.name)}</strong><span>@${esc(u.id)}</span></div><button class="follow-btn ${follows.has(u.id)?'following':''}" onclick="doAction('follow',{targetId:${jsq(u.id)}})">${follows.has(u.id)?'中':'フォロー'}</button></div>`).join('')||'<div class="small-muted">ユーザーが増えると、ここにおすすめが表示されます。</div>'}
 async function loadInitial(){data=loadLocal();try{await refresh()}catch(e){data=loadLocal();Object.assign(viewData,localSnapshot());render()}updateHeader()}
 window.addEventListener('load',loadInitial);
-setInterval(()=>{if(!document.hidden&&configuredApiUrl())refresh()},30000);
+// Shared SNS data is refreshed manually with the button in the page header.
 // Adobe Fonts のロードに合わせる
 (function(){const apply=()=>{try{const faces=Array.from(document.fonts||[]);const ignored=/^(Arial|Helvetica|Helvetica Neue|Times New Roman|Courier New|serif|sans-serif|DotGothic16|Noto Sans JP)$/i;const family=faces.map(f=>String(f.family||'').replace(/^['"]|['"]$/g,'').trim()).find(n=>n&&!ignored.test(n));if(family)document.documentElement.style.setProperty('--brand-font','"'+family.replace(/["\\]/g,'')+'", "Yu Gothic UI", Meiryo, sans-serif')}catch(e){}};const kit=$('adobe-typekit-fonts');if(kit)kit.addEventListener('load',apply,{once:true});if(document.fonts?.ready)document.fonts.ready.then(apply);})();
 </script>
