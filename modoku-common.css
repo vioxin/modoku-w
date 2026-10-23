@@ -1,0 +1,238 @@
+/* Shared site fixes: Apps Script loading layer, fixed navigation and responsive layouts. */
+:root {
+  --modoku-loading-ink: #100b17;
+  --modoku-loading-orange: #ff873e;
+  --modoku-loading-lilac: #b99aff;
+}
+
+html {
+  max-width: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+img, video, iframe, svg { max-width: 100%; }
+input, textarea, select, button { max-width: 100%; }
+input, textarea, select { min-width: 0; }
+pre, code { overflow-wrap: anywhere; }
+
+/* Sidebar menus on older pages were nested inside headers that use backdrop-filter / overflow:hidden.
+   The shared JS moves the menu to body; these rules keep it viewport-fixed and fully scrollable. */
+.side-menu, #side-menu {
+  position: fixed !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-height: 100vh !important;
+  max-height: 100dvh !important;
+  max-width: min(320px, 88vw) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+  z-index: 2147483000 !important;
+}
+.menu-btn, .close-btn {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.menu-btn {
+  z-index: 2147482500 !important;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.side-menu a, #side-menu a { overflow-wrap: anywhere; }
+
+/* Full-screen loading indicator for requests to Google Apps Script web apps. */
+#modoku-network-loader {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(90, 50, 116, .38), transparent 37%),
+    radial-gradient(circle at center, #21132c 0%, #100b17 58%, #08060c 100%);
+  color: #fff8f0;
+  z-index: 2147483647;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .18s ease, visibility .18s ease;
+  font-family: var(--brand-font, "Yu Gothic UI", Meiryo, sans-serif);
+  text-align: center;
+}
+#modoku-network-loader.is-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+#modoku-network-loader .modoku-loader-content {
+  width: min(340px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 13px;
+  padding: 30px 24px;
+  border: 1px solid rgba(185, 154, 255, .28);
+  border-radius: 22px;
+  background: rgba(19, 12, 28, .78);
+  box-shadow: 0 20px 90px rgba(0, 0, 0, .45), 0 0 30px rgba(255, 135, 62, .08);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+#modoku-network-loader .modoku-loader-spinner {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: 4px solid rgba(185, 154, 255, .2);
+  border-top-color: var(--modoku-loading-orange);
+  border-right-color: var(--modoku-loading-lilac);
+  animation: modoku-loader-spin .8s linear infinite;
+  box-shadow: 0 0 24px rgba(255, 135, 62, .1);
+}
+#modoku-network-loader .modoku-loader-title {
+  color: #ffc08b;
+  font: 900 15px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .22em;
+  text-shadow: 0 0 18px rgba(255, 135, 62, .24);
+}
+#modoku-network-loader .modoku-loader-message {
+  color: #d1c4df;
+  font-size: 12px;
+  line-height: 1.8;
+}
+#modoku-network-loader .modoku-loader-dots::after {
+  content: "";
+  display: inline-block;
+  width: 1.5em;
+  text-align: left;
+  animation: modoku-loader-dots 1.2s steps(4, end) infinite;
+}
+@keyframes modoku-loader-spin { to { transform: rotate(360deg); } }
+@keyframes modoku-loader-dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75%, 100% { content: "..."; } }
+
+/* Mobile defaults that can be safely shared by content pages, forms and utility screens. */
+@media (max-width: 768px) {
+  html, body { width: 100%; max-width: 100%; }
+  body {
+    min-width: 0 !important;
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: clip !important;
+    overflow-y: auto;
+  }
+  h1 { font-size: clamp(1.45rem, 6.5vw, 2.15rem); overflow-wrap: anywhere; }
+  h2 { font-size: clamp(1.15rem, 5.2vw, 1.7rem); overflow-wrap: anywhere; }
+  p, li, a, label, small { overflow-wrap: anywhere; }
+  button, input[type="button"], input[type="submit"], input[type="reset"] {
+    min-height: 40px;
+    touch-action: manipulation;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  textarea, select { width: 100%; max-width: 100%; font-size: 16px; }
+  textarea { resize: vertical; }
+  table { display: block; width: 100%; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  th, td { max-width: 75vw; }
+  pre { max-width: 100%; overflow-x: auto; }
+  iframe { width: 100%; }
+  .container, .main-container, .main-content, .post-container, .page-container,
+  .gallery-container, .admin-container, .form-container, .content-container,
+  .grid-container, .wrapper, .wrap, .content-wrapper {
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+  .main-content, .post-container, .page-container, .gallery-container,
+  .admin-container, .form-container, .content-container, .content-wrapper {
+    padding-left: max(12px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(12px, env(safe-area-inset-right, 0px)) !important;
+  }
+  .card, .cyber-card, .post-item, .post-card, .thread-item, .gallery-item,
+  .panel, .upload-card, .form-area, .discord-area, .container-card {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  .post-header, .list-header, .user-info, .guest-nav, .toolbar,
+  .form-row, .button-group, .actions, .profile-head, .list-row {
+    flex-wrap: wrap;
+  }
+  .nav-container { max-width: calc(100% - 70px); }
+  .nav-container button, .guest-nav button { margin: 4px; }
+  .menu-btn { top: max(10px, env(safe-area-inset-top, 0px)) !important; left: 12px !important; }
+  .side-menu, #side-menu {
+    max-width: min(320px, 88vw) !important;
+    padding-top: calc(60px + env(safe-area-inset-top, 0px)) !important;
+  }
+  #modoku-network-loader .modoku-loader-content { padding: 26px 18px; }
+}
+
+@media (max-width: 520px) {
+  body { font-size: 14px; }
+  header { padding-left: 12px !important; padding-right: 12px !important; }
+  .container, .main-container, .wrapper, .wrap, .content-wrapper { width: 100% !important; }
+  .card, .cyber-card, .panel, .upload-card, .form-area { padding: 14px !important; }
+  .post-item, .thread-item, .gallery-item { padding: 13px !important; margin-bottom: 14px !important; }
+  .output-area { min-height: 32vh; }
+  .menu-btn { font-size: 27px !important; }
+  .side-menu a, #side-menu a { padding-left: 22px !important; padding-right: 18px !important; }
+  .post-actions, .action-buttons { gap: 4px; flex-wrap: wrap; }
+  .post-actions button, .action-buttons button { flex: 1 1 auto; }
+  .modal, .modal-content, .dialog { max-width: calc(100vw - 24px) !important; max-height: calc(100dvh - 24px); overflow-y: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #modoku-network-loader .modoku-loader-spinner { animation-duration: 2s; }
+}
+
+/* A few legacy screens have fixed desktop-sized sublayouts; adapt those on narrow viewports. */
+@media (max-width: 768px) {
+  .controls { flex-wrap: wrap; }
+  .controls > * { min-width: 0; }
+  .grid-container, .community-grid, .dashboard-grid, .admin-grid,
+  .main-grid, .content-grid, .gallery-grid, .feature-grid, .panel-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .casino-frame { width: min(100%, calc(100vw - 24px)); max-width: calc(100vw - 24px); padding: clamp(14px, 4.5vw, 28px) !important; }
+  .reels { gap: clamp(5px, 2.5vw, 15px) !important; padding: clamp(8px, 3vw, 16px) !important; font-size: clamp(32px, 10vw, 62px) !important; }
+  #game-container { max-width: 100vw; }
+  .game-window, .rpg-window, #game-ui, .output-area { max-width: 100%; }
+}
+
+@media (max-width: 520px) {
+  /* Dedicated DM screen: keep the conversation list compact and let the chat occupy the rest. */
+  body:has(.main-container) {
+    height: 100vh !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    display: flex;
+    flex-direction: column;
+  }
+  body:has(.main-container) .main-container {
+    width: 100%;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column !important;
+  }
+  body:has(.main-container) .sidebar {
+    width: 100% !important;
+    min-height: 90px;
+    max-height: 24dvh;
+    flex: 0 0 auto;
+    border-right: 0 !important;
+    border-bottom: 1px solid currentColor;
+  }
+  body:has(.main-container) #partner-list { max-height: 16dvh; }
+  body:has(.main-container) .chat-view { min-height: 0; flex: 1 1 auto; }
+  body:has(.main-container) #chat-box { min-height: 80px; }
+  body:has(.main-container) .input-area { padding: 8px; }
+}
