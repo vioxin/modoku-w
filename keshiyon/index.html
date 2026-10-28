@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101014">
+  <meta name="description" content="消し四目並べ KESHIYONのボードゲームルール。手番、四目の得点、ロック・削除モード、盤面拡張、勝敗条件を図解で紹介。">
+  <title>KESHIYON — 消し四目並べ ルールブック</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">本文へスキップ</a>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="KESHIYON ルールブック トップ">
+      <span class="brand-mark">K</span>
+      <span class="brand-copy"><strong>KESHIYON</strong><small>BOARD GAME RULEBOOK</small></span>
+    </a>
+    <nav class="main-nav" aria-label="ページ内ナビゲーション">
+      <a href="#overview">ゲーム概要</a>
+      <a href="#turn">手番と配置</a>
+      <a href="#scoring">四目と得点</a>
+      <a href="#modes">ロック／削除</a>
+      <a href="#expansion">盤面拡張</a>
+      <a href="#end">勝敗条件</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero section-wrap" id="top">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="eyebrow-dot"></span> THE RULES OF KESHIYON</p>
+        <h1>四目をつくる。<br><span class="accent">盤面を変える。</span></h1>
+        <p class="hero-lead">「消し四目並べ」は、四目をそろえて得点しながら、駒を帽子に変えたり、盤面から消したりして戦う2人用ボードゲームです。四目を作っただけでは勝利になりません。最後に得点の多いプレイヤーが勝ちます。</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="#overview">ルールを読む <span aria-hidden="true">↓</span></a>
+          <a class="button button-quiet" href="#quick-reference">早見表へ</a>
+        </div>
+        <div class="hero-meta"><span>2 PLAYERS</span><span>5 COLUMNS</span><span>POINT-BASED</span></div>
+      </div>
+      <div class="hero-art" aria-label="○と×の駒が並ぶゲーム盤のイラスト">
+        <div class="art-glow"></div>
+        <div class="hero-board">
+          <div class="hero-board-head"><span>THE BOARD</span><span class="live-pill"><i></i> 2P GAME</span></div>
+          <div class="art-grid" aria-hidden="true">
+            <span class="cell muted"></span><span class="cell muted"></span><span class="cell muted"></span><span class="cell muted"></span><span class="cell muted"></span>
+            <span class="cell muted"></span><span class="cell muted"></span><span class="cell muted"></span><span class="cell muted"></span><span class="cell muted"></span>
+            <span class="cell"></span><span class="cell piece-o">○</span><span class="cell"></span><span class="cell piece-x">×</span><span class="cell"></span>
+            <span class="cell piece-x">×</span><span class="cell hat">▲</span><span class="cell piece-o">○</span><span class="cell piece-x">×</span><span class="cell"></span>
+            <span class="cell piece-o">○</span><span class="cell piece-x">×</span><span class="cell piece-o">○</span><span class="cell hat">▲</span><span class="cell piece-o">○</span>
+            <span class="cell piece-o">○</span><span class="cell piece-x">×</span><span class="cell piece-o">○</span><span class="cell piece-x">×</span><span class="cell piece-x">×</span>
+          </div>
+          <div class="board-legend"><span><i class="legend-o">○</i> まる</span><span><i class="legend-x">×</i> ばつ</span><span><i class="legend-hat">▲</i> 帽子</span></div>
+        </div>
+        <div class="floating-note note-score"><small>FOUR IN A ROW</small><strong>+1 POINT</strong></div>
+        <div class="floating-note note-mode"><span class="note-icon">▲</span><span><small>MODE SWITCH</small><strong>LOCK ⇄ DELETE</strong></span></div>
+      </div>
+    </section>
+
+    <section class="quick-stats section-wrap" aria-label="ゲームの基本情報">
+      <div class="stat"><span class="stat-num">02</span><span class="stat-label">プレイヤー</span></div>
+      <div class="stat"><span class="stat-num">05</span><span class="stat-label">列の数</span></div>
+      <div class="stat"><span class="stat-num">04 → 06</span><span class="stat-label">開始段数 → 最大段数</span></div>
+      <div class="stat"><span class="stat-num">4+</span><span class="stat-label">連続で得点</span></div>
+      <div class="stat"><span class="stat-num">PTS</span><span class="stat-label">得点で勝負</span></div>
+    </section>
+
+    <section class="content-section section-wrap" id="overview">
+      <div class="section-heading"><p class="eyebrow">01 / OVERVIEW</p><h2>ゲームの目的</h2><p>四目をそろえて得点し、相手より多くの点を取ろう。</p></div>
+      <div class="two-col overview-grid">
+        <article class="panel objective-panel">
+          <div class="panel-icon icon-target">◎</div>
+          <h3>勝利条件は「最終得点」</h3>
+          <p>四目を作ると点が入りますが、その場で勝ちにはなりません。ゲームが終了した時点で、得点が多い側が勝利します。同点なら引き分けです。</p>
+          <div class="score-example"><div><span class="token-o">○</span><strong>3</strong><small>点</small></div><span class="versus">VS</span><div><span class="token-x">×</span><strong>2</strong><small>点</small></div><span class="winner-tag">○ WIN</span></div>
+        </article>
+        <article class="panel equipment-panel">
+          <div class="panel-icon icon-pieces">◉</div>
+          <h3>用意するもの</h3>
+          <ul class="check-list">
+            <li>5列・最大6段のマス目がある盤</li>
+            <li>○の駒と×の駒</li>
+            <li>帽子マスを示すマーカー（▲など）</li>
+          </ul>
+          <p class="small-note">開始時に使うのは下側の4段だけ。上の2段は拡張用として空けておきます。帽子マーカーは、ロックされた駒を表すために使います。</p>
+        </article>
+      </div>
+      <div class="board-start panel">
+        <div class="board-caption"><div><span class="mini-label">INITIAL SETUP</span><h3>初期盤面は「5列 × 4段」</h3></div><span class="status-chip">下4段を使用</span></div>
+        <div class="setup-board" role="img" aria-label="5列6段の盤。上2段はまだ使わず、下4段が初期の有効マス">
+          <div class="setup-row inactive"><i></i><i></i><i></i><i></i><i></i><span>拡張用</span></div>
+          <div class="setup-row inactive"><i></i><i></i><i></i><i></i><i></i><span>拡張用</span></div>
+          <div class="setup-row active"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="setup-row active"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="setup-row active"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="setup-row active"><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+        <div class="setup-legend"><span><i class="legend-square active-square"></i> 最初から使えるマス</span><span><i class="legend-square inactive-square"></i> まだ使わないマス</span></div>
+      </div>
+    </section>
+
+    <section class="content-section section-wrap" id="turn">
+      <div class="section-heading"><p class="eyebrow">02 / TURN & PLACEMENT</p><h2>手番と駒の置き方</h2><p>○が先手、あとは○と×が交互に1手ずつ進めます。</p></div>
+      <div class="steps-grid">
+        <article class="step-card"><span class="step-number">1</span><h3>自分の駒を1個置く</h3><p>自分の手番に、置ける空きマスを1つ選びます。</p><div class="step-mini mini-one"><span></span><span></span><span class="mini-stone o-stone">○</span><span></span><span></span></div></article>
+        <article class="step-card"><span class="step-number">2</span><h3>置けるのは支えのあるマス</h3><p>最下段の空きマス、または真下のマスが埋まっている空きマスに置けます。帽子マスも「埋まっている」と扱います。</p><div class="support-diagram" aria-label="下に駒があるので上に置ける例"><div class="support-cell"><span>○</span><b>置ける</b></div><div class="support-cell filled"><span>×</span><b>支え</b></div></div></article>
+        <article class="step-card"><span class="step-number">3</span><h3>四目ができたか確認</h3><p>置いた結果、四目以上の連続ラインができていたら得点処理をします。何もできなければ、そのまま相手の手番です。</p><div class="mini-line" aria-label="四つ並んだまる駒"><span>○</span><span>○</span><span>○</span><span class="last-o">○</span><i>→ +1</i></div></article>
+      </div>
+      <aside class="notice notice-warm"><span class="notice-icon">!</span><div><strong>削除で空きができても、上の駒は落ちません。</strong><p>駒や帽子が消えたあとも、ほかの駒は置かれたマスに残ります。新しく置く駒については、そのマスの真下が埋まっているかを確認します。</p></div></aside>
+    </section>
+
+    <section class="content-section section-wrap" id="scoring">
+      <div class="section-heading"><p class="eyebrow">03 / FOUR & SCORE</p><h2>四目を作ると得点</h2><p>自分の駒を、縦・横・斜めのいずれかに4個以上連続させます。</p></div>
+      <div class="line-types">
+        <article class="panel line-panel"><span class="line-tag">HORIZONTAL</span><h3>横</h3><div class="line-demo horizontal" aria-label="横に4つのまる駒"><span>○</span><span>○</span><span>○</span><span>○</span></div><p>横方向に連続</p></article>
+        <article class="panel line-panel"><span class="line-tag">VERTICAL</span><h3>縦</h3><div class="line-demo vertical" aria-label="縦に4つのばつ駒"><span>×</span><span>×</span><span>×</span><span>×</span></div><p>縦方向に連続</p></article>
+        <article class="panel line-panel"><span class="line-tag">DIAGONAL</span><h3>斜め</h3><div class="diagonal-demo" aria-label="斜めに4つのまる駒"><span>○</span><span></span><span></span><span></span><span></span><span>○</span><span></span><span></span><span></span><span></span><span>○</span><span></span><span></span><span></span><span></span><span>○</span></div><p>右上がり・右下がり</p></article>
+      </div>
+      <div class="score-rules panel">
+        <div class="score-rule"><span class="rule-symbol">+1</span><div><h3>連続ライン1本につき1点</h3><p>同じ方向に5個や6個つながっていても、ひと続きのラインなら1点です。重なっていない別のラインが同時にできた場合は、それぞれ得点します。</p></div></div>
+        <div class="score-rule"><span class="rule-symbol symbol-hat">▲</span><div><h3>帽子マスはラインに含めない</h3><p>帽子になった駒は○でも×でもありません。帽子をまたいで四目を数えることはできません。</p></div></div>
+        <div class="score-rule"><span class="rule-symbol symbol-turn">↔</span><div><h3>得点処理のあともゲーム続行</h3><p>四目ができたら得点とモード処理を行い、手番を交代します。四目ができたこと自体ではゲームは終了しません。</p></div></div>
+      </div>
+    </section>
+
+    <section class="content-section section-wrap" id="modes">
+      <div class="section-heading"><p class="eyebrow">04 / LOCK & DELETE</p><h2>ロックモードと削除モード</h2><p>得点が発生するたびに、2つのモードが交互に切り替わります。</p></div>
+      <div class="mode-cycle"><span class="mode-node lock-node"><b>▲</b><span>ロック</span></span><span class="cycle-arrow">⇄</span><span class="mode-node delete-node"><b>⌫</b><span>削除</span></span><span class="mode-cycle-note">得点が発生するたびに切替</span></div>
+      <div class="two-col mode-panels">
+        <article class="panel mode-panel lock-panel">
+          <div class="mode-title"><span class="mode-badge lock-badge">MODE A</span><h3>ロックモード</h3></div>
+          <p>四目を作ったラインの駒が、すべて帽子マスに変わります。帽子マスは盤上に残り、次の駒を支えますが、以降の四目には使えません。</p>
+          <div class="before-after">
+            <div class="sample-state"><small>得点前</small><div class="sample-row"><i>○</i><i>○</i><i>○</i><i>○</i><i class="empty">·</i></div></div>
+            <span class="transform-arrow" aria-hidden="true">→</span>
+            <div class="sample-state"><small>得点後</small><div class="sample-row"><i class="hat-cell">▲</i><i class="hat-cell">▲</i><i class="hat-cell">▲</i><i class="hat-cell">▲</i><i class="empty">·</i></div></div>
+          </div>
+          <p class="small-note">ラインを作った1手で複数ラインができた場合は、そのすべてのライン上の駒が帽子になります。</p>
+        </article>
+        <article class="panel mode-panel delete-panel">
+          <div class="mode-title"><span class="mode-badge delete-badge">MODE B</span><h3>削除モード</h3></div>
+          <p>四目を作ったラインの駒が消えます。さらに、ラインのマスの上下左右に隣接している帽子マスも消えます。</p>
+          <div class="delete-example">
+            <div class="delete-board" aria-label="削除前。横四目の上下左右にある帽子は消えるが、斜め隣の帽子は残る例">
+              <i class="empty">·</i><i class="hat-cell removed">▲</i><i class="empty">·</i><i class="empty">·</i><i class="hat-cell stays">▲</i>
+              <i class="x-cell">×</i><i class="x-cell">×</i><i class="x-cell">×</i><i class="x-cell">×</i><i class="hat-cell removed">▲</i>
+              <i class="empty">·</i><i class="empty">·</i><i class="hat-cell removed">▲</i><i class="empty">·</i><i class="empty">·</i>
+            </div>
+            <div class="delete-legend"><span><i class="legend-square gone-square"></i> 消える</span><span><i class="legend-square stay-square"></i> 斜め隣なので残る</span></div>
+          </div>
+          <p class="small-note">消えるのはラインの駒と、上下左右に隣接した帽子だけです。隣にある○や×の駒は、ラインに含まれていなければ消えません。</p>
+        </article>
+      </div>
+      <aside class="notice"><span class="notice-icon">i</span><div><strong>開始時はロックモードです。</strong><p>得点が発生すると、そのときのモードで処理したあと、次に得点したときのモードへ切り替わります。1手で複数点入っても、切り替えは1回です。</p></div></aside>
+    </section>
+
+    <section class="content-section section-wrap" id="expansion">
+      <div class="section-heading"><p class="eyebrow">05 / BOARD EXPANSION</p><h2>盤面は最大6段まで拡張</h2><p>得点が同点のとき、盤面が広がるチャンスがあります。</p></div>
+      <div class="expansion-layout">
+        <div class="expansion-visual panel">
+          <div class="expansion-board before-board"><span class="mini-label">BEFORE</span><div class="exp-row"><i></i><i></i><i></i><i></i><i></i></div><div class="exp-row"><i></i><i></i><i></i><i></i><i></i></div><div class="exp-row"><i></i><i></i><i></i><i></i><i></i></div><div class="exp-row"><i></i><i></i><i></i><i></i><i></i></div><small>使用中：4段</small></div>
+          <div class="expansion-arrow"><span>+ 1段</span><b>→</b></div>
+          <div class="expansion-board after-board"><span class="mini-label">AFTER</span><div class="exp-row new-row"><i></i><i></i><i></i><i></i><i></i></div><div class="exp-row"><i></i><i></i><i></i><i></i><i></i></div><div class="exp-row"><i></i><i></i><i></i><i></i><i></i></div><div class="exp-row"><i></i><i></i><i></i><i></i><i></i></div><div class="exp-row"><i></i><i></i><i></i><i></i><i></i></div><small>使用中：5段</small></div>
+        </div>
+        <div class="expansion-rules">
+          <article class="expansion-rule"><span class="exp-number">01</span><div><h3>得点が同点で、空きが1〜2マス</h3><p>まだ6段に達していなければ、上に1段追加します。新しい段には5マスが増えます。</p></div></article>
+          <article class="expansion-rule"><span class="exp-number">02</span><div><h3>空きマスが0になったとき</h3><p>最後に駒を置いたプレイヤーに追加で1点が入ります。その後、得点が同点でまだ6段未満なら1段追加して続行します。</p></div></article>
+          <article class="expansion-rule"><span class="exp-number">03</span><div><h3>最大は6段</h3><p>6段より上には増えません。空きマスがなく、追加段も作れない場合はゲーム終了です。</p></div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="content-section section-wrap" id="end">
+      <div class="section-heading"><p class="eyebrow">06 / GAME END</p><h2>ゲーム終了と勝敗</h2><p>盤面が埋まったときの追加点と、最終得点で勝敗が決まります。</p></div>
+      <div class="end-flow">
+        <div class="flow-step"><span class="flow-icon">1</span><div><strong>有効マスがすべて埋まる</strong><p>その手で得点処理も行ったあと、空きマスが残っていないか確認します。</p></div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-step"><span class="flow-icon">2</span><div><strong>最後に置いた側へ追加1点</strong><p>空きマスを最後に埋めたプレイヤーに、ボーナスの1点が加わります。</p></div></div>
+        <div class="flow-connector"></div>
+        <div class="flow-step"><span class="flow-icon">3</span><div><strong>同点かつ6段未満なら拡張して続行</strong><p>それ以外は対局終了です。最終得点が高い側の勝利、同点なら引き分けです。</p></div></div>
+      </div>
+      <div class="result-cards"><div class="result-card result-o"><span>○</span><div><strong>○の得点が多い</strong><small>○の勝利</small></div></div><div class="result-card result-x"><span>×</span><div><strong>×の得点が多い</strong><small>×の勝利</small></div></div><div class="result-card result-draw"><span>＝</span><div><strong>得点が同じ</strong><small>引き分け</small></div></div></div>
+    </section>
+
+    <section class="content-section section-wrap" id="quick-reference">
+      <div class="section-heading"><p class="eyebrow">07 / QUICK REFERENCE</p><h2>遊ぶ前の早見表</h2><p>細かい処理に迷ったときは、ここを確認してください。</p></div>
+      <div class="faq-list">
+        <details><summary>四目を作ったら、その場で勝ち？</summary><p>いいえ。四目は得点条件です。モード処理を行い、ゲームは続きます。勝敗は終了時の合計得点で決まります。</p></details>
+        <details><summary>5個以上つながったら何点？</summary><p>ひと続きのラインなら1点です。同じ1本のラインを4個ずつに区切って複数回得点することはありません。別方向にラインができていれば、それぞれ得点します。</p></details>
+        <details><summary>帽子マスの上に駒を置ける？</summary><p>置けます。帽子マスは占有マスとして扱うため、その真上の空きマスは支えがあるマスになります。ただし、帽子は四目の一部にはなりません。</p></details>
+        <details><summary>削除で空いたマスの上にある駒は落ちる？</summary><p>落ちません。盤上の駒はそのマスに残ります。以降に駒を置くときは、置くマスの真下が埋まっているかを確認します。</p></details>
+        <details><summary>削除モードでは斜め隣の帽子も消える？</summary><p>消えません。消える帽子はラインのマスに上下・左右で隣接しているものだけです。斜めに接している帽子は残ります。</p></details>
+        <details><summary>複数の四目が同時にできたら？</summary><p>成立したラインごとに得点します。ラインに含まれる駒の処理はまとめて行い、モードの切り替えはその手につき1回です。</p></details>
+      </div>
+    </section>
+
+    <section class="final-cta section-wrap">
+      <div class="final-mark">K</div>
+      <p class="eyebrow">READY TO PLAY?</p>
+      <h2>四目だけじゃ、終わらない。</h2>
+      <p>得点を重ねるか、帽子を残すか、盤面を消し開くか。<br>次の一手で、盤面の意味が変わります。</p>
+      <a class="button button-primary" href="#top">最初に戻る ↑</a>
+    </section>
+  </main>
+
+  <footer class="site-footer"><span> KESHIYON · 消し四目並べ</span><span>ルールガイド</span><a href="#top">ページ先頭へ ↑</a></footer>
+</body>
+</html>
